@@ -52,13 +52,65 @@ class MediaController extends Controller
     }
 
     /**
-    * Delete a media item.
-    */
+     * List all media items with optional filters.
+     */
+    public function index(Request $request)
+    {
+        $query = Media::query();
+
+        if ($request->has('type')) {
+            $query->where('model_type', $this->getModelType($request->type));
+        }
+
+        if ($request->has('collection')) {
+            $query->where('collection_name', $request->collection);
+        }
+
+        if ($request->has('mime_type')) {
+            $query->where('mime_type', 'like', $request->mime_type . '%');
+        }
+
+        $media = $query
+            ->with('model:id')
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->get('per_page', 20));
+
+        $media->getCollection()->transform(function ($item) {
+            return [
+                'id' => $item->id,
+                'file_name' => $item->file_name,
+                'name' => $item->name,
+                'collection' => $item->collection_name,
+                'mime_type' => $item->mime_type,
+                'size' => $item->size,
+                'url' => $item->getUrl(),
+                'model_type' => $item->model_type,
+                'model_id' => $item->model_id,
+                'created_at' => $item->created_at,
+            ];
+        });
+
+        return response()->json($media);
+    }
+
+    /**
+     * Delete a media item.
+     */
     public function destroy(Media $media)
     {
         $media->delete();
 
         return response()->noContent();
+    }
+
+    protected function getModelType(string $type): string
+    {
+        return match ($type) {
+            'project' => Project::class,
+            'category' => Category::class,
+            'skill' => Skill::class,
+            default => throw ValidationException::withMessages(['type' => 'نوع غير مدعوم']),
+        };
     }
 
     protected function resolveModel(string $type, int $id): Model
