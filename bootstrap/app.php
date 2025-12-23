@@ -4,6 +4,11 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\HandleCors;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\SetSecurityHeaders;
+use App\Http\Middleware\SetLocaleFromRequest;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,7 +18,21 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->use([HandleCors::class]);
+        $middleware->use([HandleCors::class, SetSecurityHeaders::class]);
+
+        $middleware->group('web', [
+            SetLocaleFromRequest::class,
+        ]);
+
+        $middleware->group('api', [
+            SetLocaleFromRequest::class,
+            ThrottleRequests::class . ':api',
+        ]);
+
+        $middleware->alias([
+            'auth' => Authenticate::class,
+            'verified' => EnsureEmailIsVerified::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
