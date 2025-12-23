@@ -64,7 +64,7 @@ class BlogPostController extends Controller
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'slug' => ['sometimes', 'required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('blog_posts')->ignore($blogPost->id)],
             'excerpt' => ['nullable', 'string', 'max:1024'],
-            'content' => ['sometimes', 'required', 'string'],
+            'content' => ['nullable', 'string'],
             'status' => ['sometimes', 'required', 'string', 'in:draft,published,archived'],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
