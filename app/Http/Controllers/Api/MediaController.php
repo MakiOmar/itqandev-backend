@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Project;
 use App\Models\Skill;
@@ -109,6 +110,7 @@ class MediaController extends Controller
             'project' => Project::class,
             'category' => Category::class,
             'skill' => Skill::class,
+            'blog-post' => BlogPost::class,
             default => throw ValidationException::withMessages(['type' => 'نوع غير مدعوم']),
         };
     }
@@ -119,6 +121,7 @@ class MediaController extends Controller
             'project' => Project::findOrFail($id),
             'category' => Category::findOrFail($id),
             'skill' => Skill::findOrFail($id),
+            'blog-post' => \App\Models\BlogPost::findOrFail($id),
             default => throw ValidationException::withMessages(['type' => 'نوع غير مدعوم']),
         };
     }
@@ -129,6 +132,7 @@ class MediaController extends Controller
             Project::class => ['hero', 'gallery', 'attachments', 'video'],
             Category::class => ['icon', 'thumb', 'banner'],
             Skill::class => ['icon'],
+            \App\Models\BlogPost::class => ['featured_image', 'gallery'],
             default => [],
         };
 

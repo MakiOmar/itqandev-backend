@@ -16,6 +16,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('skills', \App\Http\Controllers\Api\SkillController::class);
         Route::apiResource('projects', \App\Http\Controllers\Api\ProjectController::class);
         Route::apiResource('testimonials', \App\Http\Controllers\Api\TestimonialController::class);
+        Route::apiResource('blog-posts', \App\Http\Controllers\Api\BlogPostController::class);
         Route::apiResource('users', \App\Http\Controllers\Api\UserController::class);
         Route::get('roles', fn () => \Spatie\Permission\Models\Role::select('id', 'name')->get());
         Route::get('media', [\App\Http\Controllers\Api\MediaController::class, 'index']);
