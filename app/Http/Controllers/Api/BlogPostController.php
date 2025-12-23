@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
-use App\Support\CacheKey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,9 +11,9 @@ class BlogPostController extends Controller
 {
     public function index(Request $request)
     {
-        $cacheKey = CacheKey::for('blog_posts', ['list', $request->query()]);
+        $cacheKey = 'blog_posts:list:' . md5(json_encode($request->query()));
         
-        return Cache::remember($cacheKey, 3600, function () use ($request) {
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
             $query = BlogPost::with('author:id,name,email');
             
             if ($request->has('status')) {
@@ -39,7 +38,7 @@ class BlogPostController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:blog_posts,slug'],
             'excerpt' => ['nullable', 'string', 'max:1024'],
-            'content' => ['required', 'string'],
+            'content' => ['nullable', 'string'],
             'status' => ['required', 'string', 'in:draft,published,archived'],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],

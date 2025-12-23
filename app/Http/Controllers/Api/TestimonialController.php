@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Testimonial;
-use App\Support\CacheKey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,9 +11,9 @@ class TestimonialController extends Controller
 {
     public function index(Request $request)
     {
-        $cacheKey = CacheKey::for('testimonials', ['list', $request->query()]);
+        $cacheKey = 'testimonials:list:' . md5(json_encode($request->query()));
         
-        return Cache::remember($cacheKey, 3600, function () use ($request) {
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
             $query = Testimonial::with('project:id,title');
             
             if ($request->has('project_id')) {
