@@ -19,9 +19,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('blog-posts', \App\Http\Controllers\Api\BlogPostController::class);
         Route::apiResource('users', \App\Http\Controllers\Api\UserController::class);
         Route::get('roles', fn () => \Spatie\Permission\Models\Role::select('id', 'name')->get());
+        
+        // Media routes - GET must come before DELETE to avoid route model binding conflicts
         Route::get('media', [\App\Http\Controllers\Api\MediaController::class, 'index']);
         Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store']);
-        Route::delete('media/{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy']);
+        Route::delete('media/{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->where('media', '[0-9]+');
         Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
     });
 });
