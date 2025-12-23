@@ -18,24 +18,16 @@ class Testimonial extends Model
         'rating',
         'content',
         'video_url',
+        'approved',
     ];
 
     protected $casts = [
         'rating' => 'integer',
+        'approved' => 'boolean',
     ];
 
     public function project()
     {
         return $this->belongsTo(Project::class);
     }
-}
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
-class Testimonial extends Model
-{
-    //
 }

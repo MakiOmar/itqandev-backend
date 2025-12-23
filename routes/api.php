@@ -15,6 +15,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class);
         Route::apiResource('skills', \App\Http\Controllers\Api\SkillController::class);
         Route::apiResource('projects', \App\Http\Controllers\Api\ProjectController::class);
+        Route::apiResource('testimonials', \App\Http\Controllers\Api\TestimonialController::class);
         Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store']);
         Route::delete('media/{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy']);
         Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
