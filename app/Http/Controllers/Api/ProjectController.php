@@ -27,8 +27,8 @@ class ProjectController extends Controller
             $cacheKey,
             now()->addMinutes(15),
             function () use ($filters) {
-                $query = Project::with(['categories:id,name', 'skills:id,name'])
-                    ->select(['id', 'title', 'slug', 'status', 'featured', 'published_at'])
+                $query = Project::with(['categories:id,name', 'skills:id,name', 'seoMeta'])
+                    ->select(['id', 'title', 'slug', 'status', 'featured', 'published_at', 'summary', 'description', 'link_url', 'repo_url', 'demo_url'])
                     ->latest('published_at');
 
                 if (!empty($filters['category'])) {

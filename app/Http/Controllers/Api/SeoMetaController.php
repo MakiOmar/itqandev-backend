@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Project;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,7 @@ class SeoMetaController extends Controller
         return match ($type) {
             'project' => Project::findOrFail($id),
             'category' => Category::findOrFail($id),
+            'blog-post' => BlogPost::findOrFail($id),
             default => throw ValidationException::withMessages(['type' => 'نوع غير مدعوم']),
         };
     }
