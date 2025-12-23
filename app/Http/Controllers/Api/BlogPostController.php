@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Support\CacheKey;
 use Illuminate\Http\Request;
