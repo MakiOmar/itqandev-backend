@@ -29,13 +29,3 @@ class Skill extends Model implements HasMedia
         $this->addMediaCollection('icon')->singleFile();
     }
 }
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
-class Skill extends Model
-{
-    //
-}

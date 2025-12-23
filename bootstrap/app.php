@@ -9,9 +9,6 @@ use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\SetSecurityHeaders;
 use App\Http\Middleware\SetLocaleFromRequest;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -36,12 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => Authenticate::class,
             'verified' => EnsureEmailIsVerified::class,
         ]);
-
-        RateLimiter::for('api', function (Request $request) {
-            return [
-                Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip()),
-            ];
-        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

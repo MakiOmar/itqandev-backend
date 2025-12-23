@@ -40,13 +40,3 @@ class Category extends Model implements HasMedia
         $this->addMediaCollection('banner')->singleFile();
     }
 }
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
-class Category extends Model
-{
-    //
-}
