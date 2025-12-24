@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\MediaLibrary;
 use App\Models\Project;
 use App\Models\Skill;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,44 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class MediaController extends Controller
 {
+    /**
+     * Upload media to the general media library (WordPress-style).
+     */
+    public function upload(Request $request)
+    {
+        $maxKb = (int) (env('UPLOAD_MAX_SIZE', 1024 * 1024 * 100) / 1024);
+
+        $data = $request->validate([
+            'file' => [
+                'required',
+                'file',
+                "max:{$maxKb}",
+                'mimes:jpeg,jpg,png,webp,avif,gif,svg,mp4,webm,mov,pdf',
+            ],
+        ]);
+
+        /** @var UploadedFile $file */
+        $file = $data['file'];
+
+        $mediaLibrary = MediaLibrary::instance();
+        $media = $mediaLibrary
+            ->addMedia($file)
+            ->toMediaCollection('default');
+
+        return response()->json([
+            'id' => $media->id,
+            'file_name' => $media->file_name,
+            'name' => $media->name,
+            'collection' => $media->collection_name,
+            'mime_type' => $media->mime_type,
+            'size' => $media->size,
+            'url' => $media->getUrl(),
+            'model_type' => $media->model_type,
+            'model_id' => $media->model_id,
+            'created_at' => $media->created_at,
+        ], 201);
+    }
+
     /**
     * Upload media to a specific collection of a model.
     */

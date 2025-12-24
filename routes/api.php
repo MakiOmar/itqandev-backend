@@ -22,7 +22,8 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Media routes - GET must come before DELETE to avoid route model binding conflicts
         Route::get('media', [\App\Http\Controllers\Api\MediaController::class, 'index']);
-        Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store']);
+        Route::post('media/upload', [\App\Http\Controllers\Api\MediaController::class, 'upload']); // General upload (WordPress-style)
+        Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store']); // Attach to specific model
         Route::delete('media/{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->where('media', '[0-9]+');
         Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
     });
