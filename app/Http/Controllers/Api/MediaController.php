@@ -150,6 +150,7 @@ class MediaController extends Controller
             'category' => Category::class,
             'skill' => Skill::class,
             'blog-post' => BlogPost::class,
+            'library' => MediaLibrary::class,
             default => throw ValidationException::withMessages(['type' => 'نوع غير مدعوم']),
         };
     }
