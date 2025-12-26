@@ -30,10 +30,8 @@ class MediaService
     {
         $mediaLibrary = \App\Models\MediaLibrary::instance();
         
-        // Generate file path
-        $path = $this->generateFilePath($file);
-        
         // Add media to collection
+        // The path will be automatically organized by date using the DatePathGenerator
         $media = $mediaLibrary
             ->addMedia($file)
             ->usingName($this->sanitizeFilename($file->getClientOriginalName()))
@@ -50,7 +48,7 @@ class MediaService
         }
 
         // Generate thumbnails for images
-        if (config('media.generate_thumbnails') && $this->isImage($media)) {
+        if (config('media.generate_thumbnails', true) && $this->isImage($media)) {
             $this->generateThumbnails($media);
         }
 
@@ -58,34 +56,28 @@ class MediaService
     }
 
     /**
-     * Generate file path based on configuration.
-     */
-    protected function generateFilePath(UploadedFile $file): string
-    {
-        $basePath = config('media.path', 'media');
-        
-        if (config('media.organize_by_date')) {
-            $basePath .= '/' . date('Y') . '/' . date('m');
-        }
-
-        return $basePath;
-    }
-
-    /**
-     * Sanitize filename.
+     * Sanitize filename while preserving Unicode characters (including Arabic).
      */
     protected function sanitizeFilename(string $filename): string
     {
-        if (!config('media.sanitize_filenames')) {
+        if (!config('media.sanitize_filenames', true)) {
             return $filename;
         }
 
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
         $name = pathinfo($filename, PATHINFO_FILENAME);
         
-        // Remove special characters, keep only alphanumeric, spaces, hyphens, underscores
-        $name = preg_replace('/[^a-zA-Z0-9\s\-_]/', '', $name);
-        $name = Str::slug($name);
+        // Remove only problematic characters, preserve Unicode (Arabic, etc.)
+        // Keep alphanumeric, spaces, hyphens, underscores, and Unicode characters
+        $name = preg_replace('/[<>:"|?*\\x00-\\x1F\\x7F]/u', '', $name);
+        
+        // Trim whitespace
+        $name = trim($name);
+        
+        // If name is empty after sanitization, use a default
+        if (empty($name)) {
+            $name = 'file_' . time();
+        }
         
         return $name . '.' . $extension;
     }

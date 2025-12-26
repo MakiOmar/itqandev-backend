@@ -16,19 +16,25 @@ return [
 
     'allowed_origins' => env('CORS_ALLOWED_ORIGINS')
         ? array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS')))
-        : [
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-            'http://localhost:5173',
-            'http://127.0.0.1:5173',
-            '::1:5173',
-        ],
+        : [],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https?://localhost(:\d+)?$#',
+        '#^https?://127\.0\.0\.1(:\d+)?$#',
+        '#^https?://::1(:\d+)?$#',
+    ],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => [
+        '*',
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'Origin',
+        'X-Requested-With',
+        'Range',
+    ],
 
-    'exposed_headers' => [],
+    'exposed_headers' => ['Content-Disposition'],
 
     'max_age' => 0,
 

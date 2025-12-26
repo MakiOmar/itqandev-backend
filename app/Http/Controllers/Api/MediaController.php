@@ -15,8 +15,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Models\AppMedia as Media;
+use ZipArchive;
 
 class MediaController extends Controller
 {
@@ -50,6 +53,18 @@ class MediaController extends Controller
                 $query->where('mime_type', 'like', 'image/%');
             } elseif ($request->mime_type === 'video') {
                 $query->where('mime_type', 'like', 'video/%');
+            } elseif ($request->mime_type === 'audio') {
+                $query->where('mime_type', 'like', 'audio/%');
+            } elseif ($request->mime_type === 'document') {
+                // Filter for common document types (PDF, Word, Excel, text files, etc.)
+                $query->where(function ($q) {
+                    $q->where('mime_type', 'application/pdf')
+                      ->orWhere('mime_type', 'like', 'application/msword%')
+                      ->orWhere('mime_type', 'like', 'application/vnd.openxmlformats-officedocument%')
+                      ->orWhere('mime_type', 'like', 'application/vnd.ms-excel%')
+                      ->orWhere('mime_type', 'like', 'application/vnd.ms-powerpoint%')
+                      ->orWhere('mime_type', 'like', 'text/%');
+                });
             } else {
                 $query->where('mime_type', 'like', $request->mime_type . '%');
             }
@@ -238,6 +253,180 @@ class MediaController extends Controller
             'deleted_count' => count($data['ids']),
         ]);
     }
+
+    /**
+     * Download a single media item.
+     */
+    public function download(Request $request, $id)
+    {
+        // #region agent log
+        $this->debugLog('H1', 'MediaController::download:start', 'enter', [
+            'id' => $id,
+            'method' => $request->getMethod(),
+            'origin' => $request->headers->get('origin'),
+            'auth' => $request->user()?->id,
+        ]);
+        // #endregion
+
+        $media = Media::findOrFail($id);
+        $path = $media->getPath();
+        $mimeType = $media->mime_type ?? @mime_content_type($path) ?? 'application/octet-stream';
+
+        if (!$path || !file_exists($path)) {
+            // #region agent log
+            $this->debugLog('H2', 'MediaController::download:missing', 'file not found', [
+                'id' => $id,
+                'path' => $path,
+            ]);
+            // #endregion
+            abort(404, 'File not found');
+        }
+
+        // #region agent log
+        $this->debugLog('H2', 'MediaController::download:path', 'path resolved', [
+            'id' => $id,
+            'path' => $path,
+            'size' => @filesize($path),
+        ]);
+        // #endregion
+
+        $fileName = $media->file_name ?? ('media-' . $media->id);
+
+        $response = response()->download($path, $fileName, [
+            'Content-Type' => $mimeType,
+        ]);
+
+        // Manually set CORS on binary response (HandleCors may not mutate BinaryFileResponse)
+        $origin = $request->headers->get('origin');
+        if ($origin) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
+        }
+
+        // #region agent log
+        $this->debugLog('H3', 'MediaController::download:return', 'returning download', [
+            'id' => $id,
+            'fileName' => $fileName,
+            'cors_origin' => $request->headers->get('origin'),
+            'cors_allowed_origins' => config('cors.allowed_origins'),
+            'cors_allowed_patterns' => config('cors.allowed_origins_patterns'),
+            'cors_allowed_headers' => config('cors.allowed_headers'),
+            'cors_supports_credentials' => config('cors.supports_credentials'),
+            'mime_type' => $mimeType,
+            'resp_headers' => [
+                'Access-Control-Allow-Origin' => $response->headers->get('Access-Control-Allow-Origin'),
+                'Access-Control-Allow-Credentials' => $response->headers->get('Access-Control-Allow-Credentials'),
+                'Access-Control-Expose-Headers' => $response->headers->get('Access-Control-Expose-Headers'),
+                'Content-Type' => $response->headers->get('Content-Type'),
+            ],
+            'status' => $response->getStatusCode(),
+        ]);
+        // #endregion
+
+        return $response;
+    }
+
+    /**
+     * Bulk download media items as a ZIP archive.
+     * Accepts a comma-separated list of ids via query: ?ids=1,2,3
+     */
+    public function bulkDownload(Request $request)
+    {
+        $idsParam = $request->query('ids', '');
+        $ids = array_filter(explode(',', $idsParam));
+
+        if (empty($ids)) {
+            return response()->json(['message' => 'No media IDs provided'], 422);
+        }
+
+        foreach ($ids as $id) {
+            if (!ctype_digit($id)) {
+                return response()->json(['message' => 'Invalid media id: ' . $id], 422);
+            }
+        }
+
+        $mediaItems = Media::whereIn('id', $ids)->get();
+
+        if ($mediaItems->isEmpty()) {
+            return response()->json(['message' => 'No media found for provided ids'], 404);
+        }
+
+        $zip = new ZipArchive();
+        $zipFileName = 'media-' . now()->format('Ymd-His') . '-' . Str::random(6) . '.zip';
+        $zipPath = storage_path('app/tmp/' . $zipFileName);
+
+        if (!is_dir(dirname($zipPath))) {
+            mkdir(dirname($zipPath), 0755, true);
+        }
+
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            return response()->json(['message' => 'Unable to create zip file'], 500);
+        }
+
+        foreach ($mediaItems as $media) {
+            $path = $media->getPath();
+            $downloadName = $media->file_name ?? ('media-' . $media->id);
+            $mimeType = $media->mime_type ?? @mime_content_type($path) ?? 'application/octet-stream';
+
+            if ($path && file_exists($path)) {
+                $zip->addFile($path, $downloadName);
+            }
+        }
+
+        $zip->close();
+
+        $response = response()
+            ->download($zipPath, $zipFileName, [
+                'Content-Type' => 'application/zip',
+            ])
+            ->deleteFileAfterSend(true);
+
+        // Manually set CORS on binary response
+        $origin = $request->headers->get('origin');
+        if ($origin) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin);
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
+        }
+
+        // #region agent log
+        $this->debugLog('H3', 'MediaController::bulkDownload:return', 'returning zip', [
+            'ids' => $ids,
+            'zipPath' => $zipPath,
+            'resp_headers' => [
+                'Access-Control-Allow-Origin' => $response->headers->get('Access-Control-Allow-Origin'),
+                'Access-Control-Allow-Credentials' => $response->headers->get('Access-Control-Allow-Credentials'),
+                'Access-Control-Expose-Headers' => $response->headers->get('Access-Control-Expose-Headers'),
+                'Content-Type' => $response->headers->get('Content-Type'),
+            ],
+            'status' => $response->getStatusCode(),
+        ]);
+        // #endregion
+
+        return $response;
+    }
+
+    // #region agent log
+    /**
+     * Append a small NDJSON log for debug mode.
+     */
+    private function debugLog(string $hypothesisId, string $location, string $message, array $data = []): void
+    {
+        $payload = [
+            'sessionId' => 'debug-session',
+            'runId' => 'run1',
+            'hypothesisId' => $hypothesisId,
+            'location' => $location,
+            'message' => $message,
+            'data' => $data,
+            'timestamp' => (int) round(microtime(true) * 1000),
+        ];
+
+        $logPath = dirname(base_path()) . DIRECTORY_SEPARATOR . '.cursor' . DIRECTORY_SEPARATOR . 'debug.log';
+        file_put_contents($logPath, json_encode($payload, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
+    }
+    // #endregion
 
     /**
      * Move media to a folder.

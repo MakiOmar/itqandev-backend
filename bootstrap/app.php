@@ -5,7 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Routing\Middleware\ThrottleRequests;
-use Illuminate\Auth\Middleware\Authenticate;
+use App\Http\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\SetSecurityHeaders;
 use App\Http\Middleware\SetLocaleFromRequest;

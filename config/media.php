@@ -56,7 +56,8 @@ return [
     | Organize by Date
     |--------------------------------------------------------------------------
     |
-    | Whether to organize files by year/month (WordPress-style).
+    | Whether to organize files by year/month/day (WordPress-style).
+    | Files will be stored in: {path}/{year}/{month}/{day}/
     |
     */
     'organize_by_date' => env('MEDIA_ORGANIZE_BY_DATE', true),
