@@ -32,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => Authenticate::class,
             'verified' => EnsureEmailIsVerified::class,
+            'large.uploads' => \App\Http\Middleware\HandleLargeFileUploads::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
