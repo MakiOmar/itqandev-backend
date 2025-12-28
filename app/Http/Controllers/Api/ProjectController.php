@@ -71,7 +71,13 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        $project->load('categories:id,name', 'skills:id,name', 'testimonials', 'seoMeta');
+        // Explicitly resolve ID from route in case implicit binding is bypassed
+        $routeId = $project->id ?: request()->route('project');
+        if (!$routeId) {
+            abort(404, 'Project not found');
+        }
+
+        $project = Project::with('categories:id,name', 'skills:id,name', 'testimonials', 'seoMeta')->findOrFail($routeId);
 
         return response()->json($project);
     }
