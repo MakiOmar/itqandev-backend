@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Database\Seeders\WebDevDemoSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -74,5 +75,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $admin->assignRole($adminRole);
+
+        $this->call(WebDevDemoSeeder::class);
     }
 }
