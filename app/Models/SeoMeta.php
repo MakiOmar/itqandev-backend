@@ -31,13 +31,3 @@ class SeoMeta extends Model
         return $this->morphTo();
     }
 }
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
-class SeoMeta extends Model
-{
-    //
-}
