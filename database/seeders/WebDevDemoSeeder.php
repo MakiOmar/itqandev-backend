@@ -15,12 +15,12 @@ class WebDevDemoSeeder extends Seeder
         $now = Carbon::now();
 
         $categories = [
-            ['name' => 'Web Development', 'slug' => 'web-development', 'description' => 'Custom websites, SPAs, and PWAs'],
-            ['name' => 'UI/UX Design', 'slug' => 'ui-ux-design', 'description' => 'Human-centered interfaces and design systems'],
-            ['name' => 'E-commerce', 'slug' => 'ecommerce', 'description' => 'Online stores, payments, and product catalogs'],
-            ['name' => 'Mobile Apps', 'slug' => 'mobile-apps', 'description' => 'Cross-platform apps with performant backends'],
-            ['name' => 'DevOps & Cloud', 'slug' => 'devops-cloud', 'description' => 'CI/CD, containers, and cloud infrastructure'],
-            ['name' => 'SEO & Performance', 'slug' => 'seo-performance', 'description' => 'Core Web Vitals, on-page SEO, and speed audits'],
+            ['name' => 'تطوير الويب', 'slug' => 'web-development', 'description' => 'مواقع مخصصة، تطبيقات أحادية الصفحة، وتجارب ويب تقدمية'],
+            ['name' => 'تصميم واجهات وتجربة المستخدم', 'slug' => 'ui-ux-design', 'description' => 'تصميمات متمحورة حول المستخدم وأنظمة تصميم متسقة'],
+            ['name' => 'التجارة الإلكترونية', 'slug' => 'ecommerce', 'description' => 'متاجر إلكترونية، بوابات دفع، وإدارة المنتجات'],
+            ['name' => 'تطبيقات الجوال', 'slug' => 'mobile-apps', 'description' => 'تطبيقات متعددة المنصات مع واجهات برمجة سريعة'],
+            ['name' => 'الحوسبة السحابية وعمليات التطوير', 'slug' => 'devops-cloud', 'description' => 'تكامل مستمر، حاويات، وبنية تحتية سحابية'],
+            ['name' => 'تحسين الأداء ومحركات البحث', 'slug' => 'seo-performance', 'description' => 'تحسين مؤشرات الويب الحيوية، وتحسين السرعة وتحسين محركات البحث'],
         ];
 
         foreach ($categories as $cat) {
@@ -56,25 +56,25 @@ class WebDevDemoSeeder extends Seeder
 
         $testimonials = [
             [
-                'client_name' => 'Sarah Mitchell',
-                'client_role' => 'Marketing Director',
-                'company' => 'BrightWave',
+                'client_name' => 'سارة ميتشيل',
+                'client_role' => 'مديرة تسويق',
+                'company' => 'برايت ويف',
                 'rating' => 5,
-                'content' => 'The team delivered a blazing-fast marketing site and a flexible CMS that our content team loves. Core Web Vitals jumped instantly.',
+                'content' => 'الفريق نفّذ موقعًا تسويقيًا سريعًا جدًا مع نظام إدارة محتوى مرن أحبه فريق المحتوى لدينا. مؤشرات Core Web Vitals تحسنت فورًا.',
             ],
             [
-                'client_name' => 'David Chen',
-                'client_role' => 'Founder',
-                'company' => 'ShopNorth',
+                'client_name' => 'ديفيد تشين',
+                'client_role' => 'مؤسس',
+                'company' => 'شوب نورث',
                 'rating' => 5,
-                'content' => 'Our new e-commerce build doubled conversion. Checkout is seamless, and the devs handled payments, inventory, and analytics end-to-end.',
+                'content' => 'متجرنا الإلكتروني الجديد ضاعف معدل التحويل. عملية الدفع سلسة والفريق تولى المدفوعات والمخزون والتحليلات بالكامل.',
             ],
             [
-                'client_name' => 'Lina Alvarez',
-                'client_role' => 'Product Manager',
-                'company' => 'FinEdge',
+                'client_name' => 'لينا ألفاريز',
+                'client_role' => 'مديرة منتج',
+                'company' => 'فين إيدج',
                 'rating' => 5,
-                'content' => 'They shipped a secure client portal with great UX and CI/CD ready from day one. Fast iterations, clear communication, zero surprises.',
+                'content' => 'تم إطلاق بوابة عملاء آمنة مع تجربة مستخدم ممتازة وخط تكامل/نشر مستمر منذ اليوم الأول. سرعات تسليم عالية وتواصل واضح بلا مفاجآت.',
             ],
         ];
 
