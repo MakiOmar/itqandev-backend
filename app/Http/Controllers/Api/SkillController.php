@@ -62,4 +62,19 @@ class SkillController extends Controller
 
         return response()->noContent();
     }
+
+    public function bulkDelete(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:skills,id'],
+        ]);
+
+        $count = Skill::whereIn('id', $data['ids'])->delete();
+
+        return response()->json([
+            'deleted' => $count,
+            'message' => 'Deleted ' . $count . ' skills',
+        ]);
+    }
 }

@@ -75,5 +75,20 @@ class TestimonialController extends Controller
 
         return response()->json(null, 204);
     }
+
+    public function bulkDelete(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:testimonials,id'],
+        ]);
+
+        $count = Testimonial::whereIn('id', $data['ids'])->delete();
+
+        return response()->json([
+            'deleted' => $count,
+            'message' => 'Deleted ' . $count . ' testimonials',
+        ]);
+    }
 }
 
