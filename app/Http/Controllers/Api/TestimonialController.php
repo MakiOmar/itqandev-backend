@@ -11,21 +11,17 @@ class TestimonialController extends Controller
 {
     public function index(Request $request)
     {
-        $cacheKey = 'testimonials:list:' . md5(json_encode($request->query()));
-        
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
-            $query = Testimonial::with('project:id,title');
-            
-            if ($request->has('project_id')) {
-                $query->where('project_id', $request->project_id);
-            }
-            
-            if ($request->has('approved')) {
-                $query->where('approved', $request->boolean('approved'));
-            }
-            
-            return $query->orderBy('created_at', 'desc')->paginate(20);
-        });
+        $query = Testimonial::with('project:id,title');
+
+        if ($request->has('project_id')) {
+            $query->where('project_id', $request->project_id);
+        }
+
+        if ($request->has('approved')) {
+            $query->where('approved', $request->boolean('approved'));
+        }
+
+        return $query->orderBy('created_at', 'desc')->paginate(20);
     }
 
     public function store(Request $request)

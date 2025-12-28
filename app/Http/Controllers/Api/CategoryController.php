@@ -12,13 +12,9 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $categories = Cache::remember(
-            'categories:list',
-            now()->addMinutes(30),
-            fn () => Category::withCount('projects')->orderBy('name')->get()
+        return response()->json(
+            Category::withCount('projects')->orderBy('name')->get()
         );
-
-        return response()->json($categories);
     }
 
     public function store(Request $request)
@@ -31,6 +27,7 @@ class CategoryController extends Controller
         ]);
 
         $category = Category::create($data);
+        Cache::forget('categories:list');
 
         return response()->json($category, 201);
     }
@@ -52,6 +49,7 @@ class CategoryController extends Controller
         ]);
 
         $category->update($data);
+        Cache::forget('categories:list');
 
         return response()->json($category);
     }
@@ -59,6 +57,7 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         $category->delete();
+        Cache::forget('categories:list');
 
         return response()->noContent();
     }
@@ -71,6 +70,7 @@ class CategoryController extends Controller
         ]);
 
         $count = Category::whereIn('id', $data['ids'])->delete();
+        Cache::forget('categories:list');
 
         return response()->json([
             'deleted' => $count,

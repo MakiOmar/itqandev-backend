@@ -12,13 +12,9 @@ class SkillController extends Controller
 {
     public function index()
     {
-        $skills = Cache::remember(
-            'skills:list',
-            now()->addMinutes(30),
-            fn () => Skill::withCount('projects')->orderBy('name')->get()
+        return response()->json(
+            Skill::withCount('projects')->orderBy('name')->get()
         );
-
-        return response()->json($skills);
     }
 
     public function store(Request $request)
@@ -31,6 +27,7 @@ class SkillController extends Controller
         ]);
 
         $skill = Skill::create($data);
+        Cache::forget('skills:list');
 
         return response()->json($skill, 201);
     }
@@ -52,6 +49,7 @@ class SkillController extends Controller
         ]);
 
         $skill->update($data);
+        Cache::forget('skills:list');
 
         return response()->json($skill);
     }
@@ -59,6 +57,7 @@ class SkillController extends Controller
     public function destroy(Skill $skill)
     {
         $skill->delete();
+        Cache::forget('skills:list');
 
         return response()->noContent();
     }
@@ -71,6 +70,7 @@ class SkillController extends Controller
         ]);
 
         $count = Skill::whereIn('id', $data['ids'])->delete();
+        Cache::forget('skills:list');
 
         return response()->json([
             'deleted' => $count,
