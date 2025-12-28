@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete']);
         Route::post('skills/bulk-delete', [\App\Http\Controllers\Api\SkillController::class, 'bulkDelete']);
         Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete']);
+        Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete']);
 
         // Legacy route for attaching media to models
         Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store']);
