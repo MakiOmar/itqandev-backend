@@ -36,6 +36,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('blog-posts', \App\Http\Controllers\Api\BlogPostController::class);
         Route::apiResource('users', \App\Http\Controllers\Api\UserController::class);
         Route::get('roles', fn () => \Spatie\Permission\Models\Role::select('id', 'name')->get());
+
+        // Cache status/clear
+        Route::get('cache/status', [\App\Http\Controllers\Api\CacheController::class, 'status']);
+        Route::post('cache/clear', [\App\Http\Controllers\Api\CacheController::class, 'clear']);
         
         // Media routes
         Route::prefix('media')->group(function () {
