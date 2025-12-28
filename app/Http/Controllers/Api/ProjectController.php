@@ -7,7 +7,6 @@ use App\Models\Category;
 use App\Models\Project;
 use App\Models\Skill;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
@@ -21,37 +20,27 @@ class ProjectController extends Controller
             'status' => ['nullable', 'string', 'max:40'],
         ]);
 
-        $cacheKey = 'projects:list:' . md5(json_encode($filters));
+        $query = Project::with(['categories:id,name', 'skills:id,name', 'seoMeta'])
+            ->select(['id', 'title', 'slug', 'status', 'featured', 'published_at', 'summary', 'description', 'link_url', 'repo_url', 'demo_url'])
+            ->latest('published_at');
 
-        $projects = Cache::remember(
-            $cacheKey,
-            now()->addMinutes(15),
-            function () use ($filters) {
-                $query = Project::with(['categories:id,name', 'skills:id,name', 'seoMeta'])
-                    ->select(['id', 'title', 'slug', 'status', 'featured', 'published_at', 'summary', 'description', 'link_url', 'repo_url', 'demo_url'])
-                    ->latest('published_at');
+        if (!empty($filters['category'])) {
+            $query->whereHas('categories', fn ($q) => $q->where('categories.id', $filters['category']));
+        }
 
-                if (!empty($filters['category'])) {
-                    $query->whereHas('categories', fn ($q) => $q->where('categories.id', $filters['category']));
-                }
+        if (!empty($filters['skill'])) {
+            $query->whereHas('skills', fn ($q) => $q->where('skills.id', $filters['skill']));
+        }
 
-                if (!empty($filters['skill'])) {
-                    $query->whereHas('skills', fn ($q) => $q->where('skills.id', $filters['skill']));
-                }
+        if (array_key_exists('featured', $filters)) {
+            $query->where('featured', (bool) $filters['featured']);
+        }
 
-                if (array_key_exists('featured', $filters)) {
-                    $query->where('featured', (bool) $filters['featured']);
-                }
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
 
-                if (!empty($filters['status'])) {
-                    $query->where('status', $filters['status']);
-                }
-
-                return $query->paginate(20);
-            }
-        );
-
-        return response()->json($projects);
+        return response()->json($query->paginate(20));
     }
 
     public function store(Request $request)
