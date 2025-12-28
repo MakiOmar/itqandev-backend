@@ -56,25 +56,35 @@ class WebDevDemoSeeder extends Seeder
 
         $testimonials = [
             [
-                'name' => 'Sarah Mitchell',
-                'role' => 'Marketing Director, BrightWave',
+                'client_name' => 'Sarah Mitchell',
+                'client_role' => 'Marketing Director',
+                'company' => 'BrightWave',
+                'rating' => 5,
                 'content' => 'The team delivered a blazing-fast marketing site and a flexible CMS that our content team loves. Core Web Vitals jumped instantly.',
             ],
             [
-                'name' => 'David Chen',
-                'role' => 'Founder, ShopNorth',
+                'client_name' => 'David Chen',
+                'client_role' => 'Founder',
+                'company' => 'ShopNorth',
+                'rating' => 5,
                 'content' => 'Our new e-commerce build doubled conversion. Checkout is seamless, and the devs handled payments, inventory, and analytics end-to-end.',
             ],
             [
-                'name' => 'Lina Alvarez',
-                'role' => 'Product Manager, FinEdge',
+                'client_name' => 'Lina Alvarez',
+                'client_role' => 'Product Manager',
+                'company' => 'FinEdge',
+                'rating' => 5,
                 'content' => 'They shipped a secure client portal with great UX and CI/CD ready from day one. Fast iterations, clear communication, zero surprises.',
             ],
         ];
 
         foreach ($testimonials as $t) {
             Testimonial::updateOrCreate(
-                ['name' => $t['name'], 'role' => $t['role']],
+                [
+                    'client_name' => $t['client_name'],
+                    'client_role' => $t['client_role'],
+                    'company' => $t['company'],
+                ],
                 array_merge($t, ['created_at' => $now, 'updated_at' => $now])
             );
         }
