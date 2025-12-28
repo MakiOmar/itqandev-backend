@@ -7,6 +7,39 @@ Route::get('/health', fn () => ['status' => 'ok']);
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
+// Public preflight for media download (avoid auth blocking OPTIONS)
+Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request $request, $media) {
+    $payload = [
+        'sessionId' => 'debug-session',
+        'runId' => 'run1',
+        'hypothesisId' => 'H5',
+        'location' => 'routes/api.php:media download options (public)',
+        'message' => 'preflight',
+        'data' => [
+            'media' => $media,
+            'origin' => $request->headers->get('origin'),
+            'req_headers' => $request->headers->all(),
+        ],
+        'timestamp' => (int) round(microtime(true) * 1000),
+    ];
+    $logPath = dirname(base_path()) . DIRECTORY_SEPARATOR . '.cursor' . DIRECTORY_SEPARATOR . 'debug.log';
+    file_put_contents($logPath, json_encode($payload, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
+
+    $origin = $request->headers->get('origin');
+    $resp = response('', 204);
+    if ($origin) {
+        $resp->headers->set('Access-Control-Allow-Origin', $origin);
+        $resp->headers->set('Access-Control-Allow-Credentials', 'true');
+        $resp->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
+        $resp->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        $resp->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
+        $resp->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
+        $resp->headers->set('Access-Control-Max-Age', '0');
+        $resp->headers->set('Vary', 'Origin');
+    }
+    return $resp;
+})->where('media', '[0-9]+');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', fn () => request()->user());
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -26,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [\App\Http\Controllers\Api\MediaController::class, 'index']);
             Route::get('/statistics', [\App\Http\Controllers\Api\MediaController::class, 'statistics']);
             Route::get('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'show'])->where('media', '[0-9]+');
+            Route::get('/{media}/download-link', [\App\Http\Controllers\Api\MediaController::class, 'downloadLink'])->where('media', '[0-9]+');
         Route::get('/{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->where('media', '[0-9]+');
             
             // Upload media

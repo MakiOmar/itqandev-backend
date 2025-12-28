@@ -302,6 +302,11 @@ class MediaController extends Controller
             $response->headers->set('Access-Control-Allow-Origin', $origin);
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
             $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
+            $response->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+            $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
+            $response->headers->set('Access-Control-Max-Age', '0');
+            $response->headers->set('Vary', 'Origin');
         }
 
         // #region agent log
@@ -318,6 +323,8 @@ class MediaController extends Controller
                 'Access-Control-Allow-Origin' => $response->headers->get('Access-Control-Allow-Origin'),
                 'Access-Control-Allow-Credentials' => $response->headers->get('Access-Control-Allow-Credentials'),
                 'Access-Control-Expose-Headers' => $response->headers->get('Access-Control-Expose-Headers'),
+                'Access-Control-Allow-Headers' => $response->headers->get('Access-Control-Allow-Headers'),
+                'Access-Control-Allow-Methods' => $response->headers->get('Access-Control-Allow-Methods'),
                 'Content-Type' => $response->headers->get('Content-Type'),
             ],
             'status' => $response->getStatusCode(),
@@ -325,6 +332,33 @@ class MediaController extends Controller
         // #endregion
 
         return $response;
+    }
+
+    /**
+     * Generate a temporary signed download link.
+     */
+    public function downloadLink(Request $request, $id)
+    {
+        $media = Media::findOrFail($id);
+        $expires = now()->addMinutes(5);
+        $signedUrl = URL::temporarySignedRoute(
+            'signed-media-download',
+            $expires,
+            ['media' => $media->id]
+        );
+
+        // #region agent log
+        $this->debugLog('H7', 'MediaController::downloadLink', 'signed url issued', [
+            'id' => $id,
+            'expires_at' => $expires->toIso8601String(),
+            'url' => $signedUrl,
+        ]);
+        // #endregion
+
+        return response()->json([
+            'url' => $signedUrl,
+            'expires_at' => $expires->toIso8601String(),
+        ]);
     }
 
     /**
@@ -388,6 +422,11 @@ class MediaController extends Controller
             $response->headers->set('Access-Control-Allow-Origin', $origin);
             $response->headers->set('Access-Control-Allow-Credentials', 'true');
             $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
+            $response->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+            $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
+            $response->headers->set('Access-Control-Max-Age', '0');
+            $response->headers->set('Vary', 'Origin');
         }
 
         // #region agent log
@@ -398,6 +437,8 @@ class MediaController extends Controller
                 'Access-Control-Allow-Origin' => $response->headers->get('Access-Control-Allow-Origin'),
                 'Access-Control-Allow-Credentials' => $response->headers->get('Access-Control-Allow-Credentials'),
                 'Access-Control-Expose-Headers' => $response->headers->get('Access-Control-Expose-Headers'),
+                'Access-Control-Allow-Headers' => $response->headers->get('Access-Control-Allow-Headers'),
+                'Access-Control-Allow-Methods' => $response->headers->get('Access-Control-Allow-Methods'),
                 'Content-Type' => $response->headers->get('Content-Type'),
             ],
             'status' => $response->getStatusCode(),
