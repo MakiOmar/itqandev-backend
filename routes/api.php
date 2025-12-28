@@ -9,22 +9,6 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Public preflight for media download (avoid auth blocking OPTIONS)
 Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request $request, $media) {
-    $payload = [
-        'sessionId' => 'debug-session',
-        'runId' => 'run1',
-        'hypothesisId' => 'H5',
-        'location' => 'routes/api.php:media download options (public)',
-        'message' => 'preflight',
-        'data' => [
-            'media' => $media,
-            'origin' => $request->headers->get('origin'),
-            'req_headers' => $request->headers->all(),
-        ],
-        'timestamp' => (int) round(microtime(true) * 1000),
-    ];
-    $logPath = dirname(base_path()) . DIRECTORY_SEPARATOR . '.cursor' . DIRECTORY_SEPARATOR . 'debug.log';
-    file_put_contents($logPath, json_encode($payload, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
-
     $origin = $request->headers->get('origin');
     $resp = response('', 204);
     if ($origin) {

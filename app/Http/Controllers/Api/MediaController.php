@@ -260,36 +260,13 @@ class MediaController extends Controller
      */
     public function download(Request $request, $id)
     {
-        // #region agent log
-        $this->debugLog('H1', 'MediaController::download:start', 'enter', [
-            'id' => $id,
-            'method' => $request->getMethod(),
-            'origin' => $request->headers->get('origin'),
-            'auth' => $request->user()?->id,
-        ]);
-        // #endregion
-
         $media = Media::findOrFail($id);
         $path = $media->getPath();
         $mimeType = $media->mime_type ?? @mime_content_type($path) ?? 'application/octet-stream';
 
         if (!$path || !file_exists($path)) {
-            // #region agent log
-            $this->debugLog('H2', 'MediaController::download:missing', 'file not found', [
-                'id' => $id,
-                'path' => $path,
-            ]);
-            // #endregion
             abort(404, 'File not found');
         }
-
-        // #region agent log
-        $this->debugLog('H2', 'MediaController::download:path', 'path resolved', [
-            'id' => $id,
-            'path' => $path,
-            'size' => @filesize($path),
-        ]);
-        // #endregion
 
         $fileName = $media->file_name ?? ('media-' . $media->id);
 
@@ -299,38 +276,14 @@ class MediaController extends Controller
 
         // Manually set CORS on binary response (HandleCors may not mutate BinaryFileResponse)
         $origin = $request->headers->get('origin');
-        if ($origin) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
-            $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
-            $response->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
-            $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-            $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
-            $response->headers->set('Access-Control-Max-Age', '0');
-            $response->headers->set('Vary', 'Origin');
-        }
-
-        // #region agent log
-        $this->debugLog('H3', 'MediaController::download:return', 'returning download', [
-            'id' => $id,
-            'fileName' => $fileName,
-            'cors_origin' => $request->headers->get('origin'),
-            'cors_allowed_origins' => config('cors.allowed_origins'),
-            'cors_allowed_patterns' => config('cors.allowed_origins_patterns'),
-            'cors_allowed_headers' => config('cors.allowed_headers'),
-            'cors_supports_credentials' => config('cors.supports_credentials'),
-            'mime_type' => $mimeType,
-            'resp_headers' => [
-                'Access-Control-Allow-Origin' => $response->headers->get('Access-Control-Allow-Origin'),
-                'Access-Control-Allow-Credentials' => $response->headers->get('Access-Control-Allow-Credentials'),
-                'Access-Control-Expose-Headers' => $response->headers->get('Access-Control-Expose-Headers'),
-                'Access-Control-Allow-Headers' => $response->headers->get('Access-Control-Allow-Headers'),
-                'Access-Control-Allow-Methods' => $response->headers->get('Access-Control-Allow-Methods'),
-                'Content-Type' => $response->headers->get('Content-Type'),
-            ],
-            'status' => $response->getStatusCode(),
-        ]);
-        // #endregion
+        $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
+        $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
+        $response->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
+        $response->headers->set('Access-Control-Max-Age', '0');
+        $response->headers->set('Vary', 'Origin');
 
         return $response;
     }
@@ -356,10 +309,23 @@ class MediaController extends Controller
         ]);
         // #endregion
 
-        return response()->json([
+        $origin = $request->headers->get('origin');
+        $resp = response()->json([
             'url' => $signedUrl,
             'expires_at' => $expires->toIso8601String(),
         ]);
+
+        $origin = $request->headers->get('origin');
+        $resp->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
+        $resp->headers->set('Access-Control-Allow-Credentials', 'true');
+        $resp->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
+        $resp->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
+        $resp->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        $resp->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
+        $resp->headers->set('Access-Control-Max-Age', '0');
+        $resp->headers->set('Vary', 'Origin');
+
+        return $resp;
     }
 
     /**
@@ -419,16 +385,14 @@ class MediaController extends Controller
 
         // Manually set CORS on binary response
         $origin = $request->headers->get('origin');
-        if ($origin) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
-            $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
-            $response->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
-            $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-            $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
-            $response->headers->set('Access-Control-Max-Age', '0');
-            $response->headers->set('Vary', 'Origin');
-        }
+        $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
+        $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
+        $response->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
+        $response->headers->set('Access-Control-Max-Age', '0');
+        $response->headers->set('Vary', 'Origin');
 
         // #region agent log
         $this->debugLog('H3', 'MediaController::bulkDownload:return', 'returning zip', [
@@ -448,27 +412,6 @@ class MediaController extends Controller
 
         return $response;
     }
-
-    // #region agent log
-    /**
-     * Append a small NDJSON log for debug mode.
-     */
-    private function debugLog(string $hypothesisId, string $location, string $message, array $data = []): void
-    {
-        $payload = [
-            'sessionId' => 'debug-session',
-            'runId' => 'run1',
-            'hypothesisId' => $hypothesisId,
-            'location' => $location,
-            'message' => $message,
-            'data' => $data,
-            'timestamp' => (int) round(microtime(true) * 1000),
-        ];
-
-        $logPath = dirname(base_path()) . DIRECTORY_SEPARATOR . '.cursor' . DIRECTORY_SEPARATOR . 'debug.log';
-        file_put_contents($logPath, json_encode($payload, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND);
-    }
-    // #endregion
 
     /**
      * Move media to a folder.
