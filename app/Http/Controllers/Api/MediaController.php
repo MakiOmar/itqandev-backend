@@ -157,6 +157,11 @@ class MediaController extends Controller
         $model = $this->resolveModel($type, $id);
         $this->ensureCollectionAllowed($model, $collection);
 
+        // Check if attaching existing media or uploading new file
+        if ($request->has('media_id')) {
+            return $this->attachExistingMedia($request, $model, $collection);
+        }
+
         $maxKb = (int) (config('media.max_file_size', 104857600) / 1024);
 
         $data = $request->validate([
@@ -179,6 +184,29 @@ class MediaController extends Controller
         $this->mediaService->trackUsage($media, $model, $collection);
 
         return response()->json($this->transformMedia($media), 201);
+    }
+
+    /**
+     * Attach existing media to a model.
+     */
+    protected function attachExistingMedia(Request $request, Model $model, string $collection)
+    {
+        $data = $request->validate([
+            'media_id' => ['required', 'integer', 'exists:media,id'],
+        ]);
+
+        $media = Media::findOrFail($data['media_id']);
+
+        // Copy the media file to the model's collection
+        $newMedia = $model
+            ->addMediaFromDisk($media->getPath(), $media->disk)
+            ->preservingOriginal()
+            ->toMediaCollection($collection);
+
+        // Track usage
+        $this->mediaService->trackUsage($newMedia, $model, $collection);
+
+        return response()->json($this->transformMedia($newMedia), 201);
     }
 
     /**
