@@ -86,6 +86,8 @@ class ProjectController extends Controller
     {
         \Log::info('ProjectController::update called', [
             'project_id' => $project->id ?? 'NULL',
+            'project_exists' => $project->exists,
+            'project_attributes' => $project->getAttributes(),
             'project_object' => $project ? get_class($project) : 'NULL',
             'route_name' => $request->route()->getName(),
             'route_uri' => $request->route()->uri(),
@@ -95,6 +97,17 @@ class ProjectController extends Controller
             'route_params' => $request->route()->parameters(),
             'request_data' => $request->all(),
         ]);
+        
+        // If project doesn't exist, try to find it manually
+        if (!$project->exists) {
+            $projectId = $request->route('project');
+            \Log::warning('Project model binding failed, attempting manual lookup', [
+                'route_param' => $projectId,
+                'param_type' => gettype($projectId),
+            ]);
+            $project = Project::findOrFail($projectId);
+            \Log::info('Manually loaded project', ['id' => $project->id, 'title' => $project->title]);
+        }
 
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
