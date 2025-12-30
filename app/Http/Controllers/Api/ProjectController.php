@@ -85,7 +85,14 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         \Log::info('ProjectController::update called', [
-            'project_id' => $project->id,
+            'project_id' => $project->id ?? 'NULL',
+            'project_object' => $project ? get_class($project) : 'NULL',
+            'route_name' => $request->route()->getName(),
+            'route_uri' => $request->route()->uri(),
+            'request_url' => $request->fullUrl(),
+            'request_path' => $request->path(),
+            'request_method' => $request->method(),
+            'route_params' => $request->route()->parameters(),
             'request_data' => $request->all(),
         ]);
 
