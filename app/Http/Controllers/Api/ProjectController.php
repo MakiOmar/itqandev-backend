@@ -84,29 +84,9 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
-        \Log::info('ProjectController::update called', [
-            'project_id' => $project->id ?? 'NULL',
-            'project_exists' => $project->exists,
-            'project_attributes' => $project->getAttributes(),
-            'project_object' => $project ? get_class($project) : 'NULL',
-            'route_name' => $request->route()->getName(),
-            'route_uri' => $request->route()->uri(),
-            'request_url' => $request->fullUrl(),
-            'request_path' => $request->path(),
-            'request_method' => $request->method(),
-            'route_params' => $request->route()->parameters(),
-            'request_data' => $request->all(),
-        ]);
-        
-        // If project doesn't exist, try to find it manually
+        // Fallback: If route model binding fails, load manually
         if (!$project->exists) {
-            $projectId = $request->route('project');
-            \Log::warning('Project model binding failed, attempting manual lookup', [
-                'route_param' => $projectId,
-                'param_type' => gettype($projectId),
-            ]);
-            $project = Project::findOrFail($projectId);
-            \Log::info('Manually loaded project', ['id' => $project->id, 'title' => $project->title]);
+            $project = Project::findOrFail($request->route('project'));
         }
 
         $data = $request->validate([
@@ -126,8 +106,6 @@ class ProjectController extends Controller
             'skill_ids.*' => ['integer', 'exists:skills,id'],
         ]);
 
-        \Log::info('ProjectController::update validated data', $data);
-
         $project->update($data);
 
         if (isset($data['category_ids'])) {
@@ -137,8 +115,6 @@ class ProjectController extends Controller
         if (isset($data['skill_ids'])) {
             $project->skills()->sync($data['skill_ids']);
         }
-
-        \Log::info('ProjectController::update completed successfully');
 
         return response()->json($project->load('categories:id,name', 'skills:id,name'));
     }
