@@ -197,16 +197,10 @@ class MediaController extends Controller
 
         $media = Media::findOrFail($data['media_id']);
 
-        // Copy the media file to the model's collection
-        $newMedia = $model
-            ->addMediaFromDisk($media->getPath(), $media->disk)
-            ->preservingOriginal()
-            ->toMediaCollection($collection);
+        // Track usage - just link the existing media, don't copy it
+        $this->mediaService->trackUsage($media, $model, $collection);
 
-        // Track usage
-        $this->mediaService->trackUsage($newMedia, $model, $collection);
-
-        return response()->json($this->transformMedia($newMedia), 201);
+        return response()->json($this->transformMedia($media), 201);
     }
 
     /**
