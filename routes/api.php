@@ -29,6 +29,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     Route::prefix('v1')->name('v1.')->group(function () {
+        // Bulk actions MUST come before apiResource routes to avoid conflicts
+        Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete']);
+        Route::post('skills/bulk-delete', [\App\Http\Controllers\Api\SkillController::class, 'bulkDelete']);
+        Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete']);
+        Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete']);
+
+        // API Resources
         Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class);
         Route::apiResource('skills', \App\Http\Controllers\Api\SkillController::class);
         Route::apiResource('projects', \App\Http\Controllers\Api\ProjectController::class);
@@ -68,12 +75,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/folders/{folder}', [\App\Http\Controllers\Api\MediaController::class, 'updateFolder']);
             Route::delete('/folders/{folder}', [\App\Http\Controllers\Api\MediaController::class, 'deleteFolder']);
         });
-        
-        // Bulk actions for categories, skills, testimonials
-        Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete']);
-        Route::post('skills/bulk-delete', [\App\Http\Controllers\Api\SkillController::class, 'bulkDelete']);
-        Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete']);
-        Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete']);
 
         // Legacy route for attaching media to models
         Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store']);
