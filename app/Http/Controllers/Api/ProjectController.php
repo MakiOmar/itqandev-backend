@@ -84,6 +84,11 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        \Log::info('ProjectController::update called', [
+            'project_id' => $project->id,
+            'request_data' => $request->all(),
+        ]);
+
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('projects')->ignore($project->id)],
@@ -101,6 +106,8 @@ class ProjectController extends Controller
             'skill_ids.*' => ['integer', 'exists:skills,id'],
         ]);
 
+        \Log::info('ProjectController::update validated data', $data);
+
         $project->update($data);
 
         if (isset($data['category_ids'])) {
@@ -110,6 +117,8 @@ class ProjectController extends Controller
         if (isset($data['skill_ids'])) {
             $project->skills()->sync($data['skill_ids']);
         }
+
+        \Log::info('ProjectController::update completed successfully');
 
         return response()->json($project->load('categories:id,name', 'skills:id,name'));
     }
