@@ -33,13 +33,13 @@ class ProjectResource extends JsonResource
                     'id' => $category->id,
                     'name' => $category->name,
                 ]);
-            }),
+            }) ?? [],
             'skills' => $this->whenLoaded('skills', function () {
                 return $this->skills->map(fn ($skill) => [
                     'id' => $skill->id,
                     'name' => $skill->name,
                 ]);
-            }),
+            }) ?? [],
             'testimonials' => $this->whenLoaded('testimonials'),
             'seoMeta' => $this->whenLoaded('seoMeta'),
             'media' => $this->getMediaData(),
