@@ -6,15 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Project;
+use App\Services\ModelResolverService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class SeoMetaController extends Controller
 {
+    protected ModelResolverService $modelResolver;
+
+    public function __construct(ModelResolverService $modelResolver)
+    {
+        $this->modelResolver = $modelResolver;
+    }
+
     public function update(Request $request, string $type, int $id)
     {
-        $model = $this->resolveModel($type, $id);
+        $model = $this->modelResolver->resolveModel($type, $id);
 
         $data = $request->validate([
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -30,16 +38,6 @@ class SeoMetaController extends Controller
         $meta = $model->seoMeta()->updateOrCreate([], $data);
 
         return response()->json($meta);
-    }
-
-    protected function resolveModel(string $type, int $id): Model
-    {
-        return match ($type) {
-            'project' => Project::findOrFail($id),
-            'category' => Category::findOrFail($id),
-            'blog-post' => BlogPost::findOrFail($id),
-            default => throw ValidationException::withMessages(['type' => 'نوع غير مدعوم']),
-        };
     }
 }
 

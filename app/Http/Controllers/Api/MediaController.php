@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\MediaResource;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\MediaFolder;
@@ -11,6 +12,8 @@ use App\Models\MediaTag;
 use App\Models\Project;
 use App\Models\Skill;
 use App\Services\MediaService;
+use App\Services\MediaTransformerService;
+use App\Services\ModelResolverService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -36,6 +39,8 @@ class MediaController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Media::class);
+
         $query = Media::query();
 
         // Filter by model type
@@ -109,11 +114,7 @@ class MediaController extends Controller
             ->with(['folder:id,name', 'tags:id,name'])
             ->paginate($request->get('per_page', 20));
 
-        $media->getCollection()->transform(function ($item) {
-            return $this->transformMedia($item);
-        });
-
-        return response()->json($media);
+        return MediaResource::collection($media);
     }
 
     /**
@@ -122,9 +123,11 @@ class MediaController extends Controller
     public function show($id)
     {
         $media = Media::findOrFail($id);
+        $this->authorize('view', $media);
+        
         $media->load(['folder', 'tags', 'usages.usable']);
 
-        return response()->json($this->transformMedia($media, true));
+        return new MediaResource($media);
     }
 
     /**
@@ -132,6 +135,8 @@ class MediaController extends Controller
      */
     public function upload(Request $request)
     {
+        $this->authorize('upload', Media::class);
+
         $maxKb = (int) (config('media.max_file_size', 104857600) / 1024);
 
         $data = $request->validate([
@@ -140,6 +145,32 @@ class MediaController extends Controller
                 'file',
                 "max:{$maxKb}",
                 'mimes:jpeg,jpg,png,webp,avif,gif,svg,mp4,webm,mov,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,mp3,wav,ogg,m4a,aac',
+                function ($attribute, $value, $fail) {
+                    if (!$value instanceof \Illuminate\Http\UploadedFile) {
+                        $fail('Invalid file upload.');
+                        return;
+                    }
+                    
+                    // Additional MIME type verification will be done in MediaService
+                    $allowedMimes = [
+                        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif',
+                        'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+                        'application/pdf',
+                        'application/msword',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'application/vnd.ms-excel',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'application/vnd.ms-powerpoint',
+                        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac',
+                        'text/plain', 'text/csv',
+                    ];
+                    
+                    $mimeType = $value->getMimeType();
+                    if (!in_array($mimeType, $allowedMimes, true)) {
+                        $fail('File type ' . $mimeType . ' is not allowed.');
+                    }
+                },
             ],
             'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
             'tags' => ['nullable', 'array'],
@@ -156,7 +187,7 @@ class MediaController extends Controller
 
         $media = $this->mediaService->processUpload($file, $folderId, $tags);
 
-        return response()->json($this->transformMedia($media), 201);
+        return (new MediaResource($media))->response()->setStatusCode(201);
     }
 
     /**
@@ -193,7 +224,7 @@ class MediaController extends Controller
         // Track usage
         $this->mediaService->trackUsage($media, $model, $collection);
 
-        return response()->json($this->transformMedia($media), 201);
+        return (new MediaResource($media))->response()->setStatusCode(201);
     }
 
     /**
@@ -252,7 +283,7 @@ class MediaController extends Controller
         // Track usage of the original media
         $this->mediaService->trackUsage($sourceMedia, $model, $collection);
 
-        return response()->json($this->transformMedia($newMedia), 201);
+        return (new MediaResource($newMedia))->response()->setStatusCode(201);
     }
 
     /**
@@ -261,6 +292,7 @@ class MediaController extends Controller
     public function update(Request $request, $id)
     {
         $media = Media::findOrFail($id);
+        $this->authorize('update', $media);
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'alt_text' => ['nullable', 'string', 'max:255'],
@@ -293,7 +325,7 @@ class MediaController extends Controller
         $media->refresh();
         $media->load(['folder', 'tags']);
 
-        return response()->json($this->transformMedia($media));
+        return new MediaResource($media);
     }
 
     /**
@@ -302,6 +334,8 @@ class MediaController extends Controller
     public function destroy($id)
     {
         $media = Media::findOrFail($id);
+        $this->authorize('delete', $media);
+        
         $this->mediaService->deleteMedia($media);
 
         return response()->noContent();
@@ -312,6 +346,8 @@ class MediaController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        $this->authorize('bulkDelete', Media::class);
+
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:media,id'],
@@ -335,6 +371,7 @@ class MediaController extends Controller
     public function download(Request $request, $id)
     {
         $media = Media::findOrFail($id);
+        $this->authorize('download', $media);
         $path = $media->getPath();
         $mimeType = $media->mime_type ?? @mime_content_type($path) ?? 'application/octet-stream';
 
@@ -625,25 +662,28 @@ class MediaController extends Controller
 
     protected function getModelType(string $type): string
     {
-        return match ($type) {
-            'project' => Project::class,
-            'category' => Category::class,
-            'skill' => Skill::class,
-            'blog-post' => BlogPost::class,
-            'library' => MediaLibrary::class,
-            default => throw ValidationException::withMessages(['type' => 'نوع غير مدعوم']),
-        };
+        try {
+            return $this->modelResolver->getModelType($type);
+        } catch (ValidationException $e) {
+            // Fallback for 'library' type
+            if ($type === 'library') {
+                return MediaLibrary::class;
+            }
+            throw $e;
+        }
     }
 
     protected function resolveModel(string $type, int $id): Model
     {
-        return match ($type) {
-            'project' => Project::findOrFail($id),
-            'category' => Category::findOrFail($id),
-            'skill' => Skill::findOrFail($id),
-            'blog-post' => BlogPost::findOrFail($id),
-            default => throw ValidationException::withMessages(['type' => 'نوع غير مدعوم']),
-        };
+        try {
+            return $this->modelResolver->resolveModel($type, $id);
+        } catch (ValidationException $e) {
+            // Fallback for 'library' type
+            if ($type === 'library') {
+                return MediaLibrary::findOrFail($id);
+            }
+            throw $e;
+        }
     }
 
     protected function ensureCollectionAllowed(Model $model, string $collection): void

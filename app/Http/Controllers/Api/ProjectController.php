@@ -3,16 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProjectResource;
 use App\Models\Category;
 use App\Models\Project;
 use App\Models\Skill;
+use App\Services\HtmlSanitizerService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
 {
+    protected HtmlSanitizerService $sanitizer;
+
+    public function __construct(HtmlSanitizerService $sanitizer)
+    {
+        $this->sanitizer = $sanitizer;
+    }
+
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Project::class);
+
         $filters = $request->validate([
             'category' => ['nullable', 'integer', 'exists:categories,id'],
             'skill' => ['nullable', 'integer', 'exists:skills,id'],
@@ -20,7 +32,14 @@ class ProjectController extends Controller
             'status' => ['nullable', 'string', 'max:40'],
         ]);
 
-        $query = Project::with(['categories:id,name', 'skills:id,name', 'seoMeta'])
+        $query = Project::with([
+                'categories:id,name',
+                'skills:id,name',
+                'seoMeta',
+                'media' => function ($query) {
+                    $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
+                }
+            ])
             ->select(['id', 'title', 'slug', 'status', 'featured', 'published_at', 'summary', 'description', 'link_url', 'repo_url', 'demo_url'])
             ->latest('published_at');
 
@@ -40,11 +59,22 @@ class ProjectController extends Controller
             $query->where('status', $filters['status']);
         }
 
-        return response()->json($query->paginate(20));
+        // Create cache key based on filters
+        $cacheKey = 'projects:list:' . md5(serialize($filters));
+        $page = $request->get('page', 1);
+        $cacheKey .= ':page:' . $page;
+
+        $paginator = Cache::remember($cacheKey, 1800, function () use ($query) {
+            return $query->paginate(20);
+        });
+
+        return ProjectResource::collection($paginator);
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', Project::class);
+
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:projects,slug'],
@@ -62,11 +92,20 @@ class ProjectController extends Controller
             'skill_ids.*' => ['integer', 'exists:skills,id'],
         ]);
 
+        // Sanitize HTML content
+        if (isset($data['description'])) {
+            $data['description'] = $this->sanitizer->sanitize($data['description']);
+        }
+        if (isset($data['summary'])) {
+            $data['summary'] = $this->sanitizer->stripAll($data['summary']);
+        }
+
         $project = Project::create($data);
         $project->categories()->sync($data['category_ids'] ?? []);
         $project->skills()->sync($data['skill_ids'] ?? []);
 
-        return response()->json($project->load('categories:id,name', 'skills:id,name'), 201);
+        $project->load('categories:id,name', 'skills:id,name');
+        return (new ProjectResource($project))->response()->setStatusCode(201);
     }
 
     public function show(Project $project)
@@ -77,48 +116,28 @@ class ProjectController extends Controller
             abort(404, 'Project not found');
         }
 
-        $project = Project::with('categories:id,name', 'skills:id,name', 'testimonials', 'seoMeta')->findOrFail($routeId);
+        $project = Project::with([
+            'categories:id,name',
+            'skills:id,name',
+            'testimonials' => function ($query) {
+                $query->with('media');
+            },
+            'seoMeta',
+            'media' => function ($query) {
+                $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
+            }
+        ])->findOrFail($routeId);
+        
+        $this->authorize('view', $project);
 
-        // Load media collections
+        // Load media collections (already eager loaded, but getFirstMedia is more reliable)
         $hero = $project->getFirstMedia('hero');
         $video = $project->getFirstMedia('video');
         
-        // Add media to response
-        $projectData = $project->toArray();
-        $projectData['media'] = [
-            'hero' => $hero ? $this->transformMediaItem($hero) : null,
-            'video' => $video ? $this->transformMediaItem($video) : null,
-        ];
-
-        return response()->json($projectData);
+        // Use ProjectResource for consistent response format
+        return new ProjectResource($project);
     }
 
-    /**
-     * Transform a single media item for API response.
-     */
-    protected function transformMediaItem($media): array
-    {
-        $url = $media->getUrl();
-        // Ensure URL is absolute
-        if ($url && !filter_var($url, FILTER_VALIDATE_URL)) {
-            $url = url($url);
-        }
-        
-        return [
-            'id' => $media->id,
-            'file_name' => $media->file_name,
-            'name' => $media->name,
-            'collection' => $media->collection_name,
-            'collection_name' => $media->collection_name,
-            'mime_type' => $media->mime_type,
-            'size' => $media->size,
-            'url' => $url,
-            'model_type' => $media->model_type,
-            'model_id' => $media->model_id,
-            'created_at' => $media->created_at?->toIso8601String(),
-            'alt_text' => $media->getCustomProperty('alt_text'),
-        ];
-    }
 
     public function update(Request $request, Project $project)
     {
@@ -126,6 +145,8 @@ class ProjectController extends Controller
         if (!$project->exists) {
             $project = Project::findOrFail($request->route('project'));
         }
+
+        $this->authorize('update', $project);
 
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
@@ -144,6 +165,14 @@ class ProjectController extends Controller
             'skill_ids.*' => ['integer', 'exists:skills,id'],
         ]);
 
+        // Sanitize HTML content
+        if (isset($data['description'])) {
+            $data['description'] = $this->sanitizer->sanitize($data['description']);
+        }
+        if (isset($data['summary'])) {
+            $data['summary'] = $this->sanitizer->stripAll($data['summary']);
+        }
+
         $project->update($data);
 
         if (isset($data['category_ids'])) {
@@ -154,11 +183,14 @@ class ProjectController extends Controller
             $project->skills()->sync($data['skill_ids']);
         }
 
-        return response()->json($project->load('categories:id,name', 'skills:id,name'));
+        $project->load('categories:id,name', 'skills:id,name');
+        return new ProjectResource($project);
     }
 
     public function destroy(Project $project)
     {
+        $this->authorize('delete', $project);
+        
         $project->delete();
 
         return response()->noContent();
@@ -166,6 +198,8 @@ class ProjectController extends Controller
 
     public function bulkDelete(Request $request)
     {
+        $this->authorize('bulkDelete', Project::class);
+
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:projects,id'],

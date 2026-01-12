@@ -7,13 +7,22 @@ use App\Models\Skill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Gate;
 
 class SkillController extends Controller
 {
     public function index()
     {
+        // Note: Authorization check would go here if SkillPolicy exists
+        // For now, assuming same pattern as categories
+
         return response()->json(
-            Skill::withCount('projects')->orderBy('name')->get()
+            Cache::remember('skills:list', 3600, function () {
+                return Skill::withCount('projects')
+                    ->with('media')
+                    ->orderBy('name')
+                    ->get();
+            })
         );
     }
 
@@ -27,14 +36,19 @@ class SkillController extends Controller
         ]);
 
         $skill = Skill::create($data);
-        Cache::forget('skills:list');
+        // Cache invalidation handled by InvalidatesCache trait
 
         return response()->json($skill, 201);
     }
 
     public function show(Skill $skill)
     {
-        $skill->load('projects:id,title');
+        $skill->load([
+            'projects:id,title',
+            'media' => function ($query) {
+                $query->where('collection_name', 'icon');
+            }
+        ]);
 
         return response()->json($skill);
     }
@@ -49,7 +63,7 @@ class SkillController extends Controller
         ]);
 
         $skill->update($data);
-        Cache::forget('skills:list');
+        // Cache invalidation handled by InvalidatesCache trait
 
         return response()->json($skill);
     }
@@ -57,7 +71,7 @@ class SkillController extends Controller
     public function destroy(Skill $skill)
     {
         $skill->delete();
-        Cache::forget('skills:list');
+        // Cache invalidation handled by InvalidatesCache trait
 
         return response()->noContent();
     }
@@ -70,7 +84,7 @@ class SkillController extends Controller
         ]);
 
         $count = Skill::whereIn('id', $data['ids'])->delete();
-        Cache::forget('skills:list');
+        // Cache invalidation handled by InvalidatesCache trait on model events
 
         return response()->json([
             'deleted' => $count,

@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => ['status' => 'ok']);
 
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 // Public preflight for media download (avoid auth blocking OPTIONS)
 Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request $request, $media) {
@@ -28,12 +28,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', fn () => request()->user());
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-    Route::prefix('v1')->name('v1.')->group(function () {
+    Route::prefix('v1')->name('v1.')->middleware('throttle:api')->group(function () {
         // Bulk actions MUST come before apiResource routes to avoid conflicts
-        Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete']);
-        Route::post('skills/bulk-delete', [\App\Http\Controllers\Api\SkillController::class, 'bulkDelete']);
-        Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete']);
-        Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete']);
+        Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete'])->middleware('throttle:bulk');
+        Route::post('skills/bulk-delete', [\App\Http\Controllers\Api\SkillController::class, 'bulkDelete'])->middleware('throttle:bulk');
+        Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete'])->middleware('throttle:bulk');
+        Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete'])->middleware('throttle:bulk');
 
         // API Resources
         Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class);
@@ -58,14 +58,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->where('media', '[0-9]+');
             
             // Upload media
-            Route::post('/upload', [\App\Http\Controllers\Api\MediaController::class, 'upload'])->middleware('large.uploads');
+            Route::post('/upload', [\App\Http\Controllers\Api\MediaController::class, 'upload'])->middleware(['large.uploads', 'throttle:uploads']);
             
             // Update and delete media
             Route::put('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'update'])->where('media', '[0-9]+');
             Route::delete('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->where('media', '[0-9]+');
             
             // Bulk operations
-            Route::post('/bulk-delete', [\App\Http\Controllers\Api\MediaController::class, 'bulkDelete']);
+            Route::post('/bulk-delete', [\App\Http\Controllers\Api\MediaController::class, 'bulkDelete'])->middleware('throttle:bulk');
         Route::get('/bulk-download', [\App\Http\Controllers\Api\MediaController::class, 'bulkDownload']);
             Route::post('/move-to-folder', [\App\Http\Controllers\Api\MediaController::class, 'moveToFolder']);
             
@@ -77,7 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Legacy route for attaching media to models
-        Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store']);
+        Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store'])->middleware('throttle:uploads');
         Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
     });
 });

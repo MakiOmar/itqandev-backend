@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\InvalidatesCache;
 use App\Concerns\RefreshesCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Category extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, RefreshesCache;
+    use HasFactory, InteractsWithMedia, RefreshesCache, InvalidatesCache;
 
     protected $fillable = [
         'name',

@@ -28,6 +28,9 @@ class MediaService
      */
     public function processUpload(UploadedFile $file, ?int $folderId = null, ?array $tags = null): Media
     {
+        // Verify MIME type matches file extension
+        $this->verifyMimeType($file);
+        
         $mediaLibrary = \App\Models\MediaLibrary::instance();
         
         // Add media to collection
@@ -71,6 +74,9 @@ class MediaService
         // Keep alphanumeric, spaces, hyphens, underscores, and Unicode characters
         $name = preg_replace('/[<>:"|?*\\x00-\\x1F\\x7F]/u', '', $name);
         
+        // Remove path traversal attempts
+        $name = str_replace(['../', '..\\', '/', '\\'], '', $name);
+        
         // Trim whitespace
         $name = trim($name);
         
@@ -79,7 +85,81 @@ class MediaService
             $name = 'file_' . time();
         }
         
+        // Sanitize extension - only allow alphanumeric and common safe characters
+        $extension = preg_replace('/[^a-zA-Z0-9]/', '', $extension);
+        
         return $name . '.' . $extension;
+    }
+
+    /**
+     * Verify MIME type matches file extension and content.
+     */
+    protected function verifyMimeType(UploadedFile $file): void
+    {
+        $allowedMimes = [
+            // Images
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif',
+            // Videos
+            'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+            // Documents
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            // Audio
+            'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac',
+            // Text
+            'text/plain', 'text/csv',
+        ];
+
+        $detectedMime = $file->getMimeType();
+        $clientMime = $file->getClientMimeType();
+        
+        // Verify detected MIME type is in allowed list
+        if (!in_array($detectedMime, $allowedMimes, true)) {
+            throw new \Illuminate\Validation\ValidationException(
+                validator([], [])->errors()->add('file', 'File type not allowed: ' . $detectedMime)
+            );
+        }
+
+        // Additional verification: check file content using finfo if available
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $contentMime = finfo_file($finfo, $file->getRealPath());
+            finfo_close($finfo);
+
+            // Verify content MIME matches detected MIME
+            if ($contentMime !== $detectedMime && !$this->isMimeCompatible($contentMime, $detectedMime)) {
+                throw new \Illuminate\Validation\ValidationException(
+                    validator([], [])->errors()->add('file', 'File content does not match declared type')
+                );
+            }
+        }
+    }
+
+    /**
+     * Check if two MIME types are compatible (e.g., jpg vs jpeg).
+     */
+    protected function isMimeCompatible(string $mime1, string $mime2): bool
+    {
+        // Normalize MIME types
+        $mime1 = strtolower($mime1);
+        $mime2 = strtolower($mime2);
+
+        // Exact match
+        if ($mime1 === $mime2) {
+            return true;
+        }
+
+        // JPEG variations
+        if (in_array($mime1, ['image/jpeg', 'image/jpg']) && in_array($mime2, ['image/jpeg', 'image/jpg'])) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
