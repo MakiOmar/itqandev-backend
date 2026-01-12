@@ -79,7 +79,45 @@ class ProjectController extends Controller
 
         $project = Project::with('categories:id,name', 'skills:id,name', 'testimonials', 'seoMeta')->findOrFail($routeId);
 
-        return response()->json($project);
+        // Load media collections
+        $hero = $project->getFirstMedia('hero');
+        $video = $project->getFirstMedia('video');
+        
+        // Add media to response
+        $projectData = $project->toArray();
+        $projectData['media'] = [
+            'hero' => $hero ? $this->transformMediaItem($hero) : null,
+            'video' => $video ? $this->transformMediaItem($video) : null,
+        ];
+
+        return response()->json($projectData);
+    }
+
+    /**
+     * Transform a single media item for API response.
+     */
+    protected function transformMediaItem($media): array
+    {
+        $url = $media->getUrl();
+        // Ensure URL is absolute
+        if ($url && !filter_var($url, FILTER_VALIDATE_URL)) {
+            $url = url($url);
+        }
+        
+        return [
+            'id' => $media->id,
+            'file_name' => $media->file_name,
+            'name' => $media->name,
+            'collection' => $media->collection_name,
+            'collection_name' => $media->collection_name,
+            'mime_type' => $media->mime_type,
+            'size' => $media->size,
+            'url' => $url,
+            'model_type' => $media->model_type,
+            'model_id' => $media->model_id,
+            'created_at' => $media->created_at?->toIso8601String(),
+            'alt_text' => $media->getCustomProperty('alt_text'),
+        ];
     }
 
     public function update(Request $request, Project $project)

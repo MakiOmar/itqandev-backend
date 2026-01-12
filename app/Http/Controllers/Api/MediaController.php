@@ -43,6 +43,16 @@ class MediaController extends Controller
             $query->where('model_type', $this->getModelType($request->type));
         }
 
+        // Filter by model_type (direct)
+        if ($request->has('model_type')) {
+            $query->where('model_type', $request->model_type);
+        }
+
+        // Filter by model_id
+        if ($request->has('model_id')) {
+            $query->where('model_id', $request->model_id);
+        }
+
         // Filter by collection
         if ($request->has('collection')) {
             $query->where('collection_name', $request->collection);
@@ -195,12 +205,54 @@ class MediaController extends Controller
             'media_id' => ['required', 'integer', 'exists:media,id'],
         ]);
 
-        $media = Media::findOrFail($data['media_id']);
+        $sourceMedia = Media::findOrFail($data['media_id']);
 
-        // Track usage - just link the existing media, don't copy it
-        $this->mediaService->trackUsage($media, $model, $collection);
+        // Check if media already exists in this collection for this model
+        $existingMedia = $model->getMedia($collection)->first();
+        
+        // If collection is single file and media already exists, delete it first
+        if ($existingMedia && ($collection === 'hero' || $collection === 'video')) {
+            $existingMedia->delete();
+        }
 
-        return response()->json($this->transformMedia($media), 201);
+        // Get the file path from the source media
+        $sourcePath = $sourceMedia->getPath();
+        
+        if (!$sourcePath || !file_exists($sourcePath)) {
+            // Try to get the URL and download it if path doesn't exist
+            $sourceUrl = $sourceMedia->getUrl();
+            if ($sourceUrl) {
+                // Ensure URL is absolute
+                if (!filter_var($sourceUrl, FILTER_VALIDATE_URL)) {
+                    $sourceUrl = url($sourceUrl);
+                }
+                // Use addMediaFromUrl to copy from URL
+                $newMedia = $model
+                    ->addMediaFromUrl($sourceUrl)
+                    ->usingName($sourceMedia->name ?? $sourceMedia->file_name)
+                    ->toMediaCollection($collection);
+            } else {
+                throw ValidationException::withMessages(['media_id' => 'Source media file not found and no URL available']);
+            }
+        } else {
+            // Copy media to the model's collection using the file path
+            // Use copy() method to copy the file to a temporary location first
+            $tempPath = sys_get_temp_dir() . '/' . uniqid() . '_' . $sourceMedia->file_name;
+            copy($sourcePath, $tempPath);
+            
+            $newMedia = $model
+                ->addMedia($tempPath)
+                ->usingName($sourceMedia->name ?? $sourceMedia->file_name)
+                ->toMediaCollection($collection);
+            
+            // Clean up temp file
+            @unlink($tempPath);
+        }
+
+        // Track usage of the original media
+        $this->mediaService->trackUsage($sourceMedia, $model, $collection);
+
+        return response()->json($this->transformMedia($newMedia), 201);
     }
 
     /**
