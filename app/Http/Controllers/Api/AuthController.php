@@ -38,11 +38,25 @@ class AuthController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
+        // Delete the Bearer token if it exists and user is authenticated
         if ($user) {
             $user->currentAccessToken()?->delete();
         }
 
-        return response()->noContent();
+        // Always clear cookies, even if user is null (e.g., token expired but cookie still exists)
+        // This ensures HttpOnly cookies are properly deleted
+        $cookieName = config('session.cookie', 'laravel_session');
+        $cookie = cookie($cookieName, '', -1, '/', null, false, true);
+        
+        // Clear the auth_session cookie (custom cookie name used by Qwik frontend)
+        $authCookieName = 'auth_session';
+        $authCookie = cookie($authCookieName, '', -1, '/', null, false, true);
+
+        // Return 204 No Content with cookies cleared
+        // This works even if the user was not authenticated (e.g., token expired)
+        return response()->noContent()
+            ->cookie($cookie)
+            ->cookie($authCookie);
     }
 }
 

@@ -28,6 +28,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', fn () => request()->user());
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
+    // Settings routes (outside v1 prefix to match frontend expectations)
+    Route::get('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'index']);
+    Route::put('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'update']);
+
     Route::prefix('v1')->name('v1.')->middleware('throttle:api')->group(function () {
         // Bulk actions MUST come before apiResource routes to avoid conflicts
         Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete'])->middleware('throttle:bulk');
@@ -55,7 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/statistics', [\App\Http\Controllers\Api\MediaController::class, 'statistics']);
             Route::get('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'show'])->where('media', '[0-9]+');
             Route::get('/{media}/download-link', [\App\Http\Controllers\Api\MediaController::class, 'downloadLink'])->where('media', '[0-9]+');
-        Route::get('/{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->where('media', '[0-9]+');
+            Route::get('/{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->where('media', '[0-9]+');
             
             // Upload media
             Route::post('/upload', [\App\Http\Controllers\Api\MediaController::class, 'upload'])->middleware(['large.uploads', 'throttle:uploads']);
@@ -66,7 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
             
             // Bulk operations
             Route::post('/bulk-delete', [\App\Http\Controllers\Api\MediaController::class, 'bulkDelete'])->middleware('throttle:bulk');
-        Route::get('/bulk-download', [\App\Http\Controllers\Api\MediaController::class, 'bulkDownload']);
+            Route::get('/bulk-download', [\App\Http\Controllers\Api\MediaController::class, 'bulkDownload']);
             Route::post('/move-to-folder', [\App\Http\Controllers\Api\MediaController::class, 'moveToFolder']);
             
             // Folders
