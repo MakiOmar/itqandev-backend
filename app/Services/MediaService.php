@@ -28,17 +28,25 @@ class MediaService
      */
     public function processUpload(UploadedFile $file, ?int $folderId = null, ?array $tags = null): Media
     {
-        // Verify MIME type matches file extension
-        $this->verifyMimeType($file);
+        try {
+            // Verify MIME type matches file extension
+            $this->verifyMimeType($file);
+        } catch (\Exception $mimeError) {
+            throw $mimeError;
+        }
         
         $mediaLibrary = \App\Models\MediaLibrary::instance();
         
-        // Add media to collection
-        // The path will be automatically organized by date using the DatePathGenerator
-        $media = $mediaLibrary
-            ->addMedia($file)
-            ->usingName($this->sanitizeFilename($file->getClientOriginalName()))
-            ->toMediaCollection('default');
+        try {
+            // Add media to collection
+            // The path will be automatically organized by date using the DatePathGenerator
+            $media = $mediaLibrary
+                ->addMedia($file)
+                ->usingName($this->sanitizeFilename($file->getClientOriginalName()))
+                ->toMediaCollection('default');
+        } catch (\Exception $addMediaError) {
+            throw $addMediaError;
+        }
 
         // Update folder if provided
         if ($folderId) {

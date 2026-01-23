@@ -28,10 +28,12 @@ use ZipArchive;
 class MediaController extends Controller
 {
     protected MediaService $mediaService;
+    protected ModelResolverService $modelResolver;
 
-    public function __construct(MediaService $mediaService)
+    public function __construct(MediaService $mediaService, ModelResolverService $modelResolver)
     {
         $this->mediaService = $mediaService;
+        $this->modelResolver = $modelResolver;
     }
 
     /**
@@ -135,11 +137,16 @@ class MediaController extends Controller
      */
     public function upload(Request $request)
     {
-        $this->authorize('upload', Media::class);
+        try {
+            $this->authorize('upload', Media::class);
+        } catch (\Exception $authError) {
+            throw $authError;
+        }
 
         $maxKb = (int) (config('media.max_file_size', 104857600) / 1024);
 
-        $data = $request->validate([
+        try {
+            $data = $request->validate([
             'file' => [
                 'required',
                 'file',
@@ -175,7 +182,10 @@ class MediaController extends Controller
             'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:255'],
-        ]);
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $validationError) {
+            throw $validationError;
+        }
 
         /** @var UploadedFile $file */
         $file = $data['file'];
@@ -185,9 +195,12 @@ class MediaController extends Controller
         // Store file temporarily in request for MediaService
         $request->merge(['file' => $file]);
 
-        $media = $this->mediaService->processUpload($file, $folderId, $tags);
-
-        return (new MediaResource($media))->response()->setStatusCode(201);
+        try {
+            $media = $this->mediaService->processUpload($file, $folderId, $tags);
+            return (new MediaResource($media))->response()->setStatusCode(201);
+        } catch (\Exception $processError) {
+            throw $processError;
+        }
     }
 
     /**
@@ -239,49 +252,93 @@ class MediaController extends Controller
         $sourceMedia = Media::findOrFail($data['media_id']);
 
         // Check if media already exists in this collection for this model
+        // For single-file collections (hero, video), delete existing media before attaching new one
+        // IMPORTANT: Use getMedia($collection) which filters by model_id and model_type
         $existingMedia = $model->getMedia($collection)->first();
         
-        // If collection is single file and media already exists, delete it first
-        if ($existingMedia && ($collection === 'hero' || $collection === 'video')) {
+        // Additional safety: Query database directly to ensure media belongs to this model
+        if ($existingMedia) {
+            $directQuery = Media::where('model_type', get_class($model))
+                ->where('model_id', $model->id)
+                ->where('collection_name', $collection)
+                ->first();
+            
+            // Only proceed if direct query confirms ownership
+            if (!$directQuery || $directQuery->id !== $existingMedia->id) {
+                $existingMedia = null; // Don't delete if ownership doesn't match
+            }
+        }
+        
+        // Double-check that the media actually belongs to this model
+        if ($existingMedia && $existingMedia->model_id == $model->id && $existingMedia->model_type == get_class($model)) {
             $existingMedia->delete();
+            
+            // Refresh model to clear any cached relationships
+            $model->refresh();
         }
 
         // Get the file path from the source media
         $sourcePath = $sourceMedia->getPath();
         
-        if (!$sourcePath || !file_exists($sourcePath)) {
-            // Try to get the URL and download it if path doesn't exist
-            $sourceUrl = $sourceMedia->getUrl();
-            if ($sourceUrl) {
-                // Ensure URL is absolute
-                if (!filter_var($sourceUrl, FILTER_VALIDATE_URL)) {
-                    $sourceUrl = url($sourceUrl);
+        // Get the disk instance using Storage facade
+        $disk = Storage::disk($sourceMedia->disk);
+        $relativePath = $sourceMedia->getPath();
+        
+        // Try to get the file content directly from disk (most reliable method)
+        try {
+            if ($disk->exists($relativePath)) {
+                // Get file content from disk
+                $fileContent = $disk->get($relativePath);
+                $tempPath = sys_get_temp_dir() . '/' . uniqid() . '_' . $sourceMedia->file_name;
+                
+                if (file_put_contents($tempPath, $fileContent) !== false) {
+                    $newMedia = $model
+                        ->addMedia($tempPath)
+                        ->usingName($sourceMedia->name ?? $sourceMedia->file_name)
+                        ->toMediaCollection($collection);
+                    
+                    // Refresh model relationships to clear any caching
+                    $model->refresh();
+                    $model->load('media');
+                    
+                    // Clean up temp file
+                    @unlink($tempPath);
+                } else {
+                    throw ValidationException::withMessages(['media_id' => 'Failed to create temporary file']);
                 }
-                // Use addMediaFromUrl to copy from URL
-                $newMedia = $model
-                    ->addMediaFromUrl($sourceUrl)
-                    ->usingName($sourceMedia->name ?? $sourceMedia->file_name)
-                    ->toMediaCollection($collection);
+            } elseif ($sourcePath && file_exists($sourcePath)) {
+                // Fallback: try direct file path copy
+                $tempPath = sys_get_temp_dir() . '/' . uniqid() . '_' . $sourceMedia->file_name;
+                if (copy($sourcePath, $tempPath)) {
+                    $newMedia = $model
+                        ->addMedia($tempPath)
+                        ->usingName($sourceMedia->name ?? $sourceMedia->file_name)
+                        ->toMediaCollection($collection);
+                    
+                    // Refresh model relationships to clear any caching
+                    $model->refresh();
+                    $model->load('media');
+                    
+                    @unlink($tempPath);
+                } else {
+                    throw ValidationException::withMessages(['media_id' => 'Failed to copy source media file']);
+                }
             } else {
-                throw ValidationException::withMessages(['media_id' => 'Source media file not found and no URL available']);
+                throw ValidationException::withMessages(['media_id' => 'Source media file not found']);
             }
-        } else {
-            // Copy media to the model's collection using the file path
-            // Use copy() method to copy the file to a temporary location first
-            $tempPath = sys_get_temp_dir() . '/' . uniqid() . '_' . $sourceMedia->file_name;
-            copy($sourcePath, $tempPath);
-            
-            $newMedia = $model
-                ->addMedia($tempPath)
-                ->usingName($sourceMedia->name ?? $sourceMedia->file_name)
-                ->toMediaCollection($collection);
-            
-            // Clean up temp file
-            @unlink($tempPath);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw ValidationException::withMessages(['media_id' => 'Failed to attach media: ' . $e->getMessage()]);
         }
 
         // Track usage of the original media
         $this->mediaService->trackUsage($sourceMedia, $model, $collection);
+
+        // Refresh model to ensure relationships are up to date
+        $model->refresh();
+        $model->load('media');
+        $model->unsetRelation('media');
 
         return (new MediaResource($newMedia))->response()->setStatusCode(201);
     }
