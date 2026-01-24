@@ -11,6 +11,7 @@ use App\Services\HtmlSanitizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 class ProjectController extends Controller
 {
@@ -74,6 +75,14 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', Project::class);
+
+        // Handle camelCase inputs from frontend
+        $request->merge([
+            'link_url' => $request->input('link_url') ?: $request->input('linkUrl'),
+            'repo_url' => $request->input('repo_url') ?: $request->input('repoUrl'),
+            'demo_url' => $request->input('demo_url') ?: $request->input('demoUrl'),
+            'published_at' => $request->input('published_at') ?: $request->input('publishedAt'),
+        ]);
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -147,7 +156,26 @@ class ProjectController extends Controller
         }
 
         $this->authorize('update', $project);
+        // Debug: Log all incoming request data
+        Log::info('ProjectController@update - Raw request data:', [
+            'all' => $request->all(),
+            'link_url' => $request->input('link_url'),
+            'repo_url' => $request->input('repo_url'),
+            'demo_url' => $request->input('demo_url'),
+            'published_at' => $request->input('published_at'),
+            'linkUrl' => $request->input('linkUrl'),
+            'repoUrl' => $request->input('repoUrl'),
+            'demoUrl' => $request->input('demoUrl'),
+            'publishedAt' => $request->input('publishedAt'),
+        ]);
 
+        // Handle camelCase inputs from frontend
+        $request->merge([
+            'link_url' => $request->input('link_url') ?: $request->input('linkUrl'),
+            'repo_url' => $request->input('repo_url') ?: $request->input('repoUrl'),
+            'demo_url' => $request->input('demo_url') ?: $request->input('demoUrl'),
+            'published_at' => $request->input('published_at') ?: $request->input('publishedAt'),
+        ]);
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('projects')->ignore($project->id)],
