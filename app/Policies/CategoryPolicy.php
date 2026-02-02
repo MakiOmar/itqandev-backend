@@ -12,7 +12,7 @@ class CategoryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'view categories');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view categories');
     }
 
     /**
@@ -20,7 +20,7 @@ class CategoryPolicy
      */
     public function view(User $user, Category $category): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'view categories');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view categories');
     }
 
     /**
@@ -28,7 +28,7 @@ class CategoryPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'create categories');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'create categories');
     }
 
     /**
@@ -36,7 +36,7 @@ class CategoryPolicy
      */
     public function update(User $user, Category $category): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'update categories');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'update categories');
     }
 
     /**
@@ -44,7 +44,7 @@ class CategoryPolicy
      */
     public function delete(User $user, Category $category): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'delete categories');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete categories');
     }
 
     /**
@@ -52,7 +52,7 @@ class CategoryPolicy
      */
     public function bulkDelete(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'delete categories');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete categories');
     }
 
     /**

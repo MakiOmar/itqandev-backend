@@ -12,7 +12,7 @@ class MediaPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'view media');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view media');
     }
 
     /**
@@ -20,7 +20,7 @@ class MediaPolicy
      */
     public function view(User $user, AppMedia $media): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'view media');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view media');
     }
 
     /**
@@ -28,7 +28,7 @@ class MediaPolicy
      */
     public function upload(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'upload media');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'upload media');
     }
 
     /**
@@ -36,7 +36,7 @@ class MediaPolicy
      */
     public function update(User $user, AppMedia $media): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'update media');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'update media');
     }
 
     /**
@@ -44,7 +44,7 @@ class MediaPolicy
      */
     public function delete(User $user, AppMedia $media): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'delete media');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete media');
     }
 
     /**
@@ -52,7 +52,7 @@ class MediaPolicy
      */
     public function bulkDelete(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'delete media');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete media');
     }
 
     /**
@@ -60,7 +60,7 @@ class MediaPolicy
      */
     public function download(User $user, AppMedia $media): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'download media');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'download media');
     }
 
     /**

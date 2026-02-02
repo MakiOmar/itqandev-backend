@@ -12,7 +12,7 @@ class ProjectPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'view projects');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view projects');
     }
 
     /**
@@ -20,7 +20,7 @@ class ProjectPolicy
      */
     public function view(User $user, Project $project): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'view projects');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view projects');
     }
 
     /**
@@ -28,7 +28,7 @@ class ProjectPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'create projects');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'create projects');
     }
 
     /**
@@ -36,7 +36,7 @@ class ProjectPolicy
      */
     public function update(User $user, Project $project): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'update projects');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'update projects');
     }
 
     /**
@@ -44,7 +44,7 @@ class ProjectPolicy
      */
     public function delete(User $user, Project $project): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'delete projects');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete projects');
     }
 
     /**
@@ -52,7 +52,7 @@ class ProjectPolicy
      */
     public function bulkDelete(User $user): bool
     {
-        return $user->hasRole(['super-admin', 'admin']) || $this->hasPermission($user, 'delete projects');
+        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete projects');
     }
 
     /**
