@@ -13,6 +13,7 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,9 +42,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
-
         // General API rate limiting
         RateLimiter::for('api', function (Request $request) {
+            if (app()->environment('local')) {
+                return Limit::none(); // disable in local
+            }
+
             return [
                 Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip()),
             ];
@@ -51,6 +55,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Stricter rate limiting for login
         RateLimiter::for('login', function (Request $request) {
+            if (app()->environment('local')) {
+                return Limit::none(); // disable in local
+            }
             return [
                 Limit::perMinute(5)->by($request->ip()),
             ];
@@ -58,6 +65,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Rate limiting for file uploads
         RateLimiter::for('uploads', function (Request $request) {
+            if (app()->environment('local')) {
+                return Limit::none(); // disable in local
+            }
             return [
                 Limit::perMinute(10)->by(optional($request->user())->id ?: $request->ip()),
             ];
@@ -65,6 +75,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Rate limiting for bulk operations
         RateLimiter::for('bulk', function (Request $request) {
+            if (app()->environment('local')) {
+                return Limit::none(); // disable in local
+            }
             return [
                 Limit::perMinute(3)->by(optional($request->user())->id ?: $request->ip()),
             ];
