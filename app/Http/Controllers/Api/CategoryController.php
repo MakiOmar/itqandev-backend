@@ -9,6 +9,11 @@ use App\Services\HtmlSanitizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+
+// optional
+
 
 class CategoryController extends Controller
 {
@@ -19,19 +24,58 @@ class CategoryController extends Controller
         $this->sanitizer = $sanitizer;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $this->authorize('viewAny', Category::class);
+        $cacheEnabled = (bool) config('cache.sys_cache_enabled');
 
-        $categories = Cache::remember('categories:list', 3600, function () {
-            return Category::withCount('projects')
+        $key     = 'categories:list:v1:json';
+        $lockKey = 'lock:categories:list:v1';
+
+        $buildJson = function (): string {
+            $categories = Category::withCount('projects')
                 ->with(['seoMeta', 'media'])
                 ->orderBy('name')
                 ->get();
+
+            return json_encode([
+                'data' => CategoryResource::collection($categories)->resolve(),
+                'meta' => ['cache' => ['hit' => false]],
+            ], JSON_UNESCAPED_UNICODE);
+        };
+
+        $respond = function (string $json, string $mode) {
+            return response($json, 200)
+                ->header('Content-Type', 'application/json')
+                ->header('X-Cache-Mode', $mode) // hit | miss | bypass
+                ->header('X-Cache-Hit', $mode === 'hit' ? '1' : '0');
+        };
+
+        // 🚫 Cache disabled via env
+        if (!$cacheEnabled) {
+            return $respond($buildJson(), 'bypass');
+        }
+
+        // ⚡ Fast path: single Redis GET (no has()+get())
+        $json = Cache::get($key);
+        if (is_string($json)) {
+            return $respond($json, 'hit');
+        }
+
+        // 🐢 Miss path: rebuild under Redis lock to prevent stampede
+        $json = Cache::lock($lockKey, 10)->block(5, function () use ($key, $buildJson) {
+            // Re-check after acquiring lock (another worker may have filled it)
+            $json = Cache::get($key);
+            if (is_string($json)) {
+                return $json;
+            }
+
+            return Cache::remember($key, 3600, $buildJson);
         });
 
-        return CategoryResource::collection($categories);
+        return $respond($json, 'miss');
     }
+
+
 
     public function store(Request $request)
     {
@@ -81,21 +125,20 @@ class CategoryController extends Controller
             'is_featured' => ['boolean'],
         ]);
 
-        // Sanitize HTML content
         if (isset($data['description'])) {
             $data['description'] = $this->sanitizer->stripAll($data['description']);
         }
 
         $category->update($data);
-        // Cache invalidation handled by InvalidatesCache trait
 
         return new CategoryResource($category);
     }
 
+
     public function destroy(Category $category)
     {
         $this->authorize('delete', $category);
-        
+
         $category->delete();
         // Cache invalidation handled by InvalidatesCache trait
 
