@@ -40,7 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete'])->middleware('throttle:bulk');
 
         // API Resources
-        Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class);
+        
         Route::apiResource('skills', \App\Http\Controllers\Api\SkillController::class);
         Route::apiResource('projects', \App\Http\Controllers\Api\ProjectController::class);
         Route::apiResource('testimonials', \App\Http\Controllers\Api\TestimonialController::class);
@@ -79,7 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/folders/{folder}', [\App\Http\Controllers\Api\MediaController::class, 'updateFolder']);
             Route::delete('/folders/{folder}', [\App\Http\Controllers\Api\MediaController::class, 'deleteFolder']);
         });
-
+        Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class);
         // Legacy route for attaching media to models
         Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store'])->middleware('throttle:uploads');
         Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
