@@ -11,7 +11,10 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Category extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, RefreshesCache, InvalidatesCache;
+    use HasFactory;
+    use InteractsWithMedia;
+    use RefreshesCache;
+    use InvalidatesCache;
 
     protected $fillable = [
         'name',
