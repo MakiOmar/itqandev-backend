@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             'manage blog',
             'manage seo',
             'view analytics',
+            'manage system',
         ];
 
         foreach ($permissions as $permission) {
@@ -41,6 +42,9 @@ class DatabaseSeeder extends Seeder
 
         $adminRole = Role::findOrCreate('admin');
         $adminRole->givePermissionTo(Permission::all());
+
+        $superAdminRole = Role::findOrCreate('super_admin');
+        $superAdminRole->givePermissionTo(Permission::all());
 
         $companyRole = Role::findOrCreate('company');
         $companyRole->givePermissionTo([
@@ -75,6 +79,16 @@ class DatabaseSeeder extends Seeder
         );
 
         $admin->assignRole($adminRole);
+
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'superadmin@credocode.test'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('SuperAdmin@123456'),
+            ]
+        );
+
+        $superAdmin->assignRole($superAdminRole);
 
         $this->call(WebDevDemoSeeder::class);
     }
