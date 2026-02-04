@@ -43,16 +43,11 @@ return Application::configure(basePath: dirname(__DIR__))
          *
          * Ordering matters:
          * 1) Locale early (especially if it sets URL defaults)
-         * 2) Sanctum stateful middleware ONLY if you use cookie-based SPA auth
-         * 3) Throttle
-         * 4) SubstituteBindings for implicit route model binding
+         * 2) Throttle
+         * 3) SubstituteBindings for implicit route model binding
          */
         $middleware->group('api', [
             SetLocaleFromRequest::class,
-
-            // ✅ Keep this ONLY if you want Sanctum SPA cookie auth (XSRF-TOKEN, etc.)
-            // If you're strictly using Bearer tokens, you can remove it.
-            EnsureFrontendRequestsAreStateful::class,
 
             ThrottleRequests::class . ':api',
             SubstituteBindings::class, // ✅ REQUIRED for {model} binding
