@@ -9,14 +9,13 @@ use App\Services\HtmlSanitizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-
-// optional
 
 
 class CategoryController extends Controller
 {
+    private const LIST_CACHE_KEY = 'categories:list:v1:json';
+    private const LIST_LOCK_KEY = 'lock:categories:list:v1';
+
     protected HtmlSanitizerService $sanitizer;
 
     public function __construct(HtmlSanitizerService $sanitizer)
@@ -26,10 +25,10 @@ class CategoryController extends Controller
 
     public function index(Request $request)
     {
-        $cacheEnabled = (bool) config('cache.sys_cache_enabled');
+        $cacheEnabled = (bool) config('app.sys_cache_enabled', true);
 
-        $key     = 'categories:list:v1:json';
-        $lockKey = 'lock:categories:list:v1';
+        $key = self::LIST_CACHE_KEY;
+        $lockKey = self::LIST_LOCK_KEY;
 
         $buildJson = function (): string {
             $categories = Category::withCount('projects')
@@ -94,7 +93,7 @@ class CategoryController extends Controller
         }
 
         $category = Category::create($data);
-        Cache::forget('categories:list');
+        Cache::forget(self::LIST_CACHE_KEY);
 
         return (new CategoryResource($category))->response()->setStatusCode(201);
     }
@@ -130,6 +129,7 @@ class CategoryController extends Controller
         }
 
         $category->update($data);
+        Cache::forget(self::LIST_CACHE_KEY);
 
         return new CategoryResource($category);
     }
@@ -140,6 +140,7 @@ class CategoryController extends Controller
         $this->authorize('delete', $category);
 
         $category->delete();
+        Cache::forget(self::LIST_CACHE_KEY);
         // Cache invalidation handled by InvalidatesCache trait
 
         return response()->noContent();
@@ -155,6 +156,7 @@ class CategoryController extends Controller
         ]);
 
         $count = Category::whereIn('id', $data['ids'])->delete();
+        Cache::forget(self::LIST_CACHE_KEY);
         // Cache invalidation handled by InvalidatesCache trait on model events
 
         return response()->json([
