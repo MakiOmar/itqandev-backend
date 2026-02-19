@@ -79,6 +79,8 @@ class SettingsController extends Controller
                 // Branding
                 'name' => config('app.name', 'Dashboard'),
                 'logo' => null,
+                'logoDark' => null,
+                'logoLight' => null,
                 'favicon' => null,
                 'primaryColor' => null,
                 'secondaryColor' => null,
@@ -120,6 +122,14 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'logo' => 'sometimes|nullable|string',
+            'logoDark' => 'sometimes|nullable|string',
+            'logoLight' => 'sometimes|nullable|string',
+            'logo_dark' => 'sometimes|nullable|string',
+            'logo_light' => 'sometimes|nullable|string',
+            'dark_logo' => 'sometimes|nullable|string',
+            'light_logo' => 'sometimes|nullable|string',
+            'site_logo_dark' => 'sometimes|nullable|string',
+            'site_logo_light' => 'sometimes|nullable|string',
             'favicon' => 'sometimes|nullable|string',
             'primaryColor' => 'sometimes|nullable|string|max:7',
             'secondaryColor' => 'sometimes|nullable|string|max:7',
