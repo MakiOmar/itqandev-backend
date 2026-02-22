@@ -132,17 +132,19 @@ class SettingsController extends Controller
         $defaults = $this->getDefaultSettings();
         $settings = array_merge($defaults, $input);
 
-        $siteName = $this->resolveFirst($settings, ['site_name', 'name'], $defaults['site_name']);
-        $description = $this->resolveFirst($settings, ['site_description', 'description'], $defaults['site_description']);
-        $siteEmail = $this->resolveFirst($settings, ['site_email', 'supportEmail'], $defaults['site_email']);
-        $sitePhone = $this->resolveFirst($settings, ['site_phone', 'supportPhone'], $defaults['site_phone']);
+        // Resolve aliases from raw input first, then fallback to merged defaults/settings.
+        // This prevents default null keys (e.g. logo) from masking legacy alias values (e.g. site_logo).
+        $siteName = $this->resolveFirst($input, ['site_name', 'name'], $settings['site_name']);
+        $description = $this->resolveFirst($input, ['site_description', 'description'], $settings['site_description']);
+        $siteEmail = $this->resolveFirst($input, ['site_email', 'supportEmail'], $settings['site_email']);
+        $sitePhone = $this->resolveFirst($input, ['site_phone', 'supportPhone'], $settings['site_phone']);
 
-        $logo = $this->resolveFirst($settings, ['logo', 'site_logo'], $defaults['logo']);
-        $logoDark = $this->resolveFirst($settings, ['logoDark', 'logo_dark', 'dark_logo', 'site_logo_dark'], $defaults['logoDark']);
-        $logoLight = $this->resolveFirst($settings, ['logoLight', 'logo_light', 'light_logo', 'site_logo_light'], $defaults['logoLight']);
-        $favicon = $this->resolveFirst($settings, ['favicon', 'site_favicon'], $defaults['favicon']);
-        $primaryColor = $this->resolveFirst($settings, ['primaryColor', 'primary_color'], $defaults['primaryColor']);
-        $secondaryColor = $this->resolveFirst($settings, ['secondaryColor', 'secondary_color'], $defaults['secondaryColor']);
+        $logo = $this->resolveFirst($input, ['logo', 'site_logo'], $settings['logo']);
+        $logoDark = $this->resolveFirst($input, ['logoDark', 'logo_dark', 'dark_logo', 'site_logo_dark'], $settings['logoDark']);
+        $logoLight = $this->resolveFirst($input, ['logoLight', 'logo_light', 'light_logo', 'site_logo_light'], $settings['logoLight']);
+        $favicon = $this->resolveFirst($input, ['favicon', 'site_favicon'], $settings['favicon']);
+        $primaryColor = $this->resolveFirst($input, ['primaryColor', 'primary_color'], $settings['primaryColor']);
+        $secondaryColor = $this->resolveFirst($input, ['secondaryColor', 'secondary_color'], $settings['secondaryColor']);
 
         $settings['name'] = $siteName;
         $settings['site_name'] = $siteName;
