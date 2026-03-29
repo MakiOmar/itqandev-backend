@@ -4,11 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
+use App\Services\HtmlSanitizerService;
+use App\Support\SiteLanguages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class BlogPostController extends Controller
 {
+    public function __construct(
+        protected HtmlSanitizerService $sanitizer
+    ) {}
+
     public function index(Request $request)
     {
         $cacheKey = 'blog_posts:list:' . md5(json_encode($request->query()));
@@ -42,18 +48,39 @@ class BlogPostController extends Controller
             'status' => ['required', 'string', 'in:draft,published,archived'],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'translations' => ['nullable', 'array'],
+            'translations.*.locale' => ['required', 'string', 'max:16'],
+            'translations.*.title' => ['nullable', 'string', 'max:255'],
+            'translations.*.excerpt' => ['nullable', 'string', 'max:1024'],
+            'translations.*.content' => ['nullable', 'string'],
         ]);
+
+        $translations = $data['translations'] ?? null;
+        unset($data['translations']);
+
+        if (isset($data['content'])) {
+            $data['content'] = $this->sanitizer->sanitize((string) $data['content']);
+        }
+        if (isset($data['excerpt'])) {
+            $data['excerpt'] = $this->sanitizer->stripAll((string) $data['excerpt']);
+        }
 
         $data['author_id'] = $request->user()->id;
 
         $post = BlogPost::create($data);
 
-        return response()->json($post->load('author:id,name,email'), 201);
+        if (is_array($translations)) {
+            $this->syncBlogPostTranslations($post, $translations);
+        }
+
+        $post->load('author:id,name,email', 'translations');
+
+        return response()->json($post, 201);
     }
 
     public function show(BlogPost $blogPost)
     {
-        $blogPost->load('author:id,name,email', 'seoMeta');
+        $blogPost->load('author:id,name,email', 'seoMeta', 'translations');
 
         return response()->json($blogPost);
     }
@@ -68,11 +95,30 @@ class BlogPostController extends Controller
             'status' => ['sometimes', 'required', 'string', 'in:draft,published,archived'],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'translations' => ['nullable', 'array'],
+            'translations.*.locale' => ['required', 'string', 'max:16'],
+            'translations.*.title' => ['nullable', 'string', 'max:255'],
+            'translations.*.excerpt' => ['nullable', 'string', 'max:1024'],
+            'translations.*.content' => ['nullable', 'string'],
         ]);
+
+        $translations = $data['translations'] ?? null;
+        unset($data['translations']);
+
+        if (array_key_exists('content', $data) && $data['content'] !== null) {
+            $data['content'] = $this->sanitizer->sanitize((string) $data['content']);
+        }
+        if (array_key_exists('excerpt', $data) && $data['excerpt'] !== null) {
+            $data['excerpt'] = $this->sanitizer->stripAll((string) $data['excerpt']);
+        }
 
         $blogPost->update($data);
 
-        return response()->json($blogPost->load('author:id,name,email'));
+        if (is_array($translations)) {
+            $this->syncBlogPostTranslations($blogPost, $translations);
+        }
+
+        return response()->json($blogPost->load('author:id,name,email', 'translations'));
     }
 
     public function destroy(BlogPost $blogPost)
@@ -80,6 +126,48 @@ class BlogPostController extends Controller
         $blogPost->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $translations
+     */
+    private function syncBlogPostTranslations(BlogPost $post, array $translations): void
+    {
+        $allowed = array_flip(SiteLanguages::secondaryLocaleCodes());
+        $post->translations()->whereNotIn('locale', array_keys($allowed))->delete();
+
+        if ($allowed === []) {
+            return;
+        }
+
+        foreach ($translations as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $locale = strtolower(trim((string) ($row['locale'] ?? '')));
+            if ($locale === '' || ! isset($allowed[$locale])) {
+                continue;
+            }
+
+            $title = isset($row['title']) ? trim((string) $row['title']) : '';
+            $excerpt = isset($row['excerpt']) ? trim((string) $row['excerpt']) : '';
+            $content = isset($row['content']) ? trim((string) $row['content']) : '';
+
+            if ($title === '' && $excerpt === '' && $content === '') {
+                $post->translations()->where('locale', $locale)->delete();
+
+                continue;
+            }
+
+            $post->translations()->updateOrCreate(
+                ['locale' => $locale],
+                [
+                    'title' => $title !== '' ? $title : null,
+                    'excerpt' => $excerpt !== '' ? $this->sanitizer->stripAll($excerpt) : null,
+                    'content' => $content !== '' ? $this->sanitizer->sanitize($content) : null,
+                ]
+            );
+        }
     }
 }
 

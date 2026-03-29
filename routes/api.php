@@ -29,8 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     // Settings routes (outside v1 prefix to match frontend expectations)
-    Route::get('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'index']);
-    Route::put('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'update']);
+    Route::get('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'index'])->middleware('throttle:api');
+    Route::put('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'update'])->middleware('throttle:api');
 
     Route::prefix('v1')->name('v1.')->middleware('throttle:api')->group(function () {
         // Bulk actions MUST come before apiResource routes to avoid conflicts
@@ -85,4 +85,3 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
     });
 });
-

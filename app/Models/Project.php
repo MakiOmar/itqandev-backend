@@ -51,6 +51,11 @@ class Project extends Model implements HasMedia
         return $this->morphOne(SeoMeta::class, 'seoable');
     }
 
+    public function translations()
+    {
+        return $this->hasMany(ProjectTranslation::class);
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('hero')->singleFile();

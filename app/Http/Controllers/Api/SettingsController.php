@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\SiteLanguages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -67,6 +68,10 @@ class SettingsController extends Controller
 
             // Feature flags (project-specific)
             'features' => [],
+
+            // Multilingual site content (admin + API)
+            'site_languages' => SiteLanguages::defaults(),
+            'default_locale' => 'en',
         ];
     }
 
@@ -176,6 +181,20 @@ class SettingsController extends Controller
             $settings['features'] = [];
         }
 
+        $rawLangs = $this->resolveFirst($input, ['site_languages'], $settings['site_languages'] ?? []);
+        if (! is_array($rawLangs)) {
+            $rawLangs = [];
+        }
+        $settings['site_languages'] = SiteLanguages::normalizeList($rawLangs);
+
+        $defaultLocale = $this->resolveFirst($input, ['default_locale'], $settings['default_locale'] ?? 'en');
+        $defaultLocale = strtolower(trim((string) $defaultLocale));
+        $codes = array_column($settings['site_languages'], 'code');
+        if ($codes === [] || ! in_array($defaultLocale, $codes, true)) {
+            $defaultLocale = $codes[0] ?? 'en';
+        }
+        $settings['default_locale'] = $defaultLocale;
+
         return $settings;
     }
 
@@ -270,38 +289,46 @@ class SettingsController extends Controller
     public function update(Request $request): JsonResponse
     {
         // Validate full settings payload (canonical + compatibility aliases).
+        $hexColor = 'regex:/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/';
+
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'site_name' => 'sometimes|string|max:255',
-            'logo' => 'sometimes|nullable|string',
-            'site_logo' => 'sometimes|nullable|string',
-            'logoDark' => 'sometimes|nullable|string',
-            'logoLight' => 'sometimes|nullable|string',
-            'logo_dark' => 'sometimes|nullable|string',
-            'logo_light' => 'sometimes|nullable|string',
-            'dark_logo' => 'sometimes|nullable|string',
-            'light_logo' => 'sometimes|nullable|string',
-            'site_logo_dark' => 'sometimes|nullable|string',
-            'site_logo_light' => 'sometimes|nullable|string',
-            'favicon' => 'sometimes|nullable|string',
-            'site_favicon' => 'sometimes|nullable|string',
-            'primaryColor' => 'sometimes|nullable|string|max:7',
-            'secondaryColor' => 'sometimes|nullable|string|max:7',
-            'primary_color' => 'sometimes|nullable|string|max:7',
-            'secondary_color' => 'sometimes|nullable|string|max:7',
-            'description' => 'sometimes|nullable|string',
-            'site_description' => 'sometimes|nullable|string',
+            'name' => 'sometimes|string|max:120',
+            'site_name' => 'sometimes|string|max:120',
+            'logo' => 'sometimes|nullable|url|max:2048',
+            'site_logo' => 'sometimes|nullable|url|max:2048',
+            'logoDark' => 'sometimes|nullable|url|max:2048',
+            'logoLight' => 'sometimes|nullable|url|max:2048',
+            'logo_dark' => 'sometimes|nullable|url|max:2048',
+            'logo_light' => 'sometimes|nullable|url|max:2048',
+            'dark_logo' => 'sometimes|nullable|url|max:2048',
+            'light_logo' => 'sometimes|nullable|url|max:2048',
+            'site_logo_dark' => 'sometimes|nullable|url|max:2048',
+            'site_logo_light' => 'sometimes|nullable|url|max:2048',
+            'favicon' => 'sometimes|nullable|url|max:2048',
+            'site_favicon' => 'sometimes|nullable|url|max:2048',
+            'primaryColor' => ['sometimes', 'nullable', $hexColor],
+            'secondaryColor' => ['sometimes', 'nullable', $hexColor],
+            'primary_color' => ['sometimes', 'nullable', $hexColor],
+            'secondary_color' => ['sometimes', 'nullable', $hexColor],
+            'description' => 'sometimes|nullable|string|max:500',
+            'site_description' => 'sometimes|nullable|string|max:500',
             'supportEmail' => 'sometimes|nullable|email|max:255',
             'site_email' => 'sometimes|nullable|email|max:255',
             'supportPhone' => 'sometimes|nullable|string|max:50',
             'site_phone' => 'sometimes|nullable|string|max:50',
             'site_address' => 'sometimes|nullable|string|max:500',
-            'social_facebook' => 'sometimes|nullable|string|max:255',
-            'social_twitter' => 'sometimes|nullable|string|max:255',
-            'social_linkedin' => 'sometimes|nullable|string|max:255',
-            'social_instagram' => 'sometimes|nullable|string|max:255',
+            'social_facebook' => 'sometimes|nullable|url|max:255',
+            'social_twitter' => 'sometimes|nullable|url|max:255',
+            'social_linkedin' => 'sometimes|nullable|url|max:255',
+            'social_instagram' => 'sometimes|nullable|url|max:255',
             'upload_max_size' => 'sometimes|nullable|integer|min:1|max:1000',
             'features' => 'sometimes|array',
+            'site_languages' => 'sometimes|array',
+            'site_languages.*.code' => 'required_with:site_languages|string|max:16',
+            'site_languages.*.label' => 'nullable|string|max:120',
+            'site_languages.*.native_label' => 'nullable|string|max:120',
+            'site_languages.*.rtl' => 'sometimes|boolean',
+            'default_locale' => 'sometimes|string|max:16',
         ]);
 
         // Load existing settings, apply updates, normalize aliases, then persist.
@@ -310,6 +337,9 @@ class SettingsController extends Controller
         $normalizedSettings = $this->normalizeSettingsPayload($mergedSettings);
 
         $this->saveStoredSettings($normalizedSettings);
+
+        // Invalidate and refresh cache to keep GET /settings fast and consistent.
+        Cache::forget(self::SETTINGS_CACHE_KEY);
         Cache::put(self::SETTINGS_CACHE_KEY, $normalizedSettings, self::SETTINGS_CACHE_SECONDS);
         
         return response()->json([

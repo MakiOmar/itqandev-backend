@@ -40,6 +40,11 @@ class BlogPost extends Model implements HasMedia
         return $this->morphOne(SeoMeta::class, 'seoable');
     }
 
+    public function translations()
+    {
+        return $this->hasMany(BlogPostTranslation::class);
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('featured_image')->singleFile();

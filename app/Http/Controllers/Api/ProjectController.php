@@ -7,6 +7,7 @@ use App\Http\Resources\ProjectResource;
 use App\Models\Category;
 use App\Models\Project;
 use App\Models\Skill;
+use App\Support\SiteLanguages;
 use App\Services\HtmlSanitizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -37,6 +38,7 @@ class ProjectController extends Controller
                 'categories:id,name',
                 'skills:id,name',
                 'seoMeta',
+                'translations',
                 'media' => function ($query) {
                     $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
                 }
@@ -99,7 +101,15 @@ class ProjectController extends Controller
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'skill_ids' => ['array'],
             'skill_ids.*' => ['integer', 'exists:skills,id'],
+            'translations' => ['nullable', 'array'],
+            'translations.*.locale' => ['required', 'string', 'max:16'],
+            'translations.*.title' => ['nullable', 'string', 'max:255'],
+            'translations.*.summary' => ['nullable', 'string', 'max:1024'],
+            'translations.*.description' => ['nullable', 'string'],
         ]);
+
+        $translations = $data['translations'] ?? null;
+        unset($data['translations']);
 
         // Sanitize HTML content
         if (isset($data['description'])) {
@@ -113,7 +123,11 @@ class ProjectController extends Controller
         $project->categories()->sync($data['category_ids'] ?? []);
         $project->skills()->sync($data['skill_ids'] ?? []);
 
-        $project->load('categories:id,name', 'skills:id,name');
+        if (is_array($translations)) {
+            $this->syncProjectTranslations($project, $translations);
+        }
+
+        $project->load('categories:id,name', 'skills:id,name', 'translations');
         return (new ProjectResource($project))->response()->setStatusCode(201);
     }
 
@@ -128,6 +142,7 @@ class ProjectController extends Controller
         $project = Project::with([
             'categories:id,name',
             'skills:id,name',
+            'translations',
             'testimonials' => function ($query) {
                 $query->with('media');
             },
@@ -191,7 +206,15 @@ class ProjectController extends Controller
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'skill_ids' => ['array'],
             'skill_ids.*' => ['integer', 'exists:skills,id'],
+            'translations' => ['nullable', 'array'],
+            'translations.*.locale' => ['required', 'string', 'max:16'],
+            'translations.*.title' => ['nullable', 'string', 'max:255'],
+            'translations.*.summary' => ['nullable', 'string', 'max:1024'],
+            'translations.*.description' => ['nullable', 'string'],
         ]);
+
+        $translations = $data['translations'] ?? null;
+        unset($data['translations']);
 
         // Sanitize HTML content
         if (isset($data['description'])) {
@@ -211,7 +234,11 @@ class ProjectController extends Controller
             $project->skills()->sync($data['skill_ids']);
         }
 
-        $project->load('categories:id,name', 'skills:id,name');
+        if (is_array($translations)) {
+            $this->syncProjectTranslations($project, $translations);
+        }
+
+        $project->load('categories:id,name', 'skills:id,name', 'translations');
         return new ProjectResource($project);
     }
 
@@ -239,5 +266,47 @@ class ProjectController extends Controller
             'deleted' => $count,
             'message' => 'Deleted ' . $count . ' projects',
         ]);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $translations
+     */
+    private function syncProjectTranslations(Project $project, array $translations): void
+    {
+        $allowed = array_flip(SiteLanguages::secondaryLocaleCodes());
+        $project->translations()->whereNotIn('locale', array_keys($allowed))->delete();
+
+        if ($allowed === []) {
+            return;
+        }
+
+        foreach ($translations as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $locale = strtolower(trim((string) ($row['locale'] ?? '')));
+            if ($locale === '' || ! isset($allowed[$locale])) {
+                continue;
+            }
+
+            $title = isset($row['title']) ? trim((string) $row['title']) : '';
+            $summary = isset($row['summary']) ? trim((string) $row['summary']) : '';
+            $description = isset($row['description']) ? trim((string) $row['description']) : '';
+
+            if ($title === '' && $summary === '' && $description === '') {
+                $project->translations()->where('locale', $locale)->delete();
+
+                continue;
+            }
+
+            $project->translations()->updateOrCreate(
+                ['locale' => $locale],
+                [
+                    'title' => $title !== '' ? $title : null,
+                    'summary' => $summary !== '' ? $this->sanitizer->stripAll($summary) : null,
+                    'description' => $description !== '' ? $this->sanitizer->sanitize($description) : null,
+                ]
+            );
+        }
     }
 }

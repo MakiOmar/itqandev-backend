@@ -42,6 +42,14 @@ class ProjectResource extends JsonResource
             }) ?? [],
             'testimonials' => $this->whenLoaded('testimonials'),
             'seoMeta' => $this->whenLoaded('seoMeta'),
+            'translations' => $this->whenLoaded('translations', function () {
+                return $this->translations->map(fn ($t) => [
+                    'locale' => $t->locale,
+                    'title' => $t->title,
+                    'summary' => $t->summary,
+                    'description' => $t->description,
+                ])->values();
+            }),
             'media' => $this->getMediaData(),
         ];
     }
