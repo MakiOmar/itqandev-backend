@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Support\CorsAllowedOrigin;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', fn () => ['status' => 'ok']);
+Route::get('/health', fn () => ['status' => 'ok'])->middleware('throttle:health');
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
@@ -11,14 +12,14 @@ Route::post('/auth/login', [AuthController::class, 'login'])->middleware('thrott
 Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request $request, $media) {
     $origin = $request->headers->get('origin');
     $resp = response('', 204);
-    if ($origin) {
+    if ($origin && CorsAllowedOrigin::isAllowed($origin)) {
         $resp->headers->set('Access-Control-Allow-Origin', $origin);
         $resp->headers->set('Access-Control-Allow-Credentials', 'true');
         $resp->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
         $resp->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
         $resp->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
         $resp->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
-        $resp->headers->set('Access-Control-Max-Age', '0');
+        $resp->headers->set('Access-Control-Max-Age', (string) (int) config('cors.max_age', 0));
         $resp->headers->set('Vary', 'Origin');
     }
     return $resp;
@@ -70,7 +71,8 @@ Route::middleware('auth:sanctum')->group(function () {
             
             // Bulk operations
             Route::post('/bulk-delete', [\App\Http\Controllers\Api\MediaController::class, 'bulkDelete'])->middleware('throttle:bulk');
-            Route::get('/bulk-download', [\App\Http\Controllers\Api\MediaController::class, 'bulkDownload']);
+            Route::get('/bulk-download', [\App\Http\Controllers\Api\MediaController::class, 'bulkDownload'])
+                ->middleware('throttle:bulk');
             Route::post('/move-to-folder', [\App\Http\Controllers\Api\MediaController::class, 'moveToFolder']);
             
             // Folders

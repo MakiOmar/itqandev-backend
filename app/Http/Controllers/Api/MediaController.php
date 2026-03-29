@@ -14,6 +14,7 @@ use App\Models\Skill;
 use App\Services\MediaService;
 use App\Services\MediaTransformerService;
 use App\Services\ModelResolverService;
+use App\Support\CorsAllowedOrigin;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -442,16 +443,8 @@ class MediaController extends Controller
             'Content-Type' => $mimeType,
         ]);
 
-        // Manually set CORS on binary response (HandleCors may not mutate BinaryFileResponse)
-        $origin = $request->headers->get('origin');
-        $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
-        $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
-        $response->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
-        $response->headers->set('Access-Control-Max-Age', '0');
-        $response->headers->set('Vary', 'Origin');
+        // HandleCors does not always attach to BinaryFileResponse; only reflect allowlisted Origin.
+        CorsAllowedOrigin::applyDownloadCors($request->headers->get('origin'), $response);
 
         return $response;
     }
@@ -469,21 +462,12 @@ class MediaController extends Controller
             ['media' => $media->id]
         );
 
-        $origin = $request->headers->get('origin');
         $resp = response()->json([
             'url' => $signedUrl,
             'expires_at' => $expires->toIso8601String(),
         ]);
 
-        $origin = $request->headers->get('origin');
-        $resp->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
-        $resp->headers->set('Access-Control-Allow-Credentials', 'true');
-        $resp->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
-        $resp->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
-        $resp->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        $resp->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
-        $resp->headers->set('Access-Control-Max-Age', '0');
-        $resp->headers->set('Vary', 'Origin');
+        CorsAllowedOrigin::applyDownloadCors($request->headers->get('origin'), $resp);
 
         return $resp;
     }
@@ -507,10 +491,18 @@ class MediaController extends Controller
             }
         }
 
+        if (count($ids) > 50) {
+            return response()->json(['message' => 'Too many media items (maximum 50 per request)'], 422);
+        }
+
         $mediaItems = Media::whereIn('id', $ids)->get();
 
         if ($mediaItems->isEmpty()) {
             return response()->json(['message' => 'No media found for provided ids'], 404);
+        }
+
+        foreach ($mediaItems as $media) {
+            $this->authorize('download', $media);
         }
 
         $zip = new ZipArchive();
@@ -543,16 +535,7 @@ class MediaController extends Controller
             ])
             ->deleteFileAfterSend(true);
 
-        // Manually set CORS on binary response
-        $origin = $request->headers->get('origin');
-        $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
-        $response->headers->set('Access-Control-Expose-Headers', 'Content-Disposition');
-        $response->headers->set('Access-Control-Allow-Headers', 'authorization, content-type, accept, origin, x-requested-with, range');
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
-        $response->headers->set('Access-Control-Max-Age', '0');
-        $response->headers->set('Vary', 'Origin');
+        CorsAllowedOrigin::applyDownloadCors($request->headers->get('origin'), $response);
 
         return $response;
     }
@@ -567,6 +550,11 @@ class MediaController extends Controller
             'media_ids.*' => ['integer', 'exists:media,id'],
             'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
         ]);
+
+        $toMove = Media::whereIn('id', $data['media_ids'])->get();
+        foreach ($toMove as $media) {
+            $this->authorize('update', $media);
+        }
 
         Media::whereIn('id', $data['media_ids'])
             ->update(['folder_id' => $data['folder_id']]);

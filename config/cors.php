@@ -36,7 +36,7 @@ return [
 
     'exposed_headers' => ['Content-Disposition'],
 
-    'max_age' => 0,
+    'max_age' => (int) env('CORS_MAX_AGE', 0),
 
     'supports_credentials' => true,
 ];

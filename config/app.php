@@ -125,4 +125,23 @@ return [
 
     'sys_cache_enabled' => env('SYS_CACHE_ENABLED', true),
 
+    /*
+    |--------------------------------------------------------------------------
+    | HTTP Strict Transport Security (HSTS)
+    |--------------------------------------------------------------------------
+    |
+    | Max-age in seconds. Use 0 locally; in production behind HTTPS set e.g. 31536000.
+    |
+    */
+
+    'hsts_max_age' => (int) env('HSTS_MAX_AGE', 0),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Settings API cache TTL (seconds)
+    |--------------------------------------------------------------------------
+    */
+
+    'settings_cache_ttl' => (int) env('SETTINGS_CACHE_TTL', 600),
+
 ];

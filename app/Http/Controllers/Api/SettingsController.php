@@ -12,8 +12,14 @@ use Illuminate\Support\Facades\Storage;
 class SettingsController extends Controller
 {
     private const SETTINGS_CACHE_KEY = 'project-settings';
-    private const SETTINGS_CACHE_SECONDS = 300;
     private const SETTINGS_FILE_PATH = 'project-settings.json';
+
+    private function settingsCacheTtlSeconds(): int
+    {
+        $ttl = (int) config('app.settings_cache_ttl', 600);
+
+        return max(60, min($ttl, 86400));
+    }
 
     /**
      * Default settings payload.
@@ -261,7 +267,7 @@ class SettingsController extends Controller
 
         // Cache for 5 minutes (300 seconds)
         // This reduces load on storage/database for frequently accessed settings.
-        $settings = Cache::remember(self::SETTINGS_CACHE_KEY, self::SETTINGS_CACHE_SECONDS, function () {
+        $settings = Cache::remember(self::SETTINGS_CACHE_KEY, $this->settingsCacheTtlSeconds(), function () {
             $stored = $this->loadStoredSettings();
             return $this->normalizeSettingsPayload($stored);
         });
@@ -340,7 +346,7 @@ class SettingsController extends Controller
 
         // Invalidate and refresh cache to keep GET /settings fast and consistent.
         Cache::forget(self::SETTINGS_CACHE_KEY);
-        Cache::put(self::SETTINGS_CACHE_KEY, $normalizedSettings, self::SETTINGS_CACHE_SECONDS);
+        Cache::put(self::SETTINGS_CACHE_KEY, $normalizedSettings, $this->settingsCacheTtlSeconds());
         
         return response()->json([
             'success' => true,
