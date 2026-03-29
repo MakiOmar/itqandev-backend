@@ -8,6 +8,13 @@ Route::get('/health', fn () => ['status' => 'ok'])->middleware('throttle:health'
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
+/** Marketing site: published projects only (no auth). Respects X-Content-Locale for translated fields. */
+Route::prefix('public')->middleware('throttle:api')->group(function () {
+    Route::get('projects', [\App\Http\Controllers\Api\PublicProjectController::class, 'index']);
+    Route::get('projects/{slug}', [\App\Http\Controllers\Api\PublicProjectController::class, 'show'])
+        ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+});
+
 // Public preflight for media download (avoid auth blocking OPTIONS)
 Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request $request, $media) {
     $origin = $request->headers->get('origin');
