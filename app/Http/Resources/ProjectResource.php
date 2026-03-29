@@ -20,7 +20,7 @@ class ProjectResource extends JsonResource
             'slug' => $this->slug,
             'content_locale' => $this->content_locale,
             'summary' => $this->summary,
-            'description' => $this->description,
+            'description' => self::decodeRichTextHtml($this->description),
             'status' => $this->status,
             'link_url' => $this->link_url,
             'repo_url' => $this->repo_url,
@@ -48,11 +48,23 @@ class ProjectResource extends JsonResource
                     'locale' => $t->locale,
                     'title' => $t->title,
                     'summary' => $t->summary,
-                    'description' => $t->description,
+                    'description' => self::decodeRichTextHtml($t->description),
                 ])->values();
             }),
             'media' => $this->getMediaData(),
         ];
+    }
+
+    /**
+     * Undo numeric HTML entities from legacy DOM saveHTML storage so admin/API get UTF-8.
+     */
+    protected static function decodeRichTextHtml(?string $html): ?string
+    {
+        if ($html === null || $html === '') {
+            return $html;
+        }
+
+        return html_entity_decode($html, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
     }
 
     /**

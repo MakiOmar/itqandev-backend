@@ -68,7 +68,9 @@ class HtmlSanitizerService
         $body = $dom->getElementsByTagName('body')->item(0);
         
         if (!$body) {
-            return strip_tags($html, '<' . implode('><', $this->allowedTags) . '>');
+            $fallback = strip_tags($html, '<' . implode('><', $this->allowedTags) . '>');
+
+            return $this->decodeEntitiesToUtf8($fallback);
         }
 
         $this->sanitizeNode($body);
@@ -79,7 +81,16 @@ class HtmlSanitizerService
             $sanitized .= $dom->saveHTML($node);
         }
 
-        return $sanitized;
+        // saveHTML() emits numeric entities for non-ASCII; store and serve UTF-8 instead
+        return $this->decodeEntitiesToUtf8($sanitized);
+    }
+
+    /**
+     * Turn HTML numeric/named entities back into UTF-8 (DOM saveHTML entity-encodes Unicode).
+     */
+    protected function decodeEntitiesToUtf8(string $html): string
+    {
+        return html_entity_decode($html, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
     }
 
     /**
