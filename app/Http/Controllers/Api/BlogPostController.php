@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
+use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -17,25 +18,36 @@ class BlogPostController extends Controller
 
     public function index(Request $request)
     {
-        $cacheKey = 'blog_posts:list:' . md5(json_encode($request->query()));
-        
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
-            $query = BlogPost::with('author:id,name,email');
-            
+        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+        $cacheKey = 'blog_posts:list:'.md5(json_encode($request->query())).':loc:'.($present ?? 'none');
+
+        $paginator = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+            $query = BlogPost::with('author:id,name,email', 'translations');
+
             if ($request->has('status')) {
                 $query->where('status', $request->status);
             }
-            
+
             if ($request->has('featured')) {
                 $query->where('featured', $request->boolean('featured'));
             }
-            
+
             if ($request->has('author_id')) {
                 $query->where('author_id', $request->author_id);
             }
-            
+
             return $query->orderBy('created_at', 'desc')->paginate(20);
         });
+
+        if ($present) {
+            $paginator->getCollection()->transform(function (BlogPost $post) use ($present) {
+                TranslatableContentPresenter::applyBlogPost($post, $present);
+
+                return $post;
+            });
+        }
+
+        return $paginator;
     }
 
     public function store(Request $request)

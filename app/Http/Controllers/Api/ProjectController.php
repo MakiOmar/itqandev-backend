@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Project;
 use App\Models\Skill;
 use App\Support\SiteLanguages;
+use App\Support\TranslatableContentPresenter;
 use App\Services\HtmlSanitizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -62,14 +63,24 @@ class ProjectController extends Controller
             $query->where('status', $filters['status']);
         }
 
-        // Create cache key based on filters
-        $cacheKey = 'projects:list:' . md5(serialize($filters));
+        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+
+        // Create cache key based on filters + presentation locale
+        $cacheKey = 'projects:list:'.md5(serialize($filters));
         $page = $request->get('page', 1);
-        $cacheKey .= ':page:' . $page;
+        $cacheKey .= ':page:'.$page.':loc:'.($present ?? 'none');
 
         $paginator = Cache::remember($cacheKey, 1800, function () use ($query) {
             return $query->paginate(20);
         });
+
+        if ($present) {
+            $paginator->getCollection()->transform(function (Project $project) use ($present) {
+                TranslatableContentPresenter::applyProject($project, $present);
+
+                return $project;
+            });
+        }
 
         return ProjectResource::collection($paginator);
     }
