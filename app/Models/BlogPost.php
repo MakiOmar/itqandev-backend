@@ -17,6 +17,7 @@ class BlogPost extends Model implements HasMedia
     protected $fillable = [
         'title',
         'slug',
+        'content_locale',
         'excerpt',
         'content',
         'status',

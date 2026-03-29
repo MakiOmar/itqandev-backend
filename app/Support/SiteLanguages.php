@@ -59,6 +59,55 @@ final class SiteLanguages
     }
 
     /**
+     * Normalize a stored content primary locale; invalid or empty becomes null (use site default).
+     */
+    public static function normalizeContentLocale(?string $raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $c = strtolower(trim($raw));
+        if ($c === '') {
+            return null;
+        }
+        foreach (self::all() as $row) {
+            if ($row['code'] === $c) {
+                return $c;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Effective primary locale for a project/post row (main column language).
+     */
+    public static function primaryLocaleForContent(?string $storedContentLocale): string
+    {
+        $n = self::normalizeContentLocale($storedContentLocale);
+
+        return $n ?? self::defaultCode();
+    }
+
+    /**
+     * Locales that may have translation rows for this record (all enabled except its primary).
+     *
+     * @return list<string>
+     */
+    public static function secondaryLocaleCodesForContent(?string $storedContentLocale): array
+    {
+        $primary = self::primaryLocaleForContent($storedContentLocale);
+        $codes = [];
+        foreach (self::all() as $row) {
+            if ($row['code'] !== $primary) {
+                $codes[] = $row['code'];
+            }
+        }
+
+        return $codes;
+    }
+
+    /**
      * @return array<string, array{code: string, label: string, native_label: string, rtl: bool}>
      */
     public static function byCode(): array

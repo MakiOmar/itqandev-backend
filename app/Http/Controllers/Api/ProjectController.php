@@ -43,7 +43,7 @@ class ProjectController extends Controller
                     $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
                 }
             ])
-            ->select(['id', 'title', 'slug', 'status', 'featured', 'published_at', 'summary', 'description', 'link_url', 'repo_url', 'demo_url'])
+            ->select(['id', 'title', 'slug', 'content_locale', 'status', 'featured', 'published_at', 'summary', 'description', 'link_url', 'repo_url', 'demo_url'])
             ->latest('published_at');
 
         if (!empty($filters['category'])) {
@@ -97,6 +97,7 @@ class ProjectController extends Controller
             'demo_url' => ['nullable', 'url'],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'content_locale' => ['nullable', 'string', 'max:16'],
             'category_ids' => ['array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'skill_ids' => ['array'],
@@ -110,6 +111,8 @@ class ProjectController extends Controller
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+
+        $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
 
         // Sanitize HTML content
         if (isset($data['description'])) {
@@ -202,6 +205,7 @@ class ProjectController extends Controller
             'demo_url' => ['nullable', 'url'],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'content_locale' => ['nullable', 'string', 'max:16'],
             'category_ids' => ['array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'skill_ids' => ['array'],
@@ -215,6 +219,10 @@ class ProjectController extends Controller
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+
+        if (array_key_exists('content_locale', $data)) {
+            $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
+        }
 
         // Sanitize HTML content
         if (isset($data['description'])) {
@@ -273,7 +281,8 @@ class ProjectController extends Controller
      */
     private function syncProjectTranslations(Project $project, array $translations): void
     {
-        $allowed = array_flip(SiteLanguages::secondaryLocaleCodes());
+        $project->refresh();
+        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($project->content_locale));
         $project->translations()->whereNotIn('locale', array_keys($allowed))->delete();
 
         if ($allowed === []) {

@@ -48,6 +48,7 @@ class BlogPostController extends Controller
             'status' => ['required', 'string', 'in:draft,published,archived'],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'content_locale' => ['nullable', 'string', 'max:16'],
             'translations' => ['nullable', 'array'],
             'translations.*.locale' => ['required', 'string', 'max:16'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
@@ -57,6 +58,8 @@ class BlogPostController extends Controller
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+
+        $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
 
         if (isset($data['content'])) {
             $data['content'] = $this->sanitizer->sanitize((string) $data['content']);
@@ -95,6 +98,7 @@ class BlogPostController extends Controller
             'status' => ['sometimes', 'required', 'string', 'in:draft,published,archived'],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
+            'content_locale' => ['nullable', 'string', 'max:16'],
             'translations' => ['nullable', 'array'],
             'translations.*.locale' => ['required', 'string', 'max:16'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
@@ -104,6 +108,10 @@ class BlogPostController extends Controller
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+
+        if (array_key_exists('content_locale', $data)) {
+            $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
+        }
 
         if (array_key_exists('content', $data) && $data['content'] !== null) {
             $data['content'] = $this->sanitizer->sanitize((string) $data['content']);
@@ -133,7 +141,8 @@ class BlogPostController extends Controller
      */
     private function syncBlogPostTranslations(BlogPost $post, array $translations): void
     {
-        $allowed = array_flip(SiteLanguages::secondaryLocaleCodes());
+        $post->refresh();
+        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($post->content_locale));
         $post->translations()->whereNotIn('locale', array_keys($allowed))->delete();
 
         if ($allowed === []) {
