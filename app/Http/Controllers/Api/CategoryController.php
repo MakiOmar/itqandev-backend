@@ -35,7 +35,7 @@ class CategoryController extends Controller
         $lockKey = self::LIST_LOCK_KEY;
 
         $buildJson = function () use ($present, $siteDefaultLocale): string {
-            $categories = Category::withCount('projects')
+            $query = Category::withCount('projects')
                 ->with(['seoMeta', 'media', 'translations'])
                 ->orderBy('name')
                 ->when($present, function ($query) use ($present, $siteDefaultLocale) {
@@ -49,7 +49,9 @@ class CategoryController extends Controller
                         });
                     });
                 })
-                ->get();
+                ;
+
+            $categories = $query->get();
 
             if ($present) {
                 $categories->transform(function (Category $category) use ($present) {
@@ -89,7 +91,6 @@ class CategoryController extends Controller
             if (is_string($json)) {
                 return $json;
             }
-
             return Cache::remember($key, 3600, $buildJson);
         });
 
