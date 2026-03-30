@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Project;
+use App\Models\Skill;
 use Illuminate\Http\Request;
 
 /**
@@ -108,6 +109,30 @@ final class TranslatableContentPresenter
         }
         if (is_string($row->description) && $row->description !== '') {
             $category->setAttribute('description', $row->description);
+        }
+    }
+
+    public static function applySkill(Skill $skill, string $locale): void
+    {
+        $primary = SiteLanguages::primaryLocaleForContent($skill->content_locale);
+        if ($locale === $primary) {
+            return;
+        }
+
+        if (! $skill->relationLoaded('translations')) {
+            $skill->load('translations');
+        }
+
+        $row = $skill->translations->firstWhere('locale', $locale);
+        if ($row === null) {
+            return;
+        }
+
+        if (is_string($row->name) && $row->name !== '') {
+            $skill->setAttribute('name', $row->name);
+        }
+        if (is_string($row->description) && $row->description !== '') {
+            $skill->setAttribute('description', $row->description);
         }
     }
 }

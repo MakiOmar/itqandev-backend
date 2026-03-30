@@ -16,6 +16,7 @@ class Skill extends Model implements HasMedia
     protected $fillable = [
         'name',
         'slug',
+        'content_locale',
         'description',
         'icon_hint',
     ];
@@ -23,6 +24,11 @@ class Skill extends Model implements HasMedia
     public function projects()
     {
         return $this->belongsToMany(Project::class);
+    }
+
+    public function translations()
+    {
+        return $this->hasMany(SkillTranslation::class);
     }
 
     public function registerMediaCollections(): void
