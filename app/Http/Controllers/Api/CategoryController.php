@@ -128,7 +128,7 @@ class CategoryController extends Controller
         if (is_array($translations)) {
             $this->syncCategoryTranslations($category, $translations);
         }
-        Cache::forget(self::LIST_CACHE_KEY);
+        $this->flushListCache();
 
         return (new CategoryResource($category))->response()->setStatusCode(201);
     }
@@ -180,7 +180,7 @@ class CategoryController extends Controller
         if (is_array($translations)) {
             $this->syncCategoryTranslations($category, $translations);
         }
-        Cache::forget(self::LIST_CACHE_KEY);
+        $this->flushListCache();
 
         return new CategoryResource($category);
     }
@@ -191,7 +191,7 @@ class CategoryController extends Controller
         $this->authorize('delete', $category);
 
         $category->delete();
-        Cache::forget(self::LIST_CACHE_KEY);
+        $this->flushListCache();
         // Cache invalidation handled by InvalidatesCache trait
 
         return response()->noContent();
@@ -207,13 +207,26 @@ class CategoryController extends Controller
         ]);
 
         $count = Category::whereIn('id', $data['ids'])->delete();
-        Cache::forget(self::LIST_CACHE_KEY);
+        $this->flushListCache();
         // Cache invalidation handled by InvalidatesCache trait on model events
 
         return response()->json([
             'deleted' => $count,
             'message' => 'Deleted ' . $count . ' categories',
         ]);
+    }
+
+    private function flushListCache(): void
+    {
+        // Index caches per locale (including "none" when header is absent).
+        Cache::forget(self::LIST_CACHE_KEY); // legacy / safety
+        Cache::forget(self::LIST_CACHE_KEY . ':loc:none');
+        foreach (SiteLanguages::all() as $row) {
+            $code = is_array($row) && isset($row['code']) ? (string) $row['code'] : '';
+            if ($code !== '') {
+                Cache::forget(self::LIST_CACHE_KEY . ':loc:' . strtolower($code));
+            }
+        }
     }
 
     /**
