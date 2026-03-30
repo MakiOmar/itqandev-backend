@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\BlogPost;
+use App\Models\Category;
 use App\Models\Project;
 use Illuminate\Http\Request;
 
@@ -83,6 +84,30 @@ final class TranslatableContentPresenter
         }
         if (is_string($row->description) && $row->description !== '') {
             $project->setAttribute('description', $row->description);
+        }
+    }
+
+    public static function applyCategory(Category $category, string $locale): void
+    {
+        $primary = SiteLanguages::primaryLocaleForContent($category->content_locale);
+        if ($locale === $primary) {
+            return;
+        }
+
+        if (! $category->relationLoaded('translations')) {
+            $category->load('translations');
+        }
+
+        $row = $category->translations->firstWhere('locale', $locale);
+        if ($row === null) {
+            return;
+        }
+
+        if (is_string($row->name) && $row->name !== '') {
+            $category->setAttribute('name', $row->name);
+        }
+        if (is_string($row->description) && $row->description !== '') {
+            $category->setAttribute('description', $row->description);
         }
     }
 }

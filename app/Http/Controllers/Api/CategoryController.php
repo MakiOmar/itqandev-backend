@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use App\Services\HtmlSanitizerService;
+use App\Support\SiteLanguages;
+use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
@@ -25,16 +27,36 @@ class CategoryController extends Controller
 
     public function index(Request $request)
     {
+        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+        $siteDefaultLocale = SiteLanguages::defaultCode();
         $cacheEnabled = (bool) config('app.sys_cache_enabled', true);
 
-        $key = self::LIST_CACHE_KEY;
+        $key = self::LIST_CACHE_KEY . ':loc:' . ($present ?? 'none');
         $lockKey = self::LIST_LOCK_KEY;
 
-        $buildJson = function (): string {
+        $buildJson = function () use ($present, $siteDefaultLocale): string {
             $categories = Category::withCount('projects')
-                ->with(['seoMeta', 'media'])
+                ->with(['seoMeta', 'media', 'translations'])
                 ->orderBy('name')
+                ->when($present, function ($query) use ($present, $siteDefaultLocale) {
+                    $query->where(function ($q) use ($present, $siteDefaultLocale) {
+                        $q->where('content_locale', $present);
+                        if ($present === $siteDefaultLocale) {
+                            $q->orWhereNull('content_locale');
+                        }
+                        $q->orWhereHas('translations', function ($tq) use ($present) {
+                            $tq->where('locale', $present);
+                        });
+                    });
+                })
                 ->get();
+
+            if ($present) {
+                $categories->transform(function (Category $category) use ($present) {
+                    TranslatableContentPresenter::applyCategory($category, $present);
+                    return $category;
+                });
+            }
 
             return json_encode([
                 'data' => CategoryResource::collection($categories)->resolve(),
@@ -85,7 +107,17 @@ class CategoryController extends Controller
             'slug' => ['required', 'string', 'max:255', 'unique:categories,slug'],
             'description' => ['nullable', 'string', 'max:1024'],
             'is_featured' => ['boolean'],
+            'content_locale' => ['nullable', 'string', 'max:16'],
+            'translations' => ['nullable', 'array'],
+            'translations.*.locale' => ['required', 'string', 'max:16'],
+            'translations.*.name' => ['nullable', 'string', 'max:255'],
+            'translations.*.description' => ['nullable', 'string', 'max:1024'],
         ]);
+
+        $translations = $data['translations'] ?? null;
+        unset($data['translations']);
+
+        $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
 
         // Sanitize HTML content
         if (isset($data['description'])) {
@@ -93,6 +125,9 @@ class CategoryController extends Controller
         }
 
         $category = Category::create($data);
+        if (is_array($translations)) {
+            $this->syncCategoryTranslations($category, $translations);
+        }
         Cache::forget(self::LIST_CACHE_KEY);
 
         return (new CategoryResource($category))->response()->setStatusCode(201);
@@ -105,6 +140,7 @@ class CategoryController extends Controller
         $category->load([
             'seoMeta',
             'projects:id,title',
+            'translations',
             'media' => function ($query) {
                 $query->whereIn('collection_name', ['icon', 'thumb', 'banner']);
             }
@@ -122,13 +158,28 @@ class CategoryController extends Controller
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('categories')->ignore($category->id)],
             'description' => ['nullable', 'string', 'max:1024'],
             'is_featured' => ['boolean'],
+            'content_locale' => ['nullable', 'string', 'max:16'],
+            'translations' => ['nullable', 'array'],
+            'translations.*.locale' => ['required', 'string', 'max:16'],
+            'translations.*.name' => ['nullable', 'string', 'max:255'],
+            'translations.*.description' => ['nullable', 'string', 'max:1024'],
         ]);
+
+        $translations = $data['translations'] ?? null;
+        unset($data['translations']);
+
+        if (array_key_exists('content_locale', $data)) {
+            $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
+        }
 
         if (isset($data['description'])) {
             $data['description'] = $this->sanitizer->stripAll($data['description']);
         }
 
         $category->update($data);
+        if (is_array($translations)) {
+            $this->syncCategoryTranslations($category, $translations);
+        }
         Cache::forget(self::LIST_CACHE_KEY);
 
         return new CategoryResource($category);
@@ -163,5 +214,45 @@ class CategoryController extends Controller
             'deleted' => $count,
             'message' => 'Deleted ' . $count . ' categories',
         ]);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $translations
+     */
+    private function syncCategoryTranslations(Category $category, array $translations): void
+    {
+        $category->refresh();
+        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($category->content_locale));
+        $category->translations()->whereNotIn('locale', array_keys($allowed))->delete();
+
+        if ($allowed === []) {
+            return;
+        }
+
+        foreach ($translations as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $locale = strtolower(trim((string) ($row['locale'] ?? '')));
+            if ($locale === '' || ! isset($allowed[$locale])) {
+                continue;
+            }
+
+            $name = isset($row['name']) ? trim((string) $row['name']) : '';
+            $description = isset($row['description']) ? trim((string) $row['description']) : '';
+
+            if ($name === '' && $description === '') {
+                $category->translations()->where('locale', $locale)->delete();
+                continue;
+            }
+
+            $category->translations()->updateOrCreate(
+                ['locale' => $locale],
+                [
+                    'name' => $name !== '' ? $name : null,
+                    'description' => $description !== '' ? $this->sanitizer->stripAll($description) : null,
+                ]
+            );
+        }
     }
 }

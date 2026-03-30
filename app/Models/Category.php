@@ -19,6 +19,7 @@ class Category extends Model implements HasMedia
     protected $fillable = [
         'name',
         'slug',
+        'content_locale',
         'description',
         'is_featured',
     ];
@@ -35,6 +36,11 @@ class Category extends Model implements HasMedia
     public function seoMeta()
     {
         return $this->morphOne(SeoMeta::class, 'seoable');
+    }
+
+    public function translations()
+    {
+        return $this->hasMany(CategoryTranslation::class);
     }
 
     public function registerMediaCollections(): void

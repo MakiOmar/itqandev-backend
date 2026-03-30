@@ -18,6 +18,7 @@ class CategoryResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            'content_locale' => $this->content_locale,
             'description' => $this->description,
             'is_featured' => $this->is_featured,
             'created_at' => $this->created_at?->toIso8601String(),
@@ -29,6 +30,7 @@ class CategoryResource extends JsonResource
                     'title' => $project->title,
                 ]);
             }),
+            'translations' => $this->whenLoaded('translations'),
             'seoMeta' => $this->whenLoaded('seoMeta'),
             'media' => $this->when($this->relationLoaded('media'), function () {
                 return $this->media->map(fn ($media) => [
