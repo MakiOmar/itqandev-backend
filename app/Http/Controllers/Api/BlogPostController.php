@@ -19,9 +19,10 @@ class BlogPostController extends Controller
     public function index(Request $request)
     {
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+        $siteDefaultLocale = SiteLanguages::defaultCode();
         $cacheKey = 'blog_posts:list:'.md5(json_encode($request->query())).':loc:'.($present ?? 'none');
 
-        $paginator = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        $paginator = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $present, $siteDefaultLocale) {
             $query = BlogPost::with('author:id,name,email', 'translations');
 
             if ($request->has('status')) {
@@ -34,6 +35,20 @@ class BlogPostController extends Controller
 
             if ($request->has('author_id')) {
                 $query->where('author_id', $request->author_id);
+            }
+
+            if ($present) {
+                $query->where(function ($q) use ($present, $siteDefaultLocale) {
+                    $q->where('content_locale', $present);
+
+                    if ($present === $siteDefaultLocale) {
+                        $q->orWhereNull('content_locale');
+                    }
+
+                    $q->orWhereHas('translations', function ($tq) use ($present) {
+                        $tq->where('locale', $present);
+                    });
+                });
             }
 
             return $query->orderBy('created_at', 'desc')->paginate(20);

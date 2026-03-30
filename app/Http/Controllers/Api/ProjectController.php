@@ -64,6 +64,21 @@ class ProjectController extends Controller
         }
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+        $siteDefaultLocale = SiteLanguages::defaultCode();
+
+        if ($present) {
+            $query->where(function ($q) use ($present, $siteDefaultLocale) {
+                $q->where('content_locale', $present);
+
+                if ($present === $siteDefaultLocale) {
+                    $q->orWhereNull('content_locale');
+                }
+
+                $q->orWhereHas('translations', function ($tq) use ($present) {
+                    $tq->where('locale', $present);
+                });
+            });
+        }
 
         // Create cache key based on filters + presentation locale
         $cacheKey = 'projects:list:'.md5(serialize($filters));
