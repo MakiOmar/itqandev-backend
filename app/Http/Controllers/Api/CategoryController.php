@@ -129,6 +129,7 @@ class CategoryController extends Controller
         if (is_array($translations)) {
             $this->syncCategoryTranslations($category, $translations);
         }
+        $category->load('translations');
         $this->flushListCache();
 
         return (new CategoryResource($category))->response()->setStatusCode(201);
@@ -181,6 +182,7 @@ class CategoryController extends Controller
         if (is_array($translations)) {
             $this->syncCategoryTranslations($category, $translations);
         }
+        $category->load('translations');
         $this->flushListCache();
 
         return new CategoryResource($category);
