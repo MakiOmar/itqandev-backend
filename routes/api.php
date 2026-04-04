@@ -13,6 +13,8 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     Route::get('projects', [\App\Http\Controllers\Api\PublicProjectController::class, 'index']);
     Route::get('projects/{slug}', [\App\Http\Controllers\Api\PublicProjectController::class, 'show'])
         ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+    /** Branding + site_languages for marketing header (no auth; GET /settings is sanctum-only). */
+    Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
 });
 
 // Public preflight for media download (avoid auth blocking OPTIONS)

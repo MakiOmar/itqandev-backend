@@ -242,12 +242,60 @@ class SettingsController extends Controller
     }
 
     /**
+     * Normalized settings from cache/storage (no request-specific keys like max_file_size).
+     *
+     * @return array<string, mixed>
+     */
+    private function loadNormalizedSettings(): array
+    {
+        $settings = Cache::remember(self::SETTINGS_CACHE_KEY, $this->settingsCacheTtlSeconds(), function () {
+            $stored = $this->loadStoredSettings();
+
+            return $this->normalizeSettingsPayload($stored);
+        });
+
+        return $this->normalizeSettingsPayload(is_array($settings) ? $settings : []);
+    }
+
+    /**
+     * Public marketing payload: branding + locales only (no auth). Same cache as GET /settings.
+     */
+    public function publicMeta(): JsonResponse
+    {
+        $settings = $this->loadNormalizedSettings();
+
+        $data = [
+            'site_name' => $settings['site_name'] ?? null,
+            'name' => $settings['name'] ?? null,
+            'logo' => $settings['logo'] ?? null,
+            'site_logo' => $settings['site_logo'] ?? null,
+            'logoDark' => $settings['logoDark'] ?? null,
+            'logo_dark' => $settings['logo_dark'] ?? null,
+            'dark_logo' => $settings['dark_logo'] ?? null,
+            'site_logo_dark' => $settings['site_logo_dark'] ?? null,
+            'logoLight' => $settings['logoLight'] ?? null,
+            'logo_light' => $settings['logo_light'] ?? null,
+            'light_logo' => $settings['light_logo'] ?? null,
+            'site_logo_light' => $settings['site_logo_light'] ?? null,
+            'site_languages' => is_array($settings['site_languages'] ?? null)
+                ? $settings['site_languages']
+                : [],
+            'default_locale' => $settings['default_locale'] ?? 'en',
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
+    }
+
+    /**
      * Get project settings
      * Returns branding, general settings, and feature flags
-     * 
+     *
      * OPTIMIZATION: Cached for 5 minutes to reduce database/config lookups
      * Settings rarely change, so aggressive caching is safe
-     * 
+     *
      * @return JsonResponse
      */
     public function index(): JsonResponse
@@ -256,22 +304,16 @@ class SettingsController extends Controller
         // These are fetched on each request to reflect real-time server config
         $uploadMaxFilesize = ini_get('upload_max_filesize') ?: '8M'; // Default fallback if ini_get fails
         $postMaxSize = ini_get('post_max_size') ?: '8M'; // Default fallback if ini_get fails
-        
+
         // Convert to bytes
         $uploadMaxBytes = $this->convertIniSizeToBytes($uploadMaxFilesize);
         $postMaxBytes = $this->convertIniSizeToBytes($postMaxSize);
-        
+
         // Use the smaller of the two as the effective limit
         // post_max_size must be >= upload_max_filesize for uploads to work
         $maxFileSize = min($uploadMaxBytes, $postMaxBytes);
 
-        // Cache for 5 minutes (300 seconds)
-        // This reduces load on storage/database for frequently accessed settings.
-        $settings = Cache::remember(self::SETTINGS_CACHE_KEY, $this->settingsCacheTtlSeconds(), function () {
-            $stored = $this->loadStoredSettings();
-            return $this->normalizeSettingsPayload($stored);
-        });
-        $settings = $this->normalizeSettingsPayload(is_array($settings) ? $settings : []);
+        $settings = $this->loadNormalizedSettings();
 
         // Add max_file_size from PHP ini_get() (not cached, always current)
         // This reflects the actual server limits (upload_max_filesize, post_max_size)
