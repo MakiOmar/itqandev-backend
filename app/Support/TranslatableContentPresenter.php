@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Project;
+use App\Models\Service;
 use App\Models\Skill;
 use App\Models\Testimonial;
 use Illuminate\Http\Request;
@@ -161,6 +162,39 @@ final class TranslatableContentPresenter
         }
         if (is_string($row->description) && $row->description !== '') {
             $skill->setAttribute('description', $row->description);
+        }
+    }
+
+    public static function applyService(Service $service, string $locale): void
+    {
+        $primary = SiteLanguages::primaryLocaleForContent($service->content_locale);
+        if ($locale === $primary) {
+            return;
+        }
+
+        if (! $service->relationLoaded('translations')) {
+            $service->load('translations');
+        }
+
+        $row = $service->translations->firstWhere('locale', $locale);
+        if ($row === null) {
+            return;
+        }
+
+        if (is_string($row->name) && $row->name !== '') {
+            $service->setAttribute('name', $row->name);
+        }
+        if (is_string($row->short_description) && $row->short_description !== '') {
+            $service->setAttribute('short_description', $row->short_description);
+        }
+        if (is_string($row->description) && $row->description !== '') {
+            $service->setAttribute('description', $row->description);
+        }
+        if (is_array($row->process) && count($row->process) > 0) {
+            $service->setAttribute('process', $row->process);
+        }
+        if (is_array($row->deliverables) && count($row->deliverables) > 0) {
+            $service->setAttribute('deliverables', $row->deliverables);
         }
     }
 }

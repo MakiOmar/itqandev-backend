@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             'manage projects',
             'manage categories',
             'manage skills',
+            'manage services',
             'manage media',
             'manage testimonials',
             'manage blog',
@@ -51,6 +52,7 @@ class DatabaseSeeder extends Seeder
             'manage projects',
             'manage categories',
             'manage skills',
+            'manage services',
             'manage media',
             'manage testimonials',
             'manage seo',
@@ -61,6 +63,7 @@ class DatabaseSeeder extends Seeder
             'manage projects',
             'manage categories',
             'manage skills',
+            'manage services',
             'manage media',
             'manage testimonials',
             'manage seo',
@@ -91,5 +94,6 @@ class DatabaseSeeder extends Seeder
         $superAdmin->assignRole($superAdminRole);
 
         $this->call(WebDevDemoSeeder::class);
+        $this->call(ServicesSeeder::class);
     }
 }

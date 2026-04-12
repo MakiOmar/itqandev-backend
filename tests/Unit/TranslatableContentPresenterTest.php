@@ -4,6 +4,8 @@ namespace Tests\Unit;
 
 use App\Models\BlogPost;
 use App\Models\BlogPostTranslation;
+use App\Models\Service;
+use App\Models\ServiceTranslation;
 use App\Models\Testimonial;
 use App\Models\TestimonialTranslation;
 use App\Support\TranslatableContentPresenter;
@@ -60,5 +62,36 @@ class TranslatableContentPresenterTest extends TestCase
         $this->assertSame('اقتباس', $t->content);
         $this->assertSame('مدير', $t->client_role);
         $this->assertSame('شركة', $t->company);
+    }
+
+    public function test_service_overlays_translation_when_locale_differs_from_primary(): void
+    {
+        $service = new Service([
+            'content_locale' => 'en',
+            'name' => 'English',
+            'short_description' => 'Short EN',
+            'description' => 'Body EN',
+            'process' => ['p1'],
+            'deliverables' => ['d1'],
+        ]);
+
+        $service->setRelation('translations', new Collection([
+            new ServiceTranslation([
+                'locale' => 'ar',
+                'name' => 'عربي',
+                'short_description' => 'قصير',
+                'description' => 'نص',
+                'process' => ['خطوة'],
+                'deliverables' => ['مخرجات'],
+            ]),
+        ]));
+
+        TranslatableContentPresenter::applyService($service, 'ar');
+
+        $this->assertSame('عربي', $service->name);
+        $this->assertSame('قصير', $service->short_description);
+        $this->assertSame('نص', $service->description);
+        $this->assertSame(['خطوة'], $service->process);
+        $this->assertSame(['مخرجات'], $service->deliverables);
     }
 }

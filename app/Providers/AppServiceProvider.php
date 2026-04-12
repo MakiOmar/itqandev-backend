@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Models\AppMedia;
 use App\Models\Category;
 use App\Models\Project;
+use App\Models\Service;
 use App\Policies\CategoryPolicy;
+use App\Policies\ServicePolicy;
 use App\Policies\MediaPolicy;
 use App\Policies\ProjectPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     protected $policies = [
         Project::class => ProjectPolicy::class,
         Category::class => CategoryPolicy::class,
+        Service::class => ServicePolicy::class,
         AppMedia::class => MediaPolicy::class,
     ];
 
