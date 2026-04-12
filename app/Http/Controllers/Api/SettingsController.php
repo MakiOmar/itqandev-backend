@@ -22,6 +22,82 @@ class SettingsController extends Controller
     }
 
     /**
+     * Optional tri-state from string (for .env values).
+     */
+    private function parseOptionalTriStateBool(?string $value): ?bool
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $v = strtolower(trim($value));
+        if (in_array($v, ['1', 'true', 'yes', 'on'], true)) {
+            return true;
+        }
+        if (in_array($v, ['0', 'false', 'no', 'off'], true)) {
+            return false;
+        }
+
+        return null;
+    }
+
+    /**
+     * When FEATURE_PROJECTS is set in the environment, it overrides persisted settings.features.projects.
+     */
+    private function environmentOverrideForProjectsFeature(): ?bool
+    {
+        $raw = config('features.projects');
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        if (is_bool($raw)) {
+            return $raw;
+        }
+
+        return $this->parseOptionalTriStateBool((string) $raw);
+    }
+
+    /**
+     * Apply env-backed feature flags on top of stored settings (for API responses only).
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function mergeEnvironmentFeatureOverrides(array $settings): array
+    {
+        $override = $this->environmentOverrideForProjectsFeature();
+        if ($override === null) {
+            return $settings;
+        }
+        $features = is_array($settings['features'] ?? null) ? $settings['features'] : [];
+        $features['projects'] = $override;
+        $settings['features'] = $features;
+
+        return $settings;
+    }
+
+    /**
+     * Remove feature keys from validated input when they are controlled by the environment.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function stripEnvLockedFeatureKeysFromValidated(array $validated): array
+    {
+        if ($this->environmentOverrideForProjectsFeature() === null) {
+            return $validated;
+        }
+        if (! isset($validated['features']) || ! is_array($validated['features'])) {
+            return $validated;
+        }
+        unset($validated['features']['projects']);
+        if ($validated['features'] === []) {
+            unset($validated['features']);
+        }
+
+        return $validated;
+    }
+
+    /**
      * Default settings payload.
      * Keeps canonical keys and compatibility aliases so older clients still work.
      *
@@ -184,7 +260,7 @@ class SettingsController extends Controller
         $settings['secondaryColor'] = $secondaryColor;
         $settings['secondary_color'] = $secondaryColor;
 
-        if (!is_array($settings['features'] ?? null)) {
+        if (! is_array($settings['features'] ?? null)) {
             $settings['features'] = [];
         }
 
@@ -315,6 +391,7 @@ class SettingsController extends Controller
         $maxFileSize = min($uploadMaxBytes, $postMaxBytes);
 
         $settings = $this->loadNormalizedSettings();
+        $settings = $this->mergeEnvironmentFeatureOverrides($settings);
 
         // Add max_file_size from PHP ini_get() (not cached, always current)
         // This reflects the actual server limits (upload_max_filesize, post_max_size)
@@ -380,6 +457,8 @@ class SettingsController extends Controller
             'default_locale' => 'sometimes|string|max:16',
         ]);
 
+        $validated = $this->stripEnvLockedFeatureKeysFromValidated($validated);
+
         // Load existing settings, apply updates, normalize aliases, then persist.
         $existingSettings = $this->loadStoredSettings();
         $mergedSettings = array_merge($existingSettings, $validated);
@@ -390,11 +469,13 @@ class SettingsController extends Controller
         // Invalidate and refresh cache to keep GET /settings fast and consistent.
         Cache::forget(self::SETTINGS_CACHE_KEY);
         Cache::put(self::SETTINGS_CACHE_KEY, $normalizedSettings, $this->settingsCacheTtlSeconds());
-        
+
+        $responsePayload = $this->mergeEnvironmentFeatureOverrides($normalizedSettings);
+
         return response()->json([
             'success' => true,
             'message' => 'Settings updated successfully',
-            'data' => $normalizedSettings,
+            'data' => $responsePayload,
         ]);
     }
 }
