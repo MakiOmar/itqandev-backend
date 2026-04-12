@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Project;
 use App\Models\Skill;
+use App\Models\Testimonial;
 use Illuminate\Http\Request;
 
 /**
@@ -109,6 +110,33 @@ final class TranslatableContentPresenter
         }
         if (is_string($row->description) && $row->description !== '') {
             $category->setAttribute('description', $row->description);
+        }
+    }
+
+    public static function applyTestimonial(Testimonial $testimonial, string $locale): void
+    {
+        $primary = SiteLanguages::primaryLocaleForContent($testimonial->content_locale);
+        if ($locale === $primary) {
+            return;
+        }
+
+        if (! $testimonial->relationLoaded('translations')) {
+            $testimonial->load('translations');
+        }
+
+        $row = $testimonial->translations->firstWhere('locale', $locale);
+        if ($row === null) {
+            return;
+        }
+
+        if (is_string($row->content) && $row->content !== '') {
+            $testimonial->setAttribute('content', $row->content);
+        }
+        if (is_string($row->client_role) && $row->client_role !== '') {
+            $testimonial->setAttribute('client_role', $row->client_role);
+        }
+        if (is_string($row->company) && $row->company !== '') {
+            $testimonial->setAttribute('company', $row->company);
         }
     }
 

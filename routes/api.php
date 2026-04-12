@@ -13,6 +13,7 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     Route::get('projects', [\App\Http\Controllers\Api\PublicProjectController::class, 'index']);
     Route::get('projects/{slug}', [\App\Http\Controllers\Api\PublicProjectController::class, 'show'])
         ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+    Route::get('testimonials', [\App\Http\Controllers\Api\PublicTestimonialController::class, 'index']);
     /** Branding + site_languages for marketing header (no auth; GET /settings is sanctum-only). */
     Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
 });

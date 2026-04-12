@@ -12,6 +12,7 @@ class Testimonial extends Model
 
     protected $fillable = [
         'project_id',
+        'content_locale',
         'client_name',
         'client_role',
         'company',
@@ -29,5 +30,10 @@ class Testimonial extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function translations()
+    {
+        return $this->hasMany(TestimonialTranslation::class);
     }
 }
