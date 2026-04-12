@@ -72,7 +72,8 @@ class SettingsController extends Controller
             // Media
             'upload_max_size' => null,
 
-            // Feature flags (project-specific)
+            // Feature flags (project-specific). Example: ['projects' => false] disables project linking
+            // in testimonial admin forms and skips loading the projects list for those screens.
             'features' => [],
 
             // Multilingual site content (admin + API)
