@@ -398,6 +398,13 @@ class SettingsController extends Controller
         // not application config, so client validation matches server capabilities
         $settings['max_file_size'] = $maxFileSize;
 
+        // Read-only hints for admin UI (not persisted; stripped from validated updates).
+        $settings['settings_meta'] = [
+            'features' => [
+                'projects_env_locked' => $this->environmentOverrideForProjectsFeature() !== null,
+            ],
+        ];
+
         return response()->json([
             'success' => true,
             'data' => $settings,
@@ -449,6 +456,7 @@ class SettingsController extends Controller
             'social_instagram' => 'sometimes|nullable|url|max:255',
             'upload_max_size' => 'sometimes|nullable|integer|min:1|max:1000',
             'features' => 'sometimes|array',
+            'features.projects' => 'sometimes|boolean',
             'site_languages' => 'sometimes|array',
             'site_languages.*.code' => 'required_with:site_languages|string|max:16',
             'site_languages.*.label' => 'nullable|string|max:120',
@@ -461,6 +469,12 @@ class SettingsController extends Controller
 
         // Load existing settings, apply updates, normalize aliases, then persist.
         $existingSettings = $this->loadStoredSettings();
+
+        if (isset($validated['features']) && is_array($validated['features'])) {
+            $previousFeatures = is_array($existingSettings['features'] ?? null) ? $existingSettings['features'] : [];
+            $validated['features'] = array_merge($previousFeatures, $validated['features']);
+        }
+
         $mergedSettings = array_merge($existingSettings, $validated);
         $normalizedSettings = $this->normalizeSettingsPayload($mergedSettings);
 
