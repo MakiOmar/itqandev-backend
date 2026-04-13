@@ -41,9 +41,9 @@ class SettingsController extends Controller
     }
 
     /**
-     * When FEATURE_PROJECTS is set in the environment, it overrides persisted settings.features.projects.
+     * Parse FEATURE_PROJECTS / config('features.projects') when explicitly set.
      */
-    private function environmentOverrideForProjectsFeature(): ?bool
+    private function projectsFeatureExplicitFromEnv(): ?bool
     {
         $raw = config('features.projects');
         if ($raw === null || $raw === '') {
@@ -57,44 +57,31 @@ class SettingsController extends Controller
     }
 
     /**
-     * Apply env-backed feature flags on top of stored settings (for API responses only).
+     * Effective projects module flag: .env when set, otherwise config('features.defaults.projects').
+     */
+    private function resolvedProjectsFeature(): bool
+    {
+        $explicit = $this->projectsFeatureExplicitFromEnv();
+        if ($explicit !== null) {
+            return $explicit;
+        }
+
+        return (bool) config('features.defaults.projects', true);
+    }
+
+    /**
+     * Attach whitelabel feature flags for API consumers (never read from persisted JSON).
      *
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
      */
-    private function mergeEnvironmentFeatureOverrides(array $settings): array
+    private function withResolvedFeatures(array $settings): array
     {
-        $override = $this->environmentOverrideForProjectsFeature();
-        if ($override === null) {
-            return $settings;
-        }
-        $features = is_array($settings['features'] ?? null) ? $settings['features'] : [];
-        $features['projects'] = $override;
-        $settings['features'] = $features;
+        $settings['features'] = [
+            'projects' => $this->resolvedProjectsFeature(),
+        ];
 
         return $settings;
-    }
-
-    /**
-     * Remove feature keys from validated input when they are controlled by the environment.
-     *
-     * @param  array<string, mixed>  $validated
-     * @return array<string, mixed>
-     */
-    private function stripEnvLockedFeatureKeysFromValidated(array $validated): array
-    {
-        if ($this->environmentOverrideForProjectsFeature() === null) {
-            return $validated;
-        }
-        if (! isset($validated['features']) || ! is_array($validated['features'])) {
-            return $validated;
-        }
-        unset($validated['features']['projects']);
-        if ($validated['features'] === []) {
-            unset($validated['features']);
-        }
-
-        return $validated;
     }
 
     /**
@@ -147,10 +134,6 @@ class SettingsController extends Controller
 
             // Media
             'upload_max_size' => null,
-
-            // Feature flags (project-specific). Example: ['projects' => false] disables project linking
-            // in testimonial admin forms and skips loading the projects list for those screens.
-            'features' => [],
 
             // Multilingual site content (admin + API)
             'site_languages' => SiteLanguages::defaults(),
@@ -217,8 +200,11 @@ class SettingsController extends Controller
      */
     private function normalizeSettingsPayload(array $input): array
     {
+        $withoutFeatures = $input;
+        unset($withoutFeatures['features']);
+
         $defaults = $this->getDefaultSettings();
-        $settings = array_merge($defaults, $input);
+        $settings = array_merge($defaults, $withoutFeatures);
 
         // Resolve aliases from raw input first, then fallback to merged defaults/settings.
         // This prevents default null keys (e.g. logo) from masking legacy alias values (e.g. site_logo).
@@ -260,10 +246,6 @@ class SettingsController extends Controller
         $settings['secondaryColor'] = $secondaryColor;
         $settings['secondary_color'] = $secondaryColor;
 
-        if (! is_array($settings['features'] ?? null)) {
-            $settings['features'] = [];
-        }
-
         $rawLangs = $this->resolveFirst($input, ['site_languages'], $settings['site_languages'] ?? []);
         if (! is_array($rawLangs)) {
             $rawLangs = [];
@@ -278,7 +260,7 @@ class SettingsController extends Controller
         }
         $settings['default_locale'] = $defaultLocale;
 
-        return $settings;
+        return $this->withResolvedFeatures($settings);
     }
 
     /**
@@ -368,7 +350,7 @@ class SettingsController extends Controller
 
     /**
      * Get project settings
-     * Returns branding, general settings, and feature flags
+     * Returns branding, general settings, and whitelabel feature flags (from config / .env only)
      *
      * OPTIMIZATION: Cached for 5 minutes to reduce database/config lookups
      * Settings rarely change, so aggressive caching is safe
@@ -391,19 +373,11 @@ class SettingsController extends Controller
         $maxFileSize = min($uploadMaxBytes, $postMaxBytes);
 
         $settings = $this->loadNormalizedSettings();
-        $settings = $this->mergeEnvironmentFeatureOverrides($settings);
 
         // Add max_file_size from PHP ini_get() (not cached, always current)
         // This reflects the actual server limits (upload_max_filesize, post_max_size)
         // not application config, so client validation matches server capabilities
         $settings['max_file_size'] = $maxFileSize;
-
-        // Read-only hints for admin UI (not persisted; stripped from validated updates).
-        $settings['settings_meta'] = [
-            'features' => [
-                'projects_env_locked' => $this->environmentOverrideForProjectsFeature() !== null,
-            ],
-        ];
 
         return response()->json([
             'success' => true,
@@ -455,8 +429,6 @@ class SettingsController extends Controller
             'social_linkedin' => 'sometimes|nullable|url|max:255',
             'social_instagram' => 'sometimes|nullable|url|max:255',
             'upload_max_size' => 'sometimes|nullable|integer|min:1|max:1000',
-            'features' => 'sometimes|array',
-            'features.projects' => 'sometimes|boolean',
             'site_languages' => 'sometimes|array',
             'site_languages.*.code' => 'required_with:site_languages|string|max:16',
             'site_languages.*.label' => 'nullable|string|max:120',
@@ -465,31 +437,25 @@ class SettingsController extends Controller
             'default_locale' => 'sometimes|string|max:16',
         ]);
 
-        $validated = $this->stripEnvLockedFeatureKeysFromValidated($validated);
-
         // Load existing settings, apply updates, normalize aliases, then persist.
         $existingSettings = $this->loadStoredSettings();
-
-        if (isset($validated['features']) && is_array($validated['features'])) {
-            $previousFeatures = is_array($existingSettings['features'] ?? null) ? $existingSettings['features'] : [];
-            $validated['features'] = array_merge($previousFeatures, $validated['features']);
-        }
+        unset($existingSettings['features']);
 
         $mergedSettings = array_merge($existingSettings, $validated);
         $normalizedSettings = $this->normalizeSettingsPayload($mergedSettings);
 
-        $this->saveStoredSettings($normalizedSettings);
+        $persisted = $normalizedSettings;
+        unset($persisted['features']);
+        $this->saveStoredSettings($persisted);
 
         // Invalidate and refresh cache to keep GET /settings fast and consistent.
         Cache::forget(self::SETTINGS_CACHE_KEY);
         Cache::put(self::SETTINGS_CACHE_KEY, $normalizedSettings, $this->settingsCacheTtlSeconds());
 
-        $responsePayload = $this->mergeEnvironmentFeatureOverrides($normalizedSettings);
-
         return response()->json([
             'success' => true,
             'message' => 'Settings updated successfully',
-            'data' => $responsePayload,
+            'data' => $normalizedSettings,
         ]);
     }
 }
