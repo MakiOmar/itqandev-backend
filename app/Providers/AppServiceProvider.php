@@ -3,16 +3,27 @@
 namespace App\Providers;
 
 use App\Models\AppMedia;
+use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Project;
+use App\Models\SeoMeta;
 use App\Models\Service;
+use App\Models\Skill;
+use App\Models\Testimonial;
+use App\Models\User;
+use App\Policies\BlogPostPolicy;
 use App\Policies\CategoryPolicy;
-use App\Policies\ServicePolicy;
 use App\Policies\MediaPolicy;
 use App\Policies\ProjectPolicy;
+use App\Policies\SeoMetaPolicy;
+use App\Policies\ServicePolicy;
+use App\Policies\SkillPolicy;
+use App\Policies\TestimonialPolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 
@@ -24,10 +35,15 @@ class AppServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
+        User::class => UserPolicy::class,
         Project::class => ProjectPolicy::class,
         Category::class => CategoryPolicy::class,
         Service::class => ServicePolicy::class,
         AppMedia::class => MediaPolicy::class,
+        BlogPost::class => BlogPostPolicy::class,
+        Testimonial::class => TestimonialPolicy::class,
+        Skill::class => SkillPolicy::class,
+        SeoMeta::class => SeoMetaPolicy::class,
     ];
 
     /**
@@ -45,6 +61,18 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        // System cache endpoints (no dedicated model) — align with "manage system" permission.
+        Gate::define('manageSystemCache', function (\App\Models\User $user): bool {
+            if ($user->hasRole(['super_admin', 'admin'])) {
+                return true;
+            }
+            try {
+                return $user->hasPermissionTo('manage system');
+            } catch (\Exception) {
+                return false;
+            }
+        });
+
         if (str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
@@ -60,7 +88,7 @@ class AppServiceProvider extends ServiceProvider
                 ? max(1, min((int) env('API_RATE_LIMIT_AUTHENTICATED_PER_MINUTE', 300), 5000))
                 : max(1, min((int) env('API_RATE_LIMIT_GUEST_PER_MINUTE', 120), 1000));
 
-            $key = $user ? 'user:' . $user->getAuthIdentifier() : 'ip:' . $request->ip();
+            $key = $user ? 'user:'.$user->getAuthIdentifier() : 'ip:'.$request->ip();
 
             return Limit::perMinute($perMinute)->by($key);
         });

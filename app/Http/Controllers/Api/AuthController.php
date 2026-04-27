@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CurrentUserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +30,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user->load('roles', 'permissions'),
+            'user' => (new CurrentUserResource($user))->resolve(),
         ]);
     }
 
@@ -47,7 +48,7 @@ class AuthController extends Controller
         // This ensures HttpOnly cookies are properly deleted
         $cookieName = config('session.cookie', 'laravel_session');
         $cookie = cookie($cookieName, '', -1, '/', null, false, true);
-        
+
         // Clear the auth_session cookie (custom cookie name used by Qwik frontend)
         $authCookieName = 'auth_session';
         $authCookie = cookie($authCookieName, '', -1, '/', null, false, true);
@@ -59,4 +60,3 @@ class AuthController extends Controller
             ->cookie($authCookie);
     }
 }
-

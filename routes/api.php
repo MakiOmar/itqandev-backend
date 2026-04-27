@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\MeController;
 use App\Support\CorsAllowedOrigin;
 use Illuminate\Support\Facades\Route;
 
@@ -33,11 +34,12 @@ Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request 
         $resp->headers->set('Access-Control-Max-Age', (string) (int) config('cors.max_age', 0));
         $resp->headers->set('Vary', 'Origin');
     }
+
     return $resp;
 })->where('media', '[0-9]+');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/me', fn () => request()->user());
+    Route::get('/me', [MeController::class, 'show']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     // Settings routes (outside v1 prefix to match frontend expectations)
@@ -53,7 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete'])->middleware('throttle:bulk');
 
         // API Resources
-        
+
         Route::apiResource('skills', \App\Http\Controllers\Api\SkillController::class);
         Route::apiResource('services', \App\Http\Controllers\Api\ServiceController::class);
         Route::apiResource('projects', \App\Http\Controllers\Api\ProjectController::class);
@@ -65,7 +67,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Cache status/clear
         Route::get('cache/status', [\App\Http\Controllers\Api\CacheController::class, 'status']);
         Route::post('cache/clear', [\App\Http\Controllers\Api\CacheController::class, 'clear']);
-        
+
+        Route::get('system/health', [\App\Http\Controllers\Api\SystemHealthController::class, 'show']);
+
         // Media routes
         Route::prefix('media')->group(function () {
             // List and search media
@@ -74,20 +78,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'show'])->where('media', '[0-9]+');
             Route::get('/{media}/download-link', [\App\Http\Controllers\Api\MediaController::class, 'downloadLink'])->where('media', '[0-9]+');
             Route::get('/{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->where('media', '[0-9]+');
-            
+
             // Upload media
             Route::post('/upload', [\App\Http\Controllers\Api\MediaController::class, 'upload'])->middleware(['large.uploads', 'throttle:uploads']);
-            
+
             // Update and delete media
             Route::put('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'update'])->where('media', '[0-9]+');
             Route::delete('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->where('media', '[0-9]+');
-            
+
             // Bulk operations
             Route::post('/bulk-delete', [\App\Http\Controllers\Api\MediaController::class, 'bulkDelete'])->middleware('throttle:bulk');
             Route::get('/bulk-download', [\App\Http\Controllers\Api\MediaController::class, 'bulkDownload'])
                 ->middleware('throttle:bulk');
             Route::post('/move-to-folder', [\App\Http\Controllers\Api\MediaController::class, 'moveToFolder']);
-            
+
             // Folders
             Route::get('/folders/list', [\App\Http\Controllers\Api\MediaController::class, 'getFolders']);
             Route::post('/folders', [\App\Http\Controllers\Api\MediaController::class, 'createFolder']);

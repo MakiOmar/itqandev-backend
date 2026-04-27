@@ -12,10 +12,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
-
 class CategoryController extends Controller
 {
     private const LIST_CACHE_KEY = 'categories:list:v1:json';
+
     private const LIST_LOCK_KEY = 'lock:categories:list:v1';
 
     protected HtmlSanitizerService $sanitizer;
@@ -27,11 +27,13 @@ class CategoryController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Category::class);
+
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         $siteDefaultLocale = SiteLanguages::defaultCode();
         $cacheEnabled = (bool) config('app.sys_cache_enabled', true);
 
-        $key = self::LIST_CACHE_KEY . ':loc:' . ($present ?? 'none');
+        $key = self::LIST_CACHE_KEY.':loc:'.($present ?? 'none');
         $lockKey = self::LIST_LOCK_KEY;
 
         $buildJson = function () use ($present, $siteDefaultLocale): string {
@@ -48,14 +50,14 @@ class CategoryController extends Controller
                             $tq->where('locale', $present);
                         });
                     });
-                })
-                ;
+                });
 
             $categories = $query->get();
 
             if ($present) {
                 $categories->transform(function (Category $category) use ($present) {
                     TranslatableContentPresenter::applyCategory($category, $present);
+
                     return $category;
                 });
             }
@@ -74,7 +76,7 @@ class CategoryController extends Controller
         };
 
         // 🚫 Cache disabled via env
-        if (!$cacheEnabled) {
+        if (! $cacheEnabled) {
             return $respond($buildJson(), 'bypass');
         }
 
@@ -91,13 +93,12 @@ class CategoryController extends Controller
             if (is_string($json)) {
                 return $json;
             }
+
             return Cache::remember($key, 3600, $buildJson);
         });
 
         return $respond($json, 'miss');
     }
-
-
 
     public function store(Request $request)
     {
@@ -145,7 +146,7 @@ class CategoryController extends Controller
             'translations',
             'media' => function ($query) {
                 $query->whereIn('collection_name', ['icon', 'thumb', 'banner']);
-            }
+            },
         ]);
 
         return response()->json($category);
@@ -188,7 +189,6 @@ class CategoryController extends Controller
         return new CategoryResource($category);
     }
 
-
     public function destroy(Category $category)
     {
         $this->authorize('delete', $category);
@@ -215,7 +215,7 @@ class CategoryController extends Controller
 
         return response()->json([
             'deleted' => $count,
-            'message' => 'Deleted ' . $count . ' categories',
+            'message' => 'Deleted '.$count.' categories',
         ]);
     }
 
@@ -223,11 +223,11 @@ class CategoryController extends Controller
     {
         // Index caches per locale (including "none" when header is absent).
         Cache::forget(self::LIST_CACHE_KEY); // legacy / safety
-        Cache::forget(self::LIST_CACHE_KEY . ':loc:none');
+        Cache::forget(self::LIST_CACHE_KEY.':loc:none');
         foreach (SiteLanguages::all() as $row) {
             $code = is_array($row) && isset($row['code']) ? (string) $row['code'] : '';
             if ($code !== '') {
-                Cache::forget(self::LIST_CACHE_KEY . ':loc:' . strtolower($code));
+                Cache::forget(self::LIST_CACHE_KEY.':loc:'.strtolower($code));
             }
         }
     }
@@ -259,6 +259,7 @@ class CategoryController extends Controller
 
             if ($name === '' && $description === '') {
                 $category->translations()->where('locale', $locale)->delete();
+
                 continue;
             }
 

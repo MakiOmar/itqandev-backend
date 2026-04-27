@@ -4,74 +4,45 @@ namespace App\Policies;
 
 use App\Models\AppMedia;
 use App\Models\User;
+use App\Policies\Concerns\ChecksManagePermissions;
 
 class MediaPolicy
 {
-    /**
-     * Determine if the user can view any media.
-     */
+    use ChecksManagePermissions;
+
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view media');
+        return $user->hasRole(['super_admin', 'admin', 'company', 'editor'])
+            || $this->hasPermission($user, 'manage media');
     }
 
-    /**
-     * Determine if the user can view the media.
-     */
     public function view(User $user, AppMedia $media): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view media');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can upload media.
-     */
     public function upload(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'upload media');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can update the media.
-     */
     public function update(User $user, AppMedia $media): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'update media');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can delete the media.
-     */
     public function delete(User $user, AppMedia $media): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete media');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can bulk delete media.
-     */
     public function bulkDelete(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete media');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can download the media.
-     */
     public function download(User $user, AppMedia $media): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'download media');
-    }
-
-    /**
-     * Check if user has permission (safe check that doesn't throw exceptions).
-     */
-    protected function hasPermission(User $user, string $permission): bool
-    {
-        try {
-            return $user->hasPermissionTo($permission);
-        } catch (\Exception $e) {
-            return false;
-        }
+        return $this->viewAny($user);
     }
 }

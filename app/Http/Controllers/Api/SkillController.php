@@ -9,17 +9,18 @@ use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Gate;
 
 class SkillController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Skill::class);
+
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         $siteDefaultLocale = SiteLanguages::defaultCode();
 
         return response()->json(
-            Cache::remember('skills:list:loc:' . ($present ?? 'none'), 3600, function () use ($present, $siteDefaultLocale) {
+            Cache::remember('skills:list:loc:'.($present ?? 'none'), 3600, function () use ($present, $siteDefaultLocale) {
                 $skills = Skill::withCount('projects')
                     ->with('media')
                     ->with('translations')
@@ -40,9 +41,11 @@ class SkillController extends Controller
                 if ($present) {
                     $skills->transform(function (Skill $skill) use ($present) {
                         TranslatableContentPresenter::applySkill($skill, $present);
+
                         return $skill;
                     });
                 }
+
                 return $skills;
             })
         );
@@ -50,6 +53,8 @@ class SkillController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Skill::class);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:skills,slug'],
@@ -77,12 +82,14 @@ class SkillController extends Controller
 
     public function show(Skill $skill)
     {
+        $this->authorize('view', $skill);
+
         $skill->load([
             'projects:id,title',
             'translations',
             'media' => function ($query) {
                 $query->where('collection_name', 'icon');
-            }
+            },
         ]);
 
         return response()->json($skill);
@@ -90,6 +97,8 @@ class SkillController extends Controller
 
     public function update(Request $request, Skill $skill)
     {
+        $this->authorize('update', $skill);
+
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('skills')->ignore($skill->id)],
@@ -119,6 +128,8 @@ class SkillController extends Controller
 
     public function destroy(Skill $skill)
     {
+        $this->authorize('delete', $skill);
+
         $skill->delete();
         // Cache invalidation handled by InvalidatesCache trait
 
@@ -127,6 +138,8 @@ class SkillController extends Controller
 
     public function bulkDelete(Request $request)
     {
+        $this->authorize('bulkDelete', Skill::class);
+
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:skills,id'],
@@ -137,7 +150,7 @@ class SkillController extends Controller
 
         return response()->json([
             'deleted' => $count,
-            'message' => 'Deleted ' . $count . ' skills',
+            'message' => 'Deleted '.$count.' skills',
         ]);
     }
 
@@ -164,6 +177,7 @@ class SkillController extends Controller
             $description = isset($row['description']) ? trim((string) $row['description']) : '';
             if ($name === '' && $description === '') {
                 $skill->translations()->where('locale', $locale)->delete();
+
                 continue;
             }
             $skill->translations()->updateOrCreate(

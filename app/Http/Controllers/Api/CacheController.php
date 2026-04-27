@@ -10,6 +10,8 @@ class CacheController extends Controller
 {
     public function status(): JsonResponse
     {
+        $this->authorize('manageSystemCache');
+
         return response()->json([
             'store' => config('cache.default'),
             'supports_tags' => method_exists(Cache::getStore(), 'supportsTags') ? Cache::getStore()->supportsTags() : false,
@@ -19,6 +21,8 @@ class CacheController extends Controller
 
     public function clear(): JsonResponse
     {
+        $this->authorize('manageSystemCache');
+
         Cache::flush();
         $now = now()->toIso8601String();
         Cache::forever('cache:last_cleared_at', $now);
@@ -29,4 +33,3 @@ class CacheController extends Controller
         ]);
     }
 }
-

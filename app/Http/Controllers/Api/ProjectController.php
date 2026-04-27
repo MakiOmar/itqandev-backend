@@ -4,16 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectResource;
-use App\Models\Category;
 use App\Models\Project;
-use App\Models\Skill;
+use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
-use App\Services\HtmlSanitizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Log;
 
 class ProjectController extends Controller
 {
@@ -36,22 +33,22 @@ class ProjectController extends Controller
         ]);
 
         $query = Project::with([
-                'categories:id,name',
-                'skills:id,name',
-                'seoMeta',
-                'translations',
-                'media' => function ($query) {
-                    $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
-                }
-            ])
+            'categories:id,name',
+            'skills:id,name',
+            'seoMeta',
+            'translations',
+            'media' => function ($query) {
+                $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
+            },
+        ])
             ->select(['id', 'title', 'slug', 'content_locale', 'status', 'featured', 'published_at', 'summary', 'description', 'link_url', 'repo_url', 'demo_url'])
             ->latest('published_at');
 
-        if (!empty($filters['category'])) {
+        if (! empty($filters['category'])) {
             $query->whereHas('categories', fn ($q) => $q->where('categories.id', $filters['category']));
         }
 
-        if (!empty($filters['skill'])) {
+        if (! empty($filters['skill'])) {
             $query->whereHas('skills', fn ($q) => $q->where('skills.id', $filters['skill']));
         }
 
@@ -59,7 +56,7 @@ class ProjectController extends Controller
             $query->where('featured', (bool) $filters['featured']);
         }
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
@@ -157,6 +154,7 @@ class ProjectController extends Controller
         }
 
         $project->load('categories:id,name', 'skills:id,name', 'translations');
+
         return (new ProjectResource($project))->response()->setStatusCode(201);
     }
 
@@ -164,7 +162,7 @@ class ProjectController extends Controller
     {
         // Explicitly resolve ID from route in case implicit binding is bypassed
         $routeId = $project->id ?: request()->route('project');
-        if (!$routeId) {
+        if (! $routeId) {
             abort(404, 'Project not found');
         }
 
@@ -178,40 +176,27 @@ class ProjectController extends Controller
             'seoMeta',
             'media' => function ($query) {
                 $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
-            }
+            },
         ])->findOrFail($routeId);
-        
+
         $this->authorize('view', $project);
 
         // Load media collections (already eager loaded, but getFirstMedia is more reliable)
         $hero = $project->getFirstMedia('hero');
         $video = $project->getFirstMedia('video');
-        
+
         // Use ProjectResource for consistent response format
         return new ProjectResource($project);
     }
 
-
     public function update(Request $request, Project $project)
     {
         // Fallback: If route model binding fails, load manually
-        if (!$project->exists) {
+        if (! $project->exists) {
             $project = Project::findOrFail($request->route('project'));
         }
 
         $this->authorize('update', $project);
-        // Debug: Log all incoming request data
-        Log::info('ProjectController@update - Raw request data:', [
-            'all' => $request->all(),
-            'link_url' => $request->input('link_url'),
-            'repo_url' => $request->input('repo_url'),
-            'demo_url' => $request->input('demo_url'),
-            'published_at' => $request->input('published_at'),
-            'linkUrl' => $request->input('linkUrl'),
-            'repoUrl' => $request->input('repoUrl'),
-            'demoUrl' => $request->input('demoUrl'),
-            'publishedAt' => $request->input('publishedAt'),
-        ]);
 
         // Handle camelCase inputs from frontend
         $request->merge([
@@ -273,13 +258,14 @@ class ProjectController extends Controller
         }
 
         $project->load('categories:id,name', 'skills:id,name', 'translations');
+
         return new ProjectResource($project);
     }
 
     public function destroy(Project $project)
     {
         $this->authorize('delete', $project);
-        
+
         $project->delete();
 
         return response()->noContent();
@@ -298,7 +284,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'deleted' => $count,
-            'message' => 'Deleted ' . $count . ' projects',
+            'message' => 'Deleted '.$count.' projects',
         ]);
     }
 

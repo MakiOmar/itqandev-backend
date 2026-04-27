@@ -17,6 +17,8 @@ class TestimonialController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Testimonial::class);
+
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
 
         $query = Testimonial::with('project:id,title,content_locale', 'translations');
@@ -47,6 +49,8 @@ class TestimonialController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Testimonial::class);
+
         $this->mergeCamelCaseFields($request);
 
         $data = $request->validate([
@@ -89,6 +93,8 @@ class TestimonialController extends Controller
 
     public function show(Testimonial $testimonial)
     {
+        $this->authorize('view', $testimonial);
+
         $present = TranslatableContentPresenter::requestedPresentationLocale(request());
         $testimonial->load('project:id,title,content_locale', 'translations');
         if ($present) {
@@ -103,6 +109,8 @@ class TestimonialController extends Controller
 
     public function update(Request $request, Testimonial $testimonial)
     {
+        $this->authorize('update', $testimonial);
+
         $this->mergeCamelCaseFields($request);
 
         $data = $request->validate([
@@ -150,6 +158,8 @@ class TestimonialController extends Controller
 
     public function destroy(Testimonial $testimonial)
     {
+        $this->authorize('delete', $testimonial);
+
         $testimonial->delete();
 
         return response()->json(null, 204);
@@ -157,6 +167,8 @@ class TestimonialController extends Controller
 
     public function bulkDelete(Request $request)
     {
+        $this->authorize('bulkDelete', Testimonial::class);
+
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:testimonials,id'],

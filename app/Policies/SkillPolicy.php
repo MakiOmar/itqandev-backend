@@ -2,21 +2,21 @@
 
 namespace App\Policies;
 
-use App\Models\Category;
+use App\Models\Skill;
 use App\Models\User;
 use App\Policies\Concerns\ChecksManagePermissions;
 
-class CategoryPolicy
+class SkillPolicy
 {
     use ChecksManagePermissions;
 
     public function viewAny(User $user): bool
     {
         return $user->hasRole(['super_admin', 'admin', 'company', 'editor'])
-            || $this->hasPermission($user, 'manage categories');
+            || $this->hasPermission($user, 'manage skills');
     }
 
-    public function view(User $user, Category $category): bool
+    public function view(User $user, Skill $skill): bool
     {
         return $this->viewAny($user);
     }
@@ -26,12 +26,12 @@ class CategoryPolicy
         return $this->viewAny($user);
     }
 
-    public function update(User $user, Category $category): bool
+    public function update(User $user, Skill $skill): bool
     {
-        return $this->viewAny($user);
+        return $this->create($user);
     }
 
-    public function delete(User $user, Category $category): bool
+    public function delete(User $user, Skill $skill): bool
     {
         return $this->viewAny($user);
     }

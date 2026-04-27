@@ -4,66 +4,40 @@ namespace App\Policies;
 
 use App\Models\Project;
 use App\Models\User;
+use App\Policies\Concerns\ChecksManagePermissions;
 
 class ProjectPolicy
 {
-    /**
-     * Determine if the user can view any projects.
-     */
+    use ChecksManagePermissions;
+
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view projects');
+        return $user->hasRole(['super_admin', 'admin', 'company', 'editor'])
+            || $this->hasPermission($user, 'manage projects');
     }
 
-    /**
-     * Determine if the user can view the project.
-     */
     public function view(User $user, Project $project): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'view projects');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can create projects.
-     */
     public function create(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'create projects');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can update the project.
-     */
     public function update(User $user, Project $project): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'update projects');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can delete the project.
-     */
     public function delete(User $user, Project $project): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete projects');
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine if the user can bulk delete projects.
-     */
     public function bulkDelete(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'admin']) || $this->hasPermission($user, 'delete projects');
-    }
-
-    /**
-     * Check if user has permission (safe check that doesn't throw exceptions).
-     */
-    protected function hasPermission(User $user, string $permission): bool
-    {
-        try {
-            return $user->hasPermissionTo($permission);
-        } catch (\Exception $e) {
-            return false;
-        }
+        return $this->viewAny($user);
     }
 }

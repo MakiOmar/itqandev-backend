@@ -99,11 +99,22 @@ return new class extends Migration
     protected function indexExists(string $table, string $index): bool
     {
         $connection = Schema::getConnection();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $rows = $connection->select(
+                'SELECT name FROM sqlite_master WHERE type = ? AND tbl_name = ? AND name = ?',
+                ['index', $table, $index]
+            );
+
+            return count($rows) > 0;
+        }
+
         $databaseName = $connection->getDatabaseName();
 
         $result = $connection->select(
-            "SELECT COUNT(*) as count FROM information_schema.statistics 
-             WHERE table_schema = ? AND table_name = ? AND index_name = ?",
+            'SELECT COUNT(*) as count FROM information_schema.statistics 
+             WHERE table_schema = ? AND table_name = ? AND index_name = ?',
             [$databaseName, $table, $index]
         );
 

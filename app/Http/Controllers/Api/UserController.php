@@ -12,6 +12,8 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', User::class);
+
         $users = User::with('roles:id,name', 'permissions:id,name')
             ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 20));
@@ -21,6 +23,8 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', User::class);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
@@ -35,7 +39,8 @@ class UserController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
-        if (!empty($data['role_ids'])) {
+        if (! empty($data['role_ids'])) {
+            $this->authorize('assignRoles', $user);
             $user->assignRole($data['role_ids']);
         }
 
@@ -44,6 +49,8 @@ class UserController extends Controller
 
     public function show(User $user)
     {
+        $this->authorize('view', $user);
+
         return response()->json($user->load('roles:id,name', 'permissions:id,name'));
     }
 
@@ -57,11 +64,17 @@ class UserController extends Controller
             'role_ids.*' => ['integer', 'exists:roles,id'],
         ]);
 
+        $this->authorize('update', $user);
+
+        if (array_key_exists('role_ids', $data) && $data['role_ids'] !== null) {
+            $this->authorize('assignRoles', $user);
+        }
+
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
 
-        $user->update(array_filter($data, fn($key) => $key !== 'role_ids', ARRAY_FILTER_USE_KEY));
+        $user->update(array_filter($data, fn ($key) => $key !== 'role_ids', ARRAY_FILTER_USE_KEY));
 
         if (isset($data['role_ids'])) {
             $user->syncRoles($data['role_ids']);
@@ -72,6 +85,8 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $this->authorize('delete', $user);
+
         // Prevent deleting yourself
         if ($user->id === auth()->id()) {
             return response()->json(['message' => 'لا يمكنك حذف حسابك الخاص'], 403);
@@ -82,4 +97,3 @@ class UserController extends Controller
         return response()->noContent();
     }
 }
-

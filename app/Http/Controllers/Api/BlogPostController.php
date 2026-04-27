@@ -18,6 +18,8 @@ class BlogPostController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('viewAny', BlogPost::class);
+
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         $siteDefaultLocale = SiteLanguages::defaultCode();
         $cacheKey = 'blog_posts:list:'.md5(json_encode($request->query())).':loc:'.($present ?? 'none');
@@ -67,6 +69,8 @@ class BlogPostController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', BlogPost::class);
+
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:blog_posts,slug'],
@@ -110,6 +114,8 @@ class BlogPostController extends Controller
 
     public function show(BlogPost $blogPost)
     {
+        $this->authorize('view', $blogPost);
+
         $blogPost->load('author:id,name,email', 'seoMeta', 'translations');
 
         return response()->json($blogPost);
@@ -117,6 +123,8 @@ class BlogPostController extends Controller
 
     public function update(Request $request, BlogPost $blogPost)
     {
+        $this->authorize('update', $blogPost);
+
         $data = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'slug' => ['sometimes', 'required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('blog_posts')->ignore($blogPost->id)],
@@ -158,6 +166,8 @@ class BlogPostController extends Controller
 
     public function destroy(BlogPost $blogPost)
     {
+        $this->authorize('delete', $blogPost);
+
         $blogPost->delete();
 
         return response()->noContent();
@@ -206,4 +216,3 @@ class BlogPostController extends Controller
         }
     }
 }
-

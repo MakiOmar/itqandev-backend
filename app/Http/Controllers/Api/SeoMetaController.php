@@ -3,13 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\BlogPost;
-use App\Models\Category;
-use App\Models\Project;
+use App\Models\SeoMeta;
 use App\Services\ModelResolverService;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class SeoMetaController extends Controller
 {
@@ -22,6 +18,8 @@ class SeoMetaController extends Controller
 
     public function update(Request $request, string $type, int $id)
     {
+        $this->authorize('update', new SeoMeta);
+
         $model = $this->modelResolver->resolveModel($type, $id);
 
         $data = $request->validate([
@@ -40,4 +38,3 @@ class SeoMetaController extends Controller
         return response()->json($meta);
     }
 }
-
