@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\FeatureModules;
 use App\Support\SiteLanguages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,64 +23,14 @@ class SettingsController extends Controller
     }
 
     /**
-     * Optional tri-state from string (for .env values).
-     */
-    private function parseOptionalTriStateBool(?string $value): ?bool
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-        $v = strtolower(trim($value));
-        if (in_array($v, ['1', 'true', 'yes', 'on'], true)) {
-            return true;
-        }
-        if (in_array($v, ['0', 'false', 'no', 'off'], true)) {
-            return false;
-        }
-
-        return null;
-    }
-
-    /**
-     * Parse FEATURE_PROJECTS / config('features.projects') when explicitly set.
-     */
-    private function projectsFeatureExplicitFromEnv(): ?bool
-    {
-        $raw = config('features.projects');
-        if ($raw === null || $raw === '') {
-            return null;
-        }
-        if (is_bool($raw)) {
-            return $raw;
-        }
-
-        return $this->parseOptionalTriStateBool((string) $raw);
-    }
-
-    /**
-     * Effective projects module flag: .env when set, otherwise config('features.defaults.projects').
-     */
-    private function resolvedProjectsFeature(): bool
-    {
-        $explicit = $this->projectsFeatureExplicitFromEnv();
-        if ($explicit !== null) {
-            return $explicit;
-        }
-
-        return (bool) config('features.defaults.projects', true);
-    }
-
-    /**
-     * Attach whitelabel feature flags for API consumers (never read from persisted JSON).
+     * Attach module toggles from config/features.php for API consumers (never read from persisted JSON).
      *
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
      */
     private function withResolvedFeatures(array $settings): array
     {
-        $settings['features'] = [
-            'projects' => $this->resolvedProjectsFeature(),
-        ];
+        $settings['features'] = FeatureModules::all();
 
         return $settings;
     }
@@ -340,6 +291,7 @@ class SettingsController extends Controller
                 ? $settings['site_languages']
                 : [],
             'default_locale' => $settings['default_locale'] ?? 'en',
+            'features' => FeatureModules::all(),
         ];
 
         return response()->json([
@@ -350,7 +302,7 @@ class SettingsController extends Controller
 
     /**
      * Get project settings
-     * Returns branding, general settings, and whitelabel feature flags (from config / .env only)
+     * Returns branding, general settings, and module toggles from config/features.php (not persisted).
      *
      * OPTIMIZATION: Cached for 5 minutes to reduce database/config lookups
      * Settings rarely change, so aggressive caching is safe

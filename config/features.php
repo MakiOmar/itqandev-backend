@@ -4,25 +4,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Whitelabel / module toggles (config & .env only)
+    | Enabled content / admin modules (config only)
     |--------------------------------------------------------------------------
     |
-    | These flags are not stored in project-settings.json and cannot be changed
-    | from the admin UI. Forks set them per deployment via FEATURE_* in .env
-    | or by editing values under `defaults` below when the env var is omitted.
+    | Forks toggle entire API surfaces by setting booleans below. These are NOT
+    | read from .env (backend remains the single source of truth via config).
+    | Values are exposed on GET /api/settings as `features` and enforced by
+    | the `feature.module:*` middleware on API routes.
     |
-    | projects — testimonial forms may link to portfolio projects (loads /v1/projects).
+    | Keys must stay in sync with App\Support\FeatureModules::canonicalKeys().
     |
     */
 
-    'defaults' => [
+    'modules' => [
         'projects' => true,
+        'categories' => true,
+        'skills' => true,
+        'services' => true,
+        'testimonials' => true,
+        'blog' => true,
+        'media' => true,
+        'users' => true,
+        'seo' => true,
     ],
-
-    /*
-    | When set to true, false, 0, 1, yes, no, on, off (case-insensitive), this
-    | overrides `defaults.projects`. Leave unset or empty to use the default.
-    */
-    'projects' => env('FEATURE_PROJECTS'),
 
 ];

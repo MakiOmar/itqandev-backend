@@ -9,15 +9,21 @@ Route::get('/health', fn () => ['status' => 'ok'])->middleware('throttle:health'
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
-/** Marketing site: published projects only (no auth). Respects X-Content-Locale for translated fields. */
+/** Marketing site (no auth). Module gates mirror config/features.php. */
 Route::prefix('public')->middleware('throttle:api')->group(function () {
-    Route::get('projects', [\App\Http\Controllers\Api\PublicProjectController::class, 'index']);
-    Route::get('projects/{slug}', [\App\Http\Controllers\Api\PublicProjectController::class, 'show'])
-        ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
-    Route::get('testimonials', [\App\Http\Controllers\Api\PublicTestimonialController::class, 'index']);
-    /** Branding + site_languages for marketing header (no auth; GET /settings is sanctum-only). */
+    Route::middleware('feature.module:projects')->group(function () {
+        Route::get('projects', [\App\Http\Controllers\Api\PublicProjectController::class, 'index']);
+        Route::get('projects/{slug}', [\App\Http\Controllers\Api\PublicProjectController::class, 'show'])
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+    });
+    Route::middleware('feature.module:testimonials')->group(function () {
+        Route::get('testimonials', [\App\Http\Controllers\Api\PublicTestimonialController::class, 'index']);
+    });
+    Route::middleware('feature.module:services')->group(function () {
+        Route::get('services', [\App\Http\Controllers\Api\PublicServiceController::class, 'index']);
+    });
+    /** Branding + site_languages + module toggles for marketing (no auth). */
     Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
-    Route::get('services', [\App\Http\Controllers\Api\PublicServiceController::class, 'index']);
 });
 
 // Public preflight for media download (avoid auth blocking OPTIONS)
@@ -47,60 +53,69 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'update'])->middleware('throttle:api');
 
     Route::prefix('v1')->name('v1.')->middleware('throttle:api')->group(function () {
-        // Bulk actions MUST come before apiResource routes to avoid conflicts
-        Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete'])->middleware('throttle:bulk');
-        Route::post('skills/bulk-delete', [\App\Http\Controllers\Api\SkillController::class, 'bulkDelete'])->middleware('throttle:bulk');
-        Route::post('services/bulk-delete', [\App\Http\Controllers\Api\ServiceController::class, 'bulkDelete'])->middleware('throttle:bulk');
-        Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete'])->middleware('throttle:bulk');
-        Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete'])->middleware('throttle:bulk');
+        Route::middleware('feature.module:categories')->group(function () {
+            Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class);
+        });
 
-        // API Resources
+        Route::middleware('feature.module:skills')->group(function () {
+            Route::post('skills/bulk-delete', [\App\Http\Controllers\Api\SkillController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::apiResource('skills', \App\Http\Controllers\Api\SkillController::class);
+        });
 
-        Route::apiResource('skills', \App\Http\Controllers\Api\SkillController::class);
-        Route::apiResource('services', \App\Http\Controllers\Api\ServiceController::class);
-        Route::apiResource('projects', \App\Http\Controllers\Api\ProjectController::class);
-        Route::apiResource('testimonials', \App\Http\Controllers\Api\TestimonialController::class);
-        Route::apiResource('blog-posts', \App\Http\Controllers\Api\BlogPostController::class);
-        Route::apiResource('users', \App\Http\Controllers\Api\UserController::class);
-        Route::get('roles', fn () => \Spatie\Permission\Models\Role::select('id', 'name')->get());
+        Route::middleware('feature.module:services')->group(function () {
+            Route::post('services/bulk-delete', [\App\Http\Controllers\Api\ServiceController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::apiResource('services', \App\Http\Controllers\Api\ServiceController::class);
+        });
 
-        // Cache status/clear
+        Route::middleware('feature.module:testimonials')->group(function () {
+            Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::apiResource('testimonials', \App\Http\Controllers\Api\TestimonialController::class);
+        });
+
+        Route::middleware('feature.module:projects')->group(function () {
+            Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::apiResource('projects', \App\Http\Controllers\Api\ProjectController::class);
+        });
+
+        Route::middleware('feature.module:blog')->group(function () {
+            Route::apiResource('blog-posts', \App\Http\Controllers\Api\BlogPostController::class);
+        });
+
+        Route::middleware('feature.module:users')->group(function () {
+            Route::apiResource('users', \App\Http\Controllers\Api\UserController::class);
+            Route::get('roles', fn () => \Spatie\Permission\Models\Role::select('id', 'name')->get());
+        });
+
         Route::get('cache/status', [\App\Http\Controllers\Api\CacheController::class, 'status']);
         Route::post('cache/clear', [\App\Http\Controllers\Api\CacheController::class, 'clear']);
 
         Route::get('system/health', [\App\Http\Controllers\Api\SystemHealthController::class, 'show']);
 
-        // Media routes
-        Route::prefix('media')->group(function () {
-            // List and search media
-            Route::get('/', [\App\Http\Controllers\Api\MediaController::class, 'index']);
-            Route::get('/statistics', [\App\Http\Controllers\Api\MediaController::class, 'statistics']);
-            Route::get('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'show'])->where('media', '[0-9]+');
-            Route::get('/{media}/download-link', [\App\Http\Controllers\Api\MediaController::class, 'downloadLink'])->where('media', '[0-9]+');
-            Route::get('/{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->where('media', '[0-9]+');
-
-            // Upload media
-            Route::post('/upload', [\App\Http\Controllers\Api\MediaController::class, 'upload'])->middleware(['large.uploads', 'throttle:uploads']);
-
-            // Update and delete media
-            Route::put('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'update'])->where('media', '[0-9]+');
-            Route::delete('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->where('media', '[0-9]+');
-
-            // Bulk operations
-            Route::post('/bulk-delete', [\App\Http\Controllers\Api\MediaController::class, 'bulkDelete'])->middleware('throttle:bulk');
-            Route::get('/bulk-download', [\App\Http\Controllers\Api\MediaController::class, 'bulkDownload'])
-                ->middleware('throttle:bulk');
-            Route::post('/move-to-folder', [\App\Http\Controllers\Api\MediaController::class, 'moveToFolder']);
-
-            // Folders
-            Route::get('/folders/list', [\App\Http\Controllers\Api\MediaController::class, 'getFolders']);
-            Route::post('/folders', [\App\Http\Controllers\Api\MediaController::class, 'createFolder']);
-            Route::put('/folders/{folder}', [\App\Http\Controllers\Api\MediaController::class, 'updateFolder']);
-            Route::delete('/folders/{folder}', [\App\Http\Controllers\Api\MediaController::class, 'deleteFolder']);
+        Route::middleware('feature.module:media')->group(function () {
+            Route::prefix('media')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\MediaController::class, 'index']);
+                Route::get('/statistics', [\App\Http\Controllers\Api\MediaController::class, 'statistics']);
+                Route::get('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'show'])->where('media', '[0-9]+');
+                Route::get('/{media}/download-link', [\App\Http\Controllers\Api\MediaController::class, 'downloadLink'])->where('media', '[0-9]+');
+                Route::get('/{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->where('media', '[0-9]+');
+                Route::post('/upload', [\App\Http\Controllers\Api\MediaController::class, 'upload'])->middleware(['large.uploads', 'throttle:uploads']);
+                Route::put('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'update'])->where('media', '[0-9]+');
+                Route::delete('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'destroy'])->where('media', '[0-9]+');
+                Route::post('/bulk-delete', [\App\Http\Controllers\Api\MediaController::class, 'bulkDelete'])->middleware('throttle:bulk');
+                Route::get('/bulk-download', [\App\Http\Controllers\Api\MediaController::class, 'bulkDownload'])
+                    ->middleware('throttle:bulk');
+                Route::post('/move-to-folder', [\App\Http\Controllers\Api\MediaController::class, 'moveToFolder']);
+                Route::get('/folders/list', [\App\Http\Controllers\Api\MediaController::class, 'getFolders']);
+                Route::post('/folders', [\App\Http\Controllers\Api\MediaController::class, 'createFolder']);
+                Route::put('/folders/{folder}', [\App\Http\Controllers\Api\MediaController::class, 'updateFolder']);
+                Route::delete('/folders/{folder}', [\App\Http\Controllers\Api\MediaController::class, 'deleteFolder']);
+            });
+            Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store'])->middleware('throttle:uploads');
         });
-        Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class);
-        // Legacy route for attaching media to models
-        Route::post('media/{type}/{id}/{collection}', [\App\Http\Controllers\Api\MediaController::class, 'store'])->middleware('throttle:uploads');
-        Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
+
+        Route::middleware('feature.module:seo')->group(function () {
+            Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
+        });
     });
 });
