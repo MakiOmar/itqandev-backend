@@ -208,6 +208,32 @@ class ServiceController extends Controller
     {
         $service->refresh();
         $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($service->content_locale));
+        // #region agent log
+        $incomingLocales = [];
+        foreach ($translations as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $incomingLocales[] = strtolower(trim((string) ($row['locale'] ?? '')));
+        }
+        $debugPayload = json_encode([
+            'sessionId' => '08cfc0',
+            'runId' => 'svc-ar-debug',
+            'hypothesisId' => 'H1',
+            'location' => 'ServiceController::syncServiceTranslations',
+            'message' => 'allowed vs incoming locales',
+            'data' => [
+                'service_id' => $service->id,
+                'stored_content_locale' => $service->content_locale,
+                'site_language_codes' => array_map(static fn (array $r) => $r['code'] ?? '', SiteLanguages::all()),
+                'default_locale' => SiteLanguages::defaultCode(),
+                'allowed_secondary' => array_keys($allowed),
+                'incoming_locales' => array_values(array_filter($incomingLocales)),
+            ],
+            'timestamp' => (int) round(microtime(true) * 1000),
+        ], JSON_UNESCAPED_UNICODE);
+        @file_put_contents(dirname(base_path()).\DIRECTORY_SEPARATOR.'debug-08cfc0.log', $debugPayload."\n", \FILE_APPEND | \LOCK_EX);
+        // #endregion
         $service->translations()->whereNotIn('locale', array_keys($allowed))->delete();
         if ($allowed === []) {
             return;
