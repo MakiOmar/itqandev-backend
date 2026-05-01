@@ -25,7 +25,7 @@ class ServiceController extends Controller
         $siteDefaultLocale = SiteLanguages::defaultCode();
 
         return response()->json(
-            Cache::remember('services:list:loc:' . ($present ?? 'none'), 3600, function () use ($present, $siteDefaultLocale) {
+            Cache::remember('services:list:loc:'.($present ?? 'none'), 3600, function () use ($present, $siteDefaultLocale) {
                 $services = Service::query()
                     ->with('translations')
                     ->when($present, function ($query) use ($present, $siteDefaultLocale) {
@@ -183,7 +183,7 @@ class ServiceController extends Controller
 
         return response()->json([
             'deleted' => $count,
-            'message' => 'Deleted ' . $count . ' services',
+            'message' => 'Deleted '.$count.' services',
         ]);
     }
 
@@ -196,8 +196,8 @@ class ServiceController extends Controller
             if ($code === '') {
                 continue;
             }
-            Cache::forget('services:list:loc:' . $code);
-            Cache::forget('public:services:loc:' . $code);
+            Cache::forget('services:list:loc:'.$code);
+            Cache::forget('public:services:loc:'.$code);
         }
     }
 
@@ -208,32 +208,6 @@ class ServiceController extends Controller
     {
         $service->refresh();
         $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($service->content_locale));
-        // #region agent log
-        $incomingLocales = [];
-        foreach ($translations as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-            $incomingLocales[] = strtolower(trim((string) ($row['locale'] ?? '')));
-        }
-        $debugPayload = json_encode([
-            'sessionId' => '08cfc0',
-            'runId' => 'svc-ar-debug',
-            'hypothesisId' => 'H1',
-            'location' => 'ServiceController::syncServiceTranslations',
-            'message' => 'allowed vs incoming locales',
-            'data' => [
-                'service_id' => $service->id,
-                'stored_content_locale' => $service->content_locale,
-                'site_language_codes' => array_map(static fn (array $r) => $r['code'] ?? '', SiteLanguages::all()),
-                'default_locale' => SiteLanguages::defaultCode(),
-                'allowed_secondary' => array_keys($allowed),
-                'incoming_locales' => array_values(array_filter($incomingLocales)),
-            ],
-            'timestamp' => (int) round(microtime(true) * 1000),
-        ], JSON_UNESCAPED_UNICODE);
-        @file_put_contents(dirname(base_path()).\DIRECTORY_SEPARATOR.'debug-08cfc0.log', $debugPayload."\n", \FILE_APPEND | \LOCK_EX);
-        // #endregion
         $service->translations()->whereNotIn('locale', array_keys($allowed))->delete();
         if ($allowed === []) {
             return;
@@ -254,6 +228,7 @@ class ServiceController extends Controller
 
             if ($name === '' && $shortDescription === '' && $description === '' && $process === [] && $deliverables === []) {
                 $service->translations()->where('locale', $locale)->delete();
+
                 continue;
             }
             $service->translations()->updateOrCreate(

@@ -176,7 +176,9 @@ final class TranslatableContentPresenter
             $service->load('translations');
         }
 
-        $row = $service->translations->firstWhere('locale', $locale);
+        $row = $service->translations->first(
+            static fn ($t) => strtolower((string) $t->locale) === $locale
+        );
         if ($row === null) {
             return;
         }
