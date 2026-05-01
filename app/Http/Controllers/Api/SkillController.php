@@ -160,11 +160,12 @@ class SkillController extends Controller
     private function syncSkillTranslations(Skill $skill, array $translations): void
     {
         $skill->refresh();
-        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($skill->content_locale));
-        $skill->translations()->whereNotIn('locale', array_keys($allowed))->delete();
-        if ($allowed === []) {
+        $secondaryCodes = SiteLanguages::secondaryLocaleCodesForContent($skill->content_locale);
+        if ($secondaryCodes === []) {
             return;
         }
+        $allowed = array_flip($secondaryCodes);
+        $skill->translations()->whereNotIn('locale', array_keys($allowed))->delete();
         foreach ($translations as $row) {
             if (! is_array($row)) {
                 continue;

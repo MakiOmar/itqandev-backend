@@ -238,12 +238,12 @@ class CategoryController extends Controller
     private function syncCategoryTranslations(Category $category, array $translations): void
     {
         $category->refresh();
-        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($category->content_locale));
-        $category->translations()->whereNotIn('locale', array_keys($allowed))->delete();
-
-        if ($allowed === []) {
+        $secondaryCodes = SiteLanguages::secondaryLocaleCodesForContent($category->content_locale);
+        if ($secondaryCodes === []) {
             return;
         }
+        $allowed = array_flip($secondaryCodes);
+        $category->translations()->whereNotIn('locale', array_keys($allowed))->delete();
 
         foreach ($translations as $row) {
             if (! is_array($row)) {

@@ -155,6 +155,47 @@ class ServiceController extends Controller
             $this->syncServiceTranslations($service, $translations);
         }
         $service->load('translations');
+        // #region agent log
+        $reqLocales = [];
+        if (is_array($translations)) {
+            foreach ($translations as $r) {
+                if (is_array($r) && isset($r['locale'])) {
+                    $reqLocales[] = strtolower(trim((string) $r['locale']));
+                }
+            }
+        }
+        $persistedLocales = $service->translations->map(static fn ($t) => strtolower((string) $t->locale))->values()->all();
+        $logLine = json_encode([
+            'sessionId' => '08cfc0',
+            'hypothesisId' => 'H3',
+            'location' => 'ServiceController.php:update:after_sync',
+            'message' => 'service update persisted',
+            'data' => [
+                'serviceId' => $service->id,
+                'content_locale' => $service->content_locale,
+                'secondary_codes' => SiteLanguages::secondaryLocaleCodesForContent($service->content_locale),
+                'translations_request_count' => is_array($translations) ? count($translations) : -1,
+                'translation_request_locales' => $reqLocales,
+                'persisted_translation_locales' => $persistedLocales,
+            ],
+            'timestamp' => (int) round(microtime(true) * 1000),
+        ], JSON_UNESCAPED_UNICODE)."\n";
+        $logTargets = [
+            dirname(base_path()).\DIRECTORY_SEPARATOR.'debug-08cfc0.log',
+            base_path('database'.\DIRECTORY_SEPARATOR.'debug-08cfc0.log'),
+            storage_path('logs'.\DIRECTORY_SEPARATOR.'debug-08cfc0.log'),
+        ];
+        foreach ($logTargets as $logPath) {
+            $dir = dirname($logPath);
+            if (! is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+            $written = @file_put_contents($logPath, $logLine, FILE_APPEND | LOCK_EX);
+            if ($written !== false) {
+                break;
+            }
+        }
+        // #endregion
         $this->bumpServiceCaches();
 
         return response()->json($service);
@@ -207,11 +248,12 @@ class ServiceController extends Controller
     private function syncServiceTranslations(Service $service, array $translations): void
     {
         $service->refresh();
-        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($service->content_locale));
-        $service->translations()->whereNotIn('locale', array_keys($allowed))->delete();
-        if ($allowed === []) {
+        $secondaryCodes = SiteLanguages::secondaryLocaleCodesForContent($service->content_locale);
+        if ($secondaryCodes === []) {
             return;
         }
+        $allowed = array_flip($secondaryCodes);
+        $service->translations()->whereNotIn('locale', array_keys($allowed))->delete();
         foreach ($translations as $row) {
             if (! is_array($row)) {
                 continue;

@@ -294,12 +294,12 @@ class ProjectController extends Controller
     private function syncProjectTranslations(Project $project, array $translations): void
     {
         $project->refresh();
-        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($project->content_locale));
-        $project->translations()->whereNotIn('locale', array_keys($allowed))->delete();
-
-        if ($allowed === []) {
+        $secondaryCodes = SiteLanguages::secondaryLocaleCodesForContent($project->content_locale);
+        if ($secondaryCodes === []) {
             return;
         }
+        $allowed = array_flip($secondaryCodes);
+        $project->translations()->whereNotIn('locale', array_keys($allowed))->delete();
 
         foreach ($translations as $row) {
             if (! is_array($row)) {

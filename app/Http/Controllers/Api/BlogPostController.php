@@ -179,12 +179,12 @@ class BlogPostController extends Controller
     private function syncBlogPostTranslations(BlogPost $post, array $translations): void
     {
         $post->refresh();
-        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($post->content_locale));
-        $post->translations()->whereNotIn('locale', array_keys($allowed))->delete();
-
-        if ($allowed === []) {
+        $secondaryCodes = SiteLanguages::secondaryLocaleCodesForContent($post->content_locale);
+        if ($secondaryCodes === []) {
             return;
         }
+        $allowed = array_flip($secondaryCodes);
+        $post->translations()->whereNotIn('locale', array_keys($allowed))->delete();
 
         foreach ($translations as $row) {
             if (! is_array($row)) {

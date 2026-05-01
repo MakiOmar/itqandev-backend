@@ -222,12 +222,12 @@ class TestimonialController extends Controller
     private function syncTestimonialTranslations(Testimonial $testimonial, array $translations): void
     {
         $testimonial->refresh();
-        $allowed = array_flip(SiteLanguages::secondaryLocaleCodesForContent($testimonial->content_locale));
-        $testimonial->translations()->whereNotIn('locale', array_keys($allowed))->delete();
-
-        if ($allowed === []) {
+        $secondaryCodes = SiteLanguages::secondaryLocaleCodesForContent($testimonial->content_locale);
+        if ($secondaryCodes === []) {
             return;
         }
+        $allowed = array_flip($secondaryCodes);
+        $testimonial->translations()->whereNotIn('locale', array_keys($allowed))->delete();
 
         foreach ($translations as $row) {
             if (! is_array($row)) {
