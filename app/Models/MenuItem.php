@@ -19,6 +19,10 @@ class MenuItem extends Model
 
     public const TYPE_SERVICE = 'service';
 
+    public const TYPE_CATEGORY = 'category';
+
+    public const TYPE_SKILL = 'skill';
+
     /** @var list<string> */
     public const ITEM_TYPES = [
         self::TYPE_CUSTOM_LINK,
@@ -26,6 +30,8 @@ class MenuItem extends Model
         self::TYPE_PROJECT,
         self::TYPE_BLOG_POST,
         self::TYPE_SERVICE,
+        self::TYPE_CATEGORY,
+        self::TYPE_SKILL,
     ];
 
     protected $fillable = [

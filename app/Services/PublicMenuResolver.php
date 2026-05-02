@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\BlogPost;
+use App\Models\Category;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\Project;
 use App\Models\Service;
+use App\Models\Skill;
 use App\Support\MenuStaticRoutes;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -168,6 +170,44 @@ final class PublicMenuResolver
                 }
                 $href = self::prefixLocale($locale, '/services/'.$slug.'/');
                 $label ??= (string) $service->name;
+
+                break;
+
+            case MenuItem::TYPE_CATEGORY:
+                $id = $item->reference_id;
+                if (! $id) {
+                    return null;
+                }
+                $category = Category::query()->select(['id', 'name', 'slug', 'content_locale'])->with('translations')->find($id);
+                if ($category === null) {
+                    return null;
+                }
+                TranslatableContentPresenter::applyCategory($category, $locale);
+                $slug = (string) $category->slug;
+                if ($slug === '') {
+                    return null;
+                }
+                $href = self::prefixLocale($locale, '/work/?category_slug='.rawurlencode($slug));
+                $label ??= (string) $category->name;
+
+                break;
+
+            case MenuItem::TYPE_SKILL:
+                $id = $item->reference_id;
+                if (! $id) {
+                    return null;
+                }
+                $skill = Skill::query()->select(['id', 'name', 'slug', 'content_locale'])->with('translations')->find($id);
+                if ($skill === null) {
+                    return null;
+                }
+                TranslatableContentPresenter::applySkill($skill, $locale);
+                $slug = (string) $skill->slug;
+                if ($slug === '') {
+                    return null;
+                }
+                $href = self::prefixLocale($locale, '/work/?skill_slug='.rawurlencode($slug));
+                $label ??= (string) $skill->name;
 
                 break;
 

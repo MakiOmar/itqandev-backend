@@ -127,12 +127,20 @@ class MenuItemController extends Controller
             $request->validate(['static_route_key' => array_merge($keyRule, ['string', Rule::in(MenuStaticRoutes::KEYS)])]);
         }
 
-        if (in_array($type, [MenuItem::TYPE_PROJECT, MenuItem::TYPE_BLOG_POST, MenuItem::TYPE_SERVICE], true)) {
+        if (in_array($type, [
+            MenuItem::TYPE_PROJECT,
+            MenuItem::TYPE_BLOG_POST,
+            MenuItem::TYPE_SERVICE,
+            MenuItem::TYPE_CATEGORY,
+            MenuItem::TYPE_SKILL,
+        ], true)) {
             $refRule = $existing === null ? ['required'] : ['sometimes', 'required'];
             $table = match ($type) {
                 MenuItem::TYPE_PROJECT => 'projects',
                 MenuItem::TYPE_BLOG_POST => 'blog_posts',
                 MenuItem::TYPE_SERVICE => 'services',
+                MenuItem::TYPE_CATEGORY => 'categories',
+                MenuItem::TYPE_SKILL => 'skills',
                 default => '',
             };
             $request->validate([
@@ -161,7 +169,13 @@ class MenuItemController extends Controller
             'item_type' => $type,
             'url' => $type === MenuItem::TYPE_CUSTOM_LINK ? $url : null,
             'static_route_key' => $type === MenuItem::TYPE_STATIC_ROUTE ? $staticKey : null,
-            'reference_id' => in_array($type, [MenuItem::TYPE_PROJECT, MenuItem::TYPE_BLOG_POST, MenuItem::TYPE_SERVICE], true)
+            'reference_id' => in_array($type, [
+                MenuItem::TYPE_PROJECT,
+                MenuItem::TYPE_BLOG_POST,
+                MenuItem::TYPE_SERVICE,
+                MenuItem::TYPE_CATEGORY,
+                MenuItem::TYPE_SKILL,
+            ], true)
                 ? (int) $referenceId
                 : null,
             'open_in_new_tab' => $openInNew,

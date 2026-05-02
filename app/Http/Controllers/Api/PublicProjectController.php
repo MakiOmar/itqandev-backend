@@ -19,36 +19,52 @@ class PublicProjectController extends Controller
         $filters = $request->validate([
             'featured' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:48'],
+            'category_slug' => ['nullable', 'string', 'max:255'],
+            'skill_slug' => ['nullable', 'string', 'max:255'],
         ]);
 
         $perPage = (int) ($filters['per_page'] ?? 12);
-
-        $query = Project::query()
-            ->with([
-                'categories:id,name',
-                'skills:id,name',
-                'translations',
-                'media' => function ($q) {
-                    $q->where('collection_name', 'hero');
-                },
-            ])
-            ->select([
-                'id', 'title', 'slug', 'content_locale', 'status', 'featured',
-                'published_at', 'summary', 'description',
-            ])
-            ->where('status', 'published')
-            ->latest('published_at');
-
-        if (! empty($filters['featured'])) {
-            $query->where('featured', true);
-        }
+        $page = (int) $request->get('page', 1);
+        $categorySlug = isset($filters['category_slug']) ? trim((string) $filters['category_slug']) : '';
+        $skillSlug = isset($filters['skill_slug']) ? trim((string) $filters['skill_slug']) : '';
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $page = (int) $request->get('page', 1);
         $cacheKey = 'public:projects:'.md5(json_encode([$filters, $page, $perPage])).':loc:'.($present ?? 'none');
 
-        $paginator = Cache::remember($cacheKey, 300, function () use ($query, $perPage) {
-            return $query->paginate($perPage);
+        $paginator = Cache::remember($cacheKey, 300, function () use ($filters, $perPage, $page, $categorySlug, $skillSlug) {
+            $query = Project::query()
+                ->with([
+                    'categories:id,name,slug',
+                    'skills:id,name,slug',
+                    'translations',
+                    'media' => function ($q) {
+                        $q->where('collection_name', 'hero');
+                    },
+                ])
+                ->select([
+                    'id', 'title', 'slug', 'content_locale', 'status', 'featured',
+                    'published_at', 'summary', 'description',
+                ])
+                ->where('status', 'published')
+                ->latest('published_at');
+
+            if (! empty($filters['featured'])) {
+                $query->where('featured', true);
+            }
+
+            if ($categorySlug !== '') {
+                $query->whereHas('categories', function ($q) use ($categorySlug) {
+                    $q->where('slug', $categorySlug);
+                });
+            }
+
+            if ($skillSlug !== '') {
+                $query->whereHas('skills', function ($q) use ($skillSlug) {
+                    $q->where('slug', $skillSlug);
+                });
+            }
+
+            return $query->paginate($perPage, ['*'], 'page', $page);
         });
 
         if ($present) {
@@ -71,8 +87,8 @@ class PublicProjectController extends Controller
             ->where('slug', $slug)
             ->where('status', 'published')
             ->with([
-                'categories:id,name',
-                'skills:id,name',
+                'categories:id,name,slug',
+                'skills:id,name,slug',
                 'translations',
                 'media' => function ($q) {
                     $q->where('collection_name', 'hero');
