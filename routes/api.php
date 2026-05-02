@@ -24,6 +24,9 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     });
     /** Branding + site_languages + module toggles for marketing (no auth). */
     Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
+    /** Resolved nav tree for marketing header (locale query matches UI locale). */
+    Route::get('menus/{slug}', [\App\Http\Controllers\Api\PublicMenuController::class, 'show'])
+        ->where('slug', '[a-z0-9_-]+');
 });
 
 // Public preflight for media download (avoid auth blocking OPTIONS)
@@ -117,5 +120,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('feature.module:seo')->group(function () {
             Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
         });
+
+        Route::get('menus', [\App\Http\Controllers\Api\MenuController::class, 'index']);
+        Route::post('menus', [\App\Http\Controllers\Api\MenuController::class, 'store']);
+        Route::get('menus/{menu}', [\App\Http\Controllers\Api\MenuController::class, 'show']);
+        Route::put('menus/{menu}', [\App\Http\Controllers\Api\MenuController::class, 'update']);
+        Route::delete('menus/{menu}', [\App\Http\Controllers\Api\MenuController::class, 'destroy']);
+        Route::post('menus/{menu}/items', [\App\Http\Controllers\Api\MenuItemController::class, 'store']);
+        Route::put('menus/{menu}/items/reorder', [\App\Http\Controllers\Api\MenuItemController::class, 'reorder']);
+        Route::put('menu-items/{menu_item}', [\App\Http\Controllers\Api\MenuItemController::class, 'update']);
+        Route::delete('menu-items/{menu_item}', [\App\Http\Controllers\Api\MenuItemController::class, 'destroy']);
     });
 });

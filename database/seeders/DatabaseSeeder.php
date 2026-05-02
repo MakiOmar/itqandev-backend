@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             'manage seo',
             'view analytics',
             'manage system',
+            'manage menus',
         ];
 
         foreach ($permissions as $permission) {
@@ -56,6 +57,7 @@ class DatabaseSeeder extends Seeder
             'manage media',
             'manage testimonials',
             'manage seo',
+            'manage menus',
         ]);
 
         $editorRole = Role::findOrCreate('editor');
@@ -68,6 +70,7 @@ class DatabaseSeeder extends Seeder
             'manage testimonials',
             'manage seo',
             'manage blog',
+            'manage menus',
         ]);
 
         $viewerRole = Role::findOrCreate('viewer');
@@ -95,5 +98,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(WebDevDemoSeeder::class);
         $this->call(ServicesSeeder::class);
+        $this->call(PrimaryMenuSeeder::class);
     }
 }

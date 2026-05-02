@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\AppMedia;
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\Menu;
+use App\Models\MenuItem;
 use App\Models\Project;
 use App\Models\SeoMeta;
 use App\Models\Service;
@@ -14,6 +16,8 @@ use App\Models\User;
 use App\Policies\BlogPostPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\MediaPolicy;
+use App\Policies\MenuItemPolicy;
+use App\Policies\MenuPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\SeoMetaPolicy;
 use App\Policies\ServicePolicy;
@@ -44,6 +48,8 @@ class AppServiceProvider extends ServiceProvider
         Testimonial::class => TestimonialPolicy::class,
         Skill::class => SkillPolicy::class,
         SeoMeta::class => SeoMetaPolicy::class,
+        Menu::class => MenuPolicy::class,
+        MenuItem::class => MenuItemPolicy::class,
     ];
 
     /**
