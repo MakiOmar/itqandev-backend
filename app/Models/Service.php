@@ -38,4 +38,9 @@ class Service extends Model
     {
         return $this->hasMany(ServiceTranslation::class);
     }
+
+    public function seoMetas()
+    {
+        return $this->morphMany(SeoMeta::class, 'seoable');
+    }
 }

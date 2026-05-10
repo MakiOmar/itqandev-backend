@@ -24,6 +24,7 @@ class SkillController extends Controller
                 $skills = Skill::withCount('projects')
                     ->with('media')
                     ->with('translations')
+                    ->with('seoMetas')
                     ->when($present, function ($query) use ($present, $siteDefaultLocale) {
                         $query->where(function ($q) use ($present, $siteDefaultLocale) {
                             $q->where('content_locale', $present);
@@ -75,7 +76,7 @@ class SkillController extends Controller
         if (is_array($translations)) {
             $this->syncSkillTranslations($skill, $translations);
         }
-        // Cache invalidation handled by InvalidatesCache trait
+        $skill->load(['seoMetas', 'media', 'translations']);
 
         return response()->json($skill, 201);
     }
@@ -87,6 +88,7 @@ class SkillController extends Controller
         $skill->load([
             'projects:id,title',
             'translations',
+            'seoMetas',
             'media' => function ($query) {
                 $query->where('collection_name', 'icon');
             },
@@ -121,6 +123,7 @@ class SkillController extends Controller
         if (is_array($translations)) {
             $this->syncSkillTranslations($skill, $translations);
         }
+        $skill->load(['seoMetas', 'media', 'translations']);
         // Cache invalidation handled by InvalidatesCache trait
 
         return response()->json($skill);

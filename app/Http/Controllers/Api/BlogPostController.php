@@ -25,7 +25,7 @@ class BlogPostController extends Controller
         $cacheKey = 'blog_posts:list:'.md5(json_encode($request->query())).':loc:'.($present ?? 'none');
 
         $paginator = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $present, $siteDefaultLocale) {
-            $query = BlogPost::with('author:id,name,email', 'translations');
+            $query = BlogPost::with('author:id,name,email', 'translations', 'seoMetas');
 
             if ($request->has('status')) {
                 $query->where('status', $request->status);
@@ -161,7 +161,7 @@ class BlogPostController extends Controller
             $this->syncBlogPostTranslations($blogPost, $translations);
         }
 
-        return response()->json($blogPost->load('author:id,name,email', 'translations'));
+        return response()->json($blogPost->load(['author:id,name,email', 'translations', 'seoMetas']));
     }
 
     public function destroy(BlogPost $blogPost)

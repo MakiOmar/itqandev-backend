@@ -52,6 +52,8 @@ final class SeoMetaPresenter
             'og_title' => $meta->og_title,
             'og_description' => $meta->og_description,
             'og_image' => $meta->og_image,
+            'twitter_card' => $meta->twitter_card,
+            'schema' => $meta->schema,
         ];
     }
 }

@@ -42,6 +42,7 @@ class CategoryResource extends JsonResource
                     'og_description' => $m->og_description,
                     'og_image' => $m->og_image,
                     'twitter_card' => $m->twitter_card,
+                    'schema' => $m->schema,
                 ])->values();
             }),
             'media' => $this->when($this->relationLoaded('media'), function () {

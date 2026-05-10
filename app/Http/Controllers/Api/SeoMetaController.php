@@ -30,10 +30,10 @@ class SeoMetaController extends Controller
             'locale' => ['required', 'string', 'max:16', Rule::in($enabledLocales)],
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:512'],
-            'canonical_url' => ['nullable', 'url'],
+            'canonical_url' => ['nullable', 'string', 'max:2048'],
             'og_title' => ['nullable', 'string', 'max:255'],
             'og_description' => ['nullable', 'string', 'max:512'],
-            'og_image' => ['nullable', 'url'],
+            'og_image' => ['nullable', 'string', 'max:2048'],
             'twitter_card' => ['nullable', 'string', 'max:50'],
             'schema' => ['nullable', 'array'],
         ]);

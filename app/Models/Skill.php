@@ -31,6 +31,11 @@ class Skill extends Model implements HasMedia
         return $this->hasMany(SkillTranslation::class);
     }
 
+    public function seoMetas()
+    {
+        return $this->morphMany(SeoMeta::class, 'seoable');
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('icon')->singleFile();

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Project;
+use App\Models\Service;
 use App\Models\Skill;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -19,6 +20,7 @@ class ModelResolverService
         'project' => Project::class,
         'category' => Category::class,
         'skill' => Skill::class,
+        'service' => Service::class,
         'blog-post' => BlogPost::class,
     ];
 

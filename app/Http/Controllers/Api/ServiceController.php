@@ -108,7 +108,7 @@ class ServiceController extends Controller
     {
         $this->authorize('view', $service);
 
-        $service->load('translations');
+        $service->load(['translations', 'seoMetas']);
 
         return response()->json($service);
     }
