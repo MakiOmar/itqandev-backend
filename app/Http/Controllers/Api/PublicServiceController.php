@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -17,18 +18,32 @@ class PublicServiceController extends Controller
     {
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         $cacheKey = 'public:services:loc:' . ($present ?? 'none');
+        $siteDefaultLocale = SiteLanguages::defaultCode();
 
-        $services = Cache::remember($cacheKey, 300, function () use ($present) {
+        $services = Cache::remember($cacheKey, 300, function () use ($present, $siteDefaultLocale) {
             $list = Service::query()
                 ->with('translations')
                 ->where('is_published', true)
+                ->when($present, function ($query) use ($present, $siteDefaultLocale) {
+                    $query->where(function ($q) use ($present, $siteDefaultLocale) {
+                        $q->where('content_locale', $present);
+                        if ($present === $siteDefaultLocale) {
+                            $q->orWhereNull('content_locale');
+                        }
+                        $q->orWhereHas('translations', function ($tq) use ($present) {
+                            $tq->where('locale', $present);
+                        });
+                    });
+                })
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get();
             if ($present) {
                 $list->each(function (Service $service) use ($present) {
                     TranslatableContentPresenter::applyService($service, $present);
-                });
+                })->filter(function (Service $service) use ($present) {
+                    return TranslatableContentPresenter::hasServiceContentForLocale($service, $present);
+                })->values();
             }
 
             return $list;

@@ -16,6 +16,66 @@ use Illuminate\Http\Request;
  */
 final class TranslatableContentPresenter
 {
+    public static function hasProjectContentForLocale(Project $project, string $locale): bool
+    {
+        return self::hasTranslatedContentForLocale(
+            SiteLanguages::primaryLocaleForContent($project->content_locale),
+            $project,
+            $locale,
+            ['title', 'summary', 'description']
+        );
+    }
+
+    public static function hasCategoryContentForLocale(Category $category, string $locale): bool
+    {
+        return self::hasTranslatedContentForLocale(
+            SiteLanguages::primaryLocaleForContent($category->content_locale),
+            $category,
+            $locale,
+            ['name', 'description']
+        );
+    }
+
+    public static function hasTestimonialContentForLocale(Testimonial $testimonial, string $locale): bool
+    {
+        return self::hasTranslatedContentForLocale(
+            SiteLanguages::primaryLocaleForContent($testimonial->content_locale),
+            $testimonial,
+            $locale,
+            ['content', 'client_role', 'company']
+        );
+    }
+
+    public static function hasServiceContentForLocale(Service $service, string $locale): bool
+    {
+        return self::hasTranslatedContentForLocale(
+            SiteLanguages::primaryLocaleForContent($service->content_locale),
+            $service,
+            $locale,
+            ['name', 'short_description', 'description', 'process', 'deliverables']
+        );
+    }
+
+    public static function hasBlogPostContentForLocale(BlogPost $post, string $locale): bool
+    {
+        return self::hasTranslatedContentForLocale(
+            SiteLanguages::primaryLocaleForContent($post->content_locale),
+            $post,
+            $locale,
+            ['title', 'excerpt', 'content']
+        );
+    }
+
+    public static function hasSkillContentForLocale(Skill $skill, string $locale): bool
+    {
+        return self::hasTranslatedContentForLocale(
+            SiteLanguages::primaryLocaleForContent($skill->content_locale),
+            $skill,
+            $locale,
+            ['name', 'description']
+        );
+    }
+
     /**
      * Locale from X-Content-Locale header, validated against enabled site languages.
      */
@@ -198,5 +258,36 @@ final class TranslatableContentPresenter
         if (is_array($row->deliverables) && count($row->deliverables) > 0) {
             $service->setAttribute('deliverables', $row->deliverables);
         }
+    }
+
+    /**
+     * @param  array<int, string>  $fields
+     */
+    private static function hasTranslatedContentForLocale(string $primary, mixed $model, string $locale, array $fields): bool
+    {
+        if ($locale === $primary) {
+            return true;
+        }
+
+        if (! $model->relationLoaded('translations')) {
+            $model->load('translations');
+        }
+
+        $row = $model->translations->first(static fn ($t) => strtolower((string) $t->locale) === $locale);
+        if ($row === null) {
+            return false;
+        }
+
+        foreach ($fields as $field) {
+            $value = $row->{$field} ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                return true;
+            }
+            if (is_array($value) && count($value) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

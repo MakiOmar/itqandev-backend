@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicProjectCardResource;
 use App\Models\Project;
+use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -31,7 +32,8 @@ class PublicProjectController extends Controller
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         $cacheKey = 'public:projects:'.md5(json_encode([$filters, $page, $perPage])).':loc:'.($present ?? 'none');
 
-        $paginator = Cache::remember($cacheKey, 300, function () use ($filters, $perPage, $page, $categorySlug, $skillSlug) {
+        $siteDefaultLocale = SiteLanguages::defaultCode();
+        $paginator = Cache::remember($cacheKey, 300, function () use ($filters, $perPage, $page, $categorySlug, $skillSlug, $present, $siteDefaultLocale) {
             $query = Project::query()
                 ->with([
                     'categories:id,name,slug',
@@ -47,6 +49,18 @@ class PublicProjectController extends Controller
                 ])
                 ->where('status', 'published')
                 ->latest('published_at');
+
+            if ($present) {
+                $query->where(function ($q) use ($present, $siteDefaultLocale) {
+                    $q->where('content_locale', $present);
+                    if ($present === $siteDefaultLocale) {
+                        $q->orWhereNull('content_locale');
+                    }
+                    $q->orWhereHas('translations', function ($tq) use ($present) {
+                        $tq->where('locale', $present);
+                    });
+                });
+            }
 
             if (! empty($filters['featured'])) {
                 $query->where('featured', true);
@@ -72,7 +86,9 @@ class PublicProjectController extends Controller
                 TranslatableContentPresenter::applyProject($project, $present);
 
                 return $project;
-            });
+            })->filter(function (Project $project) use ($present) {
+                return TranslatableContentPresenter::hasProjectContentForLocale($project, $present);
+            })->values();
         }
 
         return PublicProjectCardResource::collection($paginator);

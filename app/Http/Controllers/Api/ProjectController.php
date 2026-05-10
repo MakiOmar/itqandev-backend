@@ -115,9 +115,9 @@ class ProjectController extends Controller
             'summary' => ['nullable', 'string', 'max:1024'],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'string', 'max:40'],
-            'link_url' => ['nullable', 'url'],
-            'repo_url' => ['nullable', 'url'],
-            'demo_url' => ['nullable', 'url'],
+            'link_url' => ['nullable', $this->urlOrHashRule()],
+            'repo_url' => ['nullable', $this->urlOrHashRule()],
+            'demo_url' => ['nullable', $this->urlOrHashRule()],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
             'content_locale' => ['nullable', 'string', 'max:16'],
@@ -211,9 +211,9 @@ class ProjectController extends Controller
             'summary' => ['nullable', 'string', 'max:1024'],
             'description' => ['nullable', 'string'],
             'status' => ['sometimes', 'string', 'max:40'],
-            'link_url' => ['nullable', 'url'],
-            'repo_url' => ['nullable', 'url'],
-            'demo_url' => ['nullable', 'url'],
+            'link_url' => ['nullable', $this->urlOrHashRule()],
+            'repo_url' => ['nullable', $this->urlOrHashRule()],
+            'demo_url' => ['nullable', $this->urlOrHashRule()],
             'featured' => ['boolean'],
             'published_at' => ['nullable', 'date'],
             'content_locale' => ['nullable', 'string', 'max:16'],
@@ -329,5 +329,24 @@ class ProjectController extends Controller
                 ]
             );
         }
+    }
+
+    private function urlOrHashRule(): \Closure
+    {
+        return static function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if ($value === '#') {
+                return;
+            }
+
+            if (filter_var($value, FILTER_VALIDATE_URL) !== false) {
+                return;
+            }
+
+            $fail("The {$attribute} field must be a valid URL.");
+        };
     }
 }
