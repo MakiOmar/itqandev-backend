@@ -56,6 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'update'])->middleware('throttle:api');
 
     Route::prefix('v1')->name('v1.')->middleware('throttle:api')->group(function () {
+        Route::post('content-slugs/suggest', [\App\Http\Controllers\Api\ContentSlugSuggestionController::class, 'suggest']);
+
         Route::middleware('feature.module:categories')->group(function () {
             Route::post('categories/bulk-delete', [\App\Http\Controllers\Api\CategoryController::class, 'bulkDelete'])->middleware('throttle:bulk');
             Route::apiResource('categories', \App\Http\Controllers\Api\CategoryController::class);
