@@ -55,11 +55,11 @@ class HtmlSanitizerService
         
         $dom = new DOMDocument('1.0', 'UTF-8');
         $dom->encoding = 'UTF-8';
-        
-        // Load HTML with UTF-8 encoding
-        $html = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
-        
-        // Wrap in a container div to handle fragments
+
+        // Normalize escaped entities once; DOM will serialize — avoid deprecated mb_* HTML entity conversion (PHP 8.2+).
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+
+        // Wrap fragment for UTF-8 parsing (no mb_convert_encoding → HTML-ENTITIES).
         @$dom->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         
         // Clear libxml errors
@@ -168,7 +168,10 @@ class HtmlSanitizerService
             return '';
         }
 
-        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        // Preserve DOM serialization semantics: do not pre-escape attributes here —
+        // saveHTML() will escape them once; prior htmlspecialchars caused &amp;amp; etc.
+
+        return $value;
     }
 
     /**
