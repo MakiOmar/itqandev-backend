@@ -13,8 +13,8 @@ class Category extends Model implements HasMedia
 {
     use HasFactory;
     use InteractsWithMedia;
-    use RefreshesCache;
     use InvalidatesCache;
+    use RefreshesCache;
 
     protected $fillable = [
         'name',
@@ -33,9 +33,9 @@ class Category extends Model implements HasMedia
         return $this->belongsToMany(Project::class);
     }
 
-    public function seoMeta()
+    public function seoMetas()
     {
-        return $this->morphOne(SeoMeta::class, 'seoable');
+        return $this->morphMany(SeoMeta::class, 'seoable');
     }
 
     public function translations()

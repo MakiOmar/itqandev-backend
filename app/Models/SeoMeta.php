@@ -12,6 +12,7 @@ class SeoMeta extends Model
     protected $fillable = [
         'seoable_id',
         'seoable_type',
+        'locale',
         'meta_title',
         'meta_description',
         'canonical_url',

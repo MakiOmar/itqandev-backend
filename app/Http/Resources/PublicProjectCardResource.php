@@ -2,6 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Support\SeoMetaPresenter;
+use App\Support\SiteLanguages;
+use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -54,20 +57,12 @@ class PublicProjectCardResource extends JsonResource
             'image' => $url,
             'image_alt' => $hero ? ($hero->name ?: $this->title) : null,
             'tags' => array_values(array_unique(array_filter($tags))),
-            'seo_meta' => $this->whenLoaded('seoMeta', function () {
-                $meta = $this->seoMeta;
-                if (! $meta) {
-                    return null;
-                }
+            'seo_meta' => $this->whenLoaded('seoMetas', function () use ($request) {
+                $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+                $primary = SiteLanguages::primaryLocaleForContent($this->resource->content_locale);
+                $picked = SeoMetaPresenter::pickLocalized($this->seoMetas, $present, $primary);
 
-                return [
-                    'meta_title' => $meta->meta_title,
-                    'meta_description' => $meta->meta_description,
-                    'canonical_url' => $meta->canonical_url,
-                    'og_title' => $meta->og_title,
-                    'og_description' => $meta->og_description,
-                    'og_image' => $meta->og_image,
-                ];
+                return SeoMetaPresenter::toPublicSnippet($picked);
             }),
         ];
     }

@@ -35,7 +35,7 @@ class ProjectController extends Controller
         $query = Project::with([
             'categories:id,name',
             'skills:id,name',
-            'seoMeta',
+            'seoMetas',
             'translations',
             'media' => function ($query) {
                 $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
@@ -173,7 +173,7 @@ class ProjectController extends Controller
             'testimonials' => function ($query) {
                 $query->with('media');
             },
-            'seoMeta',
+            'seoMetas',
             'media' => function ($query) {
                 $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
             },

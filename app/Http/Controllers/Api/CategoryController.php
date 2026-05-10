@@ -38,7 +38,7 @@ class CategoryController extends Controller
 
         $buildJson = function () use ($present, $siteDefaultLocale): string {
             $query = Category::withCount('projects')
-                ->with(['seoMeta', 'media', 'translations'])
+                ->with(['seoMetas', 'media', 'translations'])
                 ->orderBy('name')
                 ->when($present, function ($query) use ($present, $siteDefaultLocale) {
                     $query->where(function ($q) use ($present, $siteDefaultLocale) {
@@ -141,7 +141,7 @@ class CategoryController extends Controller
         $this->authorize('view', $category);
 
         $category->load([
-            'seoMeta',
+            'seoMetas',
             'projects:id,title',
             'translations',
             'media' => function ($query) {

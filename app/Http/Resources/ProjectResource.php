@@ -42,7 +42,19 @@ class ProjectResource extends JsonResource
                 ]);
             }) ?? [],
             'testimonials' => $this->whenLoaded('testimonials'),
-            'seoMeta' => $this->whenLoaded('seoMeta'),
+            'seoMetas' => $this->whenLoaded('seoMetas', function () {
+                return $this->seoMetas->map(fn ($m) => [
+                    'id' => $m->id,
+                    'locale' => $m->locale,
+                    'meta_title' => $m->meta_title,
+                    'meta_description' => $m->meta_description,
+                    'canonical_url' => $m->canonical_url,
+                    'og_title' => $m->og_title,
+                    'og_description' => $m->og_description,
+                    'og_image' => $m->og_image,
+                    'twitter_card' => $m->twitter_card,
+                ])->values();
+            }),
             'translations' => $this->whenLoaded('translations', function () {
                 return $this->translations->map(fn ($t) => [
                     'locale' => $t->locale,
@@ -74,7 +86,7 @@ class ProjectResource extends JsonResource
     {
         $hero = $this->getFirstMedia('hero');
         $video = $this->getFirstMedia('video');
-        
+
         return [
             'hero' => $hero ? $this->transformMediaItem($hero) : null,
             'video' => $video ? $this->transformMediaItem($video) : null,
@@ -88,10 +100,10 @@ class ProjectResource extends JsonResource
     {
         $url = $media->getUrl();
         // Ensure URL is absolute
-        if ($url && !filter_var($url, FILTER_VALIDATE_URL)) {
+        if ($url && ! filter_var($url, FILTER_VALIDATE_URL)) {
             $url = url($url);
         }
-        
+
         return [
             'id' => $media->id,
             'file_name' => $media->file_name,

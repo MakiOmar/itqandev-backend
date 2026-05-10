@@ -6,7 +6,7 @@ use App\Concerns\RefreshesCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -36,9 +36,9 @@ class BlogPost extends Model implements HasMedia
         return $this->belongsTo(User::class, 'author_id');
     }
 
-    public function seoMeta(): MorphOne
+    public function seoMetas(): MorphMany
     {
-        return $this->morphOne(SeoMeta::class, 'seoable');
+        return $this->morphMany(SeoMeta::class, 'seoable');
     }
 
     public function translations()

@@ -116,7 +116,7 @@ class BlogPostController extends Controller
     {
         $this->authorize('view', $blogPost);
 
-        $blogPost->load('author:id,name,email', 'seoMeta', 'translations');
+        $blogPost->load('author:id,name,email', 'seoMetas', 'translations');
 
         return response()->json($blogPost);
     }

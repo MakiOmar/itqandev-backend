@@ -31,7 +31,19 @@ class CategoryResource extends JsonResource
                 ]);
             }),
             'translations' => $this->whenLoaded('translations'),
-            'seoMeta' => $this->whenLoaded('seoMeta'),
+            'seoMetas' => $this->whenLoaded('seoMetas', function () {
+                return $this->seoMetas->map(fn ($m) => [
+                    'id' => $m->id,
+                    'locale' => $m->locale,
+                    'meta_title' => $m->meta_title,
+                    'meta_description' => $m->meta_description,
+                    'canonical_url' => $m->canonical_url,
+                    'og_title' => $m->og_title,
+                    'og_description' => $m->og_description,
+                    'og_image' => $m->og_image,
+                    'twitter_card' => $m->twitter_card,
+                ])->values();
+            }),
             'media' => $this->when($this->relationLoaded('media'), function () {
                 return $this->media->map(fn ($media) => [
                     'id' => $media->id,
