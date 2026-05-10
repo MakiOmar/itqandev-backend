@@ -1,5 +1,18 @@
 <?php
 
+// Hostnames only (no scheme): e.g. itqandev.com,project.test — matches http(s)://host and any :port (Vite 5173).
+$devVhostPatterns = [];
+$devVhostHosts = env('CORS_DEV_HOST_NAMES');
+if (is_string($devVhostHosts) && $devVhostHosts !== '') {
+    foreach (array_map('trim', explode(',', $devVhostHosts)) as $host) {
+        if ($host === '') {
+            continue;
+        }
+        $escaped = preg_quote($host, '#');
+        $devVhostPatterns[] = "#^https?://{$escaped}(:\d+)?$#";
+    }
+}
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -7,7 +20,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configure allowed origins for local dev (Nuxt:3000, Vite:5173, API:8000).
-    | Adjust CORS_ALLOWED_ORIGINS in .env for production domains.
+    | Use CORS_ALLOWED_ORIGINS for exact production origins.
+    | Use CORS_DEV_HOST_NAMES for local WAMP/vhost hostnames mapped to localhost (scheme + optional port).
     |
     */
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
@@ -18,11 +32,11 @@ return [
         ? array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS')))
         : [],
 
-    'allowed_origins_patterns' => [
+    'allowed_origins_patterns' => array_merge([
         '#^https?://localhost(:\d+)?$#',
         '#^https?://127\.0\.0\.1(:\d+)?$#',
         '#^https?://::1(:\d+)?$#',
-    ],
+    ], $devVhostPatterns),
 
     'allowed_headers' => [
         '*',
