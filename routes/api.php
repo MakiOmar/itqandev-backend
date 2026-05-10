@@ -14,7 +14,11 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     Route::middleware('feature.module:projects')->group(function () {
         Route::get('projects', [\App\Http\Controllers\Api\PublicProjectController::class, 'index']);
         Route::get('projects/{slug}', [\App\Http\Controllers\Api\PublicProjectController::class, 'show'])
-            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*')
+            ->middleware([
+                \App\Http\Middleware\EnsureStatefulIfNoBearer::class,
+                \App\Http\Middleware\OptionalMarketingApiUser::class,
+            ]);
     });
     Route::middleware('feature.module:testimonials')->group(function () {
         Route::get('testimonials', [\App\Http\Controllers\Api\PublicTestimonialController::class, 'index']);

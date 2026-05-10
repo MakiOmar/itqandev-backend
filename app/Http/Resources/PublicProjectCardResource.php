@@ -45,6 +45,7 @@ class PublicProjectCardResource extends JsonResource
         return [
             'id' => $this->id,
             'slug' => $this->slug,
+            'status' => $this->status,
             'title' => $this->title,
             'summary' => $this->summary,
             'description' => self::decodeRichTextHtml($this->description),

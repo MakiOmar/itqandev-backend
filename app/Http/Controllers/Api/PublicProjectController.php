@@ -95,13 +95,13 @@ class PublicProjectController extends Controller
     }
 
     /**
-     * Single published project by slug (localized fields via X-Content-Locale).
+     * Single project by slug: published for everyone; draft/archived visible only to authenticated
+     * users allowed by ProjectPolicy @see ProjectPolicy::view (editors/admins/companies that manage projects).
      */
-    public function show(string $slug)
+    public function show(Request $request, string $slug)
     {
         $project = Project::query()
             ->where('slug', $slug)
-            ->where('status', 'published')
             ->with([
                 'categories:id,name,slug',
                 'skills:id,name,slug',
@@ -114,9 +114,22 @@ class PublicProjectController extends Controller
                 'id', 'title', 'slug', 'content_locale', 'status', 'featured',
                 'published_at', 'summary', 'description',
             ])
-            ->firstOrFail();
+            ->first();
 
-        $present = TranslatableContentPresenter::requestedPresentationLocale(request());
+        if (! $project instanceof Project) {
+            abort(404);
+        }
+
+        $user = $request->user();
+        $canManage = $user && $user->can('view', $project);
+
+        $blockedUnpublished = $project->status !== 'published' && ! $canManage;
+
+        if ($blockedUnpublished) {
+            abort(404);
+        }
+
+        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         if ($present) {
             TranslatableContentPresenter::applyProject($project, $present);
         }
