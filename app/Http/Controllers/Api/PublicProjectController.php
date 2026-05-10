@@ -106,6 +106,7 @@ class PublicProjectController extends Controller
                 'categories:id,name,slug',
                 'skills:id,name,slug',
                 'translations',
+                'seoMeta',
                 'media' => function ($q) {
                     $q->where('collection_name', 'hero');
                 },
