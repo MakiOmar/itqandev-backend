@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CurrentUserResource;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -28,6 +29,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('api')->plainTextToken;
 
+        ActivityLogService::record('auth.login', $user, [], $request);
+
         return response()->json([
             'token' => $token,
             'user' => (new CurrentUserResource($user))->resolve(),
@@ -41,6 +44,7 @@ class AuthController extends Controller
 
         // Delete the Bearer token if it exists and user is authenticated
         if ($user) {
+            ActivityLogService::record('auth.logout', $user, [], $request);
             $user->currentAccessToken()?->delete();
         }
 

@@ -69,11 +69,22 @@ class AppServiceProvider extends ServiceProvider
 
         // System cache endpoints (no dedicated model) — align with "manage system" permission.
         Gate::define('manageSystemCache', function (\App\Models\User $user): bool {
-            if ($user->hasRole(['super_admin', 'admin'])) {
+            if ($user->hasAnyRole(['super_admin', 'admin'])) {
                 return true;
             }
             try {
                 return $user->hasPermissionTo('manage system');
+            } catch (\Exception) {
+                return false;
+            }
+        });
+
+        Gate::define('viewActivityLogs', function (\App\Models\User $user): bool {
+            if ($user->hasAnyRole(['super_admin', 'admin'])) {
+                return true;
+            }
+            try {
+                return $user->hasAnyPermission(['view activity', 'manage system']);
             } catch (\Exception) {
                 return false;
             }

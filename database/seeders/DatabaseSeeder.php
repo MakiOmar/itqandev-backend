@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Support\FeatureModules;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -36,6 +37,7 @@ class DatabaseSeeder extends Seeder
             'view analytics',
             'manage system',
             'manage menus',
+            'view activity',
         ];
 
         foreach ($permissions as $permission) {
@@ -96,8 +98,17 @@ class DatabaseSeeder extends Seeder
 
         $superAdmin->assignRole($superAdminRole);
 
-        $this->call(WebDevDemoSeeder::class);
-        $this->call(ServicesSeeder::class);
+        if (FeatureModules::enabled('projects')
+            || FeatureModules::enabled('categories')
+            || FeatureModules::enabled('skills')
+            || FeatureModules::enabled('testimonials')) {
+            $this->call(WebDevDemoSeeder::class);
+        }
+
+        if (FeatureModules::enabled('services')) {
+            $this->call(ServicesSeeder::class);
+        }
+
         $this->call(PrimaryMenuSeeder::class);
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', fn () => ['status' => 'ok'])->middleware('throttle:health');
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/contact', [\App\Http\Controllers\Api\ContactController::class, 'store'])->middleware('throttle:api');
 
 /** Marketing site (no auth). Module gates mirror config/features.php. */
 Route::prefix('public')->middleware('throttle:api')->group(function () {
@@ -26,6 +27,12 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     Route::middleware('feature.module:services')->group(function () {
         Route::get('services', [\App\Http\Controllers\Api\PublicServiceController::class, 'index']);
     });
+    Route::middleware('feature.module:blog')->group(function () {
+        Route::get('blog-posts', [\App\Http\Controllers\Api\PublicBlogPostController::class, 'index']);
+        Route::get('blog-posts/{slug}', [\App\Http\Controllers\Api\PublicBlogPostController::class, 'show'])
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+    });
+    Route::get('site-content', [\App\Http\Controllers\Api\PublicSiteContentController::class, 'show']);
     /** Branding + site_languages + module toggles for marketing (no auth). */
     Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
     /** Resolved nav tree for marketing header (locale query matches UI locale). */
@@ -53,6 +60,8 @@ Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request 
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [MeController::class, 'show']);
+    Route::patch('/me', [MeController::class, 'update']);
+    Route::put('/me/password', [MeController::class, 'updatePassword']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     // Settings routes (outside v1 prefix to match frontend expectations)
@@ -100,6 +109,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('cache/clear', [\App\Http\Controllers\Api\CacheController::class, 'clear']);
 
         Route::get('system/health', [\App\Http\Controllers\Api\SystemHealthController::class, 'show']);
+
+        Route::get('activity', [\App\Http\Controllers\Api\ActivityController::class, 'index']);
+        Route::get('activity/export', [\App\Http\Controllers\Api\ActivityController::class, 'export']);
+
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
+            Route::post('{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
+            Route::post('{id}/unread', [\App\Http\Controllers\Api\NotificationController::class, 'markUnread']);
+            Route::delete('{id}', [\App\Http\Controllers\Api\NotificationController::class, 'destroy']);
+        });
 
         Route::middleware('feature.module:media')->group(function () {
             Route::prefix('media')->group(function () {

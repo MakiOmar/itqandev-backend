@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogService;
 use App\Support\FeatureModules;
 use App\Support\SiteLanguages;
 use Illuminate\Http\JsonResponse;
@@ -403,6 +404,8 @@ class SettingsController extends Controller
         // Invalidate and refresh cache to keep GET /settings fast and consistent.
         Cache::forget(self::SETTINGS_CACHE_KEY);
         Cache::put(self::SETTINGS_CACHE_KEY, $normalizedSettings, $this->settingsCacheTtlSeconds());
+
+        ActivityLogService::record('settings.updated', null, [], $request);
 
         return response()->json([
             'success' => true,

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\FeatureModules;
 use App\Models\Category;
 use App\Models\Project;
 use App\Models\Skill;
@@ -13,6 +14,13 @@ class WebDevDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        if (! FeatureModules::enabled('categories')
+            && ! FeatureModules::enabled('skills')
+            && ! FeatureModules::enabled('projects')
+            && ! FeatureModules::enabled('testimonials')) {
+            return;
+        }
+
         $now = Carbon::now();
         $defaultImage = storage_path('app/public/default.png');
 
