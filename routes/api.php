@@ -12,6 +12,9 @@ Route::post('/contact', [\App\Http\Controllers\Api\ContactController::class, 'st
 
 /** Marketing site (no auth). Module gates mirror config/features.php. */
 Route::prefix('public')->middleware('throttle:api')->group(function () {
+    /** Verify Laravel + DB from browser, Vite proxy, or curl (no auth). */
+    Route::get('ping', [\App\Http\Controllers\Api\PublicServerCheckController::class, 'ping']);
+
     Route::middleware('feature.module:projects')->group(function () {
         Route::get('projects', [\App\Http\Controllers\Api\PublicProjectController::class, 'index']);
         Route::get('projects/{slug}', [\App\Http\Controllers\Api\PublicProjectController::class, 'show'])

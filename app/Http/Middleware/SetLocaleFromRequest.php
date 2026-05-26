@@ -14,7 +14,7 @@ class SetLocaleFromRequest
     public function handle(Request $request, Closure $next): Response
     {
         // Skip locale setting for health check routes
-        if (in_array($request->path(), ['health', 'api/health', 'up'])) {
+        if (in_array($request->path(), ['health', 'api/health', 'api/public/ping', 'up'], true)) {
             return $next($request);
         }
 
