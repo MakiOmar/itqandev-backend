@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -13,6 +15,20 @@ use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
+    use ExportsImportsTranslatableContent;
+
+    private const LIST_CACHE_KEY = 'services:list:v3:json';
+
+    protected function exportImportEntity(): string
+    {
+        return ContentExportEnvelope::ENTITY_SERVICES;
+    }
+
+    protected function exportImportPolicyModel(): string
+    {
+        return Service::class;
+    }
+
     public function __construct(
         protected HtmlSanitizerService $sanitizer
     ) {}
@@ -24,7 +40,7 @@ class ServiceController extends Controller
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
 
         return response()->json(
-            Cache::remember('services:list:v3:loc:'.($present ?? 'none'), 3600, function () use ($present) {
+            Cache::remember(self::LIST_CACHE_KEY.':loc:'.($present ?? 'none'), 3600, function () use ($present) {
                 $query = Service::query()
                     ->with('translations')
                     ->orderBy('sort_order')

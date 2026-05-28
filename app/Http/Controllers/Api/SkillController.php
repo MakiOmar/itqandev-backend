@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Controller;
 use App\Models\Skill;
-use App\Support\SiteLanguages;
+use App\Support\ContentExportEnvelope;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -12,14 +13,30 @@ use Illuminate\Validation\Rule;
 
 class SkillController extends Controller
 {
+    use ExportsImportsTranslatableContent;
+
+    private const LIST_CACHE_KEY = 'skills:list:v3:json';
+
+    protected function exportImportEntity(): string
+    {
+        return ContentExportEnvelope::ENTITY_SKILLS;
+    }
+
+    protected function exportImportPolicyModel(): string
+    {
+        return Skill::class;
+    }
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Skill::class);
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
 
+        $cacheKey = self::LIST_CACHE_KEY.':loc:'.($present ?? 'none');
+
         return response()->json(
-            Cache::remember('skills:list:v3:loc:'.($present ?? 'none'), 3600, function () use ($present) {
+            Cache::remember($cacheKey, 3600, function () use ($present) {
                 $query = Skill::withCount('projects')
                     ->with('media')
                     ->with('translations')

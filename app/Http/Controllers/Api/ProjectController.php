@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
+use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -14,6 +16,18 @@ use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
 {
+    use ExportsImportsTranslatableContent;
+
+    protected function exportImportEntity(): string
+    {
+        return ContentExportEnvelope::ENTITY_PROJECTS;
+    }
+
+    protected function exportImportPolicyModel(): string
+    {
+        return Project::class;
+    }
+
     protected HtmlSanitizerService $sanitizer;
 
     public function __construct(HtmlSanitizerService $sanitizer)

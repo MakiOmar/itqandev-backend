@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Controller;
 use App\Models\Testimonial;
+use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -11,6 +13,18 @@ use Illuminate\Http\Request;
 
 class TestimonialController extends Controller
 {
+    use ExportsImportsTranslatableContent;
+
+    protected function exportImportEntity(): string
+    {
+        return ContentExportEnvelope::ENTITY_TESTIMONIALS;
+    }
+
+    protected function exportImportPolicyModel(): string
+    {
+        return Testimonial::class;
+    }
+
     public function __construct(
         protected HtmlSanitizerService $sanitizer
     ) {}
@@ -35,7 +49,9 @@ class TestimonialController extends Controller
             TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
         }
 
-        $paginator = $query->orderBy('created_at', 'desc')->paginate(20);
+        $perPage = min(100, max(1, (int) $request->input('per_page', 100)));
+
+        $paginator = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         if ($present) {
             $paginator->setCollection(

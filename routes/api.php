@@ -82,26 +82,36 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::middleware('feature.module:skills')->group(function () {
+            Route::get('skills/export', [\App\Http\Controllers\Api\SkillController::class, 'export']);
+            Route::post('skills/import', [\App\Http\Controllers\Api\SkillController::class, 'import'])->middleware('throttle:bulk');
             Route::post('skills/bulk-delete', [\App\Http\Controllers\Api\SkillController::class, 'bulkDelete'])->middleware('throttle:bulk');
             Route::apiResource('skills', \App\Http\Controllers\Api\SkillController::class);
         });
 
         Route::middleware('feature.module:services')->group(function () {
+            Route::get('services/export', [\App\Http\Controllers\Api\ServiceController::class, 'export']);
+            Route::post('services/import', [\App\Http\Controllers\Api\ServiceController::class, 'import'])->middleware('throttle:bulk');
             Route::post('services/bulk-delete', [\App\Http\Controllers\Api\ServiceController::class, 'bulkDelete'])->middleware('throttle:bulk');
             Route::apiResource('services', \App\Http\Controllers\Api\ServiceController::class);
         });
 
         Route::middleware('feature.module:testimonials')->group(function () {
+            Route::get('testimonials/export', [\App\Http\Controllers\Api\TestimonialController::class, 'export']);
+            Route::post('testimonials/import', [\App\Http\Controllers\Api\TestimonialController::class, 'import'])->middleware('throttle:bulk');
             Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete'])->middleware('throttle:bulk');
             Route::apiResource('testimonials', \App\Http\Controllers\Api\TestimonialController::class);
         });
 
         Route::middleware('feature.module:projects')->group(function () {
+            Route::get('projects/export', [\App\Http\Controllers\Api\ProjectController::class, 'export']);
+            Route::post('projects/import', [\App\Http\Controllers\Api\ProjectController::class, 'import'])->middleware('throttle:bulk');
             Route::post('projects/bulk-delete', [\App\Http\Controllers\Api\ProjectController::class, 'bulkDelete'])->middleware('throttle:bulk');
             Route::apiResource('projects', \App\Http\Controllers\Api\ProjectController::class);
         });
 
         Route::middleware('feature.module:blog')->group(function () {
+            Route::get('blog-posts/export', [\App\Http\Controllers\Api\BlogPostController::class, 'export']);
+            Route::post('blog-posts/import', [\App\Http\Controllers\Api\BlogPostController::class, 'import'])->middleware('throttle:bulk');
             Route::apiResource('blog-posts', \App\Http\Controllers\Api\BlogPostController::class);
         });
 

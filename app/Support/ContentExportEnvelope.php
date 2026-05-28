@@ -15,6 +15,26 @@ final class ContentExportEnvelope
 
     public const ENTITY_CATEGORIES = 'categories';
 
+    public const ENTITY_SKILLS = 'skills';
+
+    public const ENTITY_PROJECTS = 'projects';
+
+    public const ENTITY_SERVICES = 'services';
+
+    public const ENTITY_BLOG_POSTS = 'blog_posts';
+
+    public const ENTITY_TESTIMONIALS = 'testimonials';
+
+    /** @var list<string> */
+    public const ENTITIES = [
+        self::ENTITY_CATEGORIES,
+        self::ENTITY_SKILLS,
+        self::ENTITY_PROJECTS,
+        self::ENTITY_SERVICES,
+        self::ENTITY_BLOG_POSTS,
+        self::ENTITY_TESTIMONIALS,
+    ];
+
     /**
      * @param  array<int, array<string, mixed>>  $items
      * @return array<string, mixed>
@@ -64,6 +84,15 @@ final class ContentExportEnvelope
 
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
+        }
+    }
+
+    public static function assertEntity(string $entity): void
+    {
+        if (! in_array($entity, self::ENTITIES, true)) {
+            throw ValidationException::withMessages([
+                'entity' => ['Unsupported export entity: '.$entity],
+            ]);
         }
     }
 }

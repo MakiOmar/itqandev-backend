@@ -197,7 +197,7 @@ class CategoryExportImportTest extends TestCase
             ->postJson('/api/v1/categories/import?mode=translation_only', $envelope)
             ->assertOk()
             ->assertJsonPath('skipped', 1)
-            ->assertJsonFragment(['message' => 'Slug does not match the category id.']);
+            ->assertJsonFragment(['message' => 'Slug does not match the record id.']);
     }
 
     public function test_import_upsert_creates_and_updates_translation(): void

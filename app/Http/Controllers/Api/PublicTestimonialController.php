@@ -26,8 +26,11 @@ class PublicTestimonialController extends Controller
         $perPage = (int) ($filters['per_page'] ?? 24);
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         $siteDefaultLocale = SiteLanguages::defaultCode();
+        $localeKey = $present !== null && $present !== '' ? strtolower($present) : 'none';
 
-        $cacheKey = CacheKey::versioned(Testimonial::class).':public:testimonials:per:'.$perPage;
+        $cacheKey = CacheKey::versioned(Testimonial::class)
+            .':public:testimonials:per:'.$perPage
+            .':loc:'.$localeKey;
 
         $items = Cache::remember($cacheKey, 300, function () use ($perPage, $present, $siteDefaultLocale) {
             return Testimonial::query()

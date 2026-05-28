@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
+use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -12,6 +14,18 @@ use Illuminate\Support\Facades\Cache;
 
 class BlogPostController extends Controller
 {
+    use ExportsImportsTranslatableContent;
+
+    protected function exportImportEntity(): string
+    {
+        return ContentExportEnvelope::ENTITY_BLOG_POSTS;
+    }
+
+    protected function exportImportPolicyModel(): string
+    {
+        return BlogPost::class;
+    }
+
     public function __construct(
         protected HtmlSanitizerService $sanitizer
     ) {}

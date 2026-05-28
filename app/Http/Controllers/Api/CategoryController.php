@@ -2,48 +2,50 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use App\Services\ContentExport\CategoryListCacheInvalidator;
-use App\Services\ContentExport\CategoryLocaleExportService;
-use App\Services\ContentExport\CategoryLocaleImportService;
 use App\Services\ContentExport\CategoryTranslationSync;
 use App\Services\HtmlSanitizerService;
+use App\Support\ContentExportEnvelope;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use App\Support\UniqueContentSlug;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CategoryController extends Controller
 {
+    use ExportsImportsTranslatableContent;
+
     private const LIST_CACHE_KEY = 'categories:list:v3:json';
 
     private const LIST_LOCK_KEY = 'lock:categories:list:v1';
+
+    protected function exportImportEntity(): string
+    {
+        return ContentExportEnvelope::ENTITY_CATEGORIES;
+    }
+
+    protected function exportImportPolicyModel(): string
+    {
+        return Category::class;
+    }
 
     protected HtmlSanitizerService $sanitizer;
 
     protected CategoryTranslationSync $translationSync;
 
-    protected CategoryLocaleExportService $exportService;
-
-    protected CategoryLocaleImportService $importService;
-
     public function __construct(
         HtmlSanitizerService $sanitizer,
         CategoryTranslationSync $translationSync,
-        CategoryLocaleExportService $exportService,
-        CategoryLocaleImportService $importService,
     ) {
         $this->sanitizer = $sanitizer;
         $this->translationSync = $translationSync;
-        $this->exportService = $exportService;
-        $this->importService = $importService;
     }
 
     public function index(Request $request)
@@ -244,67 +246,6 @@ class CategoryController extends Controller
             'deleted' => $count,
             'message' => 'Deleted '.$count.' categories',
         ]);
-    }
-
-    public function export(Request $request): StreamedResponse
-    {
-        $this->authorize('viewAny', Category::class);
-
-        $locale = $this->requirePresentationLocale($request);
-
-        $data = $request->validate([
-            'ids' => ['nullable', 'array'],
-            'ids.*' => ['integer', 'exists:categories,id'],
-        ]);
-
-        $ids = isset($data['ids']) && is_array($data['ids']) ? array_map('intval', $data['ids']) : null;
-
-        $envelope = $this->exportService->buildEnvelope($locale, $ids);
-        $filename = 'categories-'.$locale.'-'.now()->format('Y-m-d-His').'.json';
-
-        return response()->streamDownload(function () use ($envelope) {
-            echo json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        }, $filename, [
-            'Content-Type' => 'application/json; charset=UTF-8',
-        ]);
-    }
-
-    public function import(Request $request)
-    {
-        $this->authorize('viewAny', Category::class);
-
-        $locale = $this->requirePresentationLocale($request);
-
-        $meta = $request->validate([
-            'mode' => ['nullable', 'string', 'in:upsert,translation_only'],
-        ]);
-
-        $payload = $request->json()->all();
-        if ($payload === []) {
-            $payload = $request->all();
-        }
-
-        $mode = CategoryLocaleImportService::normalizeMode($meta['mode'] ?? null);
-
-        try {
-            $result = $this->importService->import($payload, $locale, $mode);
-        } catch (ValidationException $e) {
-            throw $e;
-        }
-
-        return response()->json($result);
-    }
-
-    private function requirePresentationLocale(Request $request): string
-    {
-        $locale = TranslatableContentPresenter::requestedPresentationLocale($request);
-        if ($locale === null || $locale === '') {
-            throw ValidationException::withMessages([
-                'X-Content-Locale' => ['A valid X-Content-Locale header is required for export/import.'],
-            ]);
-        }
-
-        return $locale;
     }
 
     private function flushListCache(): void
