@@ -22,23 +22,11 @@ class ServiceController extends Controller
         $this->authorize('viewAny', Service::class);
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $siteDefaultLocale = SiteLanguages::defaultCode();
 
         return response()->json(
-            Cache::remember('services:list:loc:'.($present ?? 'none'), 3600, function () use ($present, $siteDefaultLocale) {
+            Cache::remember('services:list:v2:loc:'.($present ?? 'none'), 3600, function () use ($present) {
                 $services = Service::query()
                     ->with('translations')
-                    ->when($present, function ($query) use ($present, $siteDefaultLocale) {
-                        $query->where(function ($q) use ($present, $siteDefaultLocale) {
-                            $q->where('content_locale', $present);
-                            if ($present === $siteDefaultLocale) {
-                                $q->orWhereNull('content_locale');
-                            }
-                            $q->orWhereHas('translations', function ($tq) use ($present) {
-                                $tq->where('locale', $present);
-                            });
-                        });
-                    })
                     ->orderBy('sort_order')
                     ->orderBy('id')
                     ->get();

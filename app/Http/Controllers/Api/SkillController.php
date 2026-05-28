@@ -17,25 +17,13 @@ class SkillController extends Controller
         $this->authorize('viewAny', Skill::class);
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $siteDefaultLocale = SiteLanguages::defaultCode();
 
         return response()->json(
-            Cache::remember('skills:list:loc:'.($present ?? 'none'), 3600, function () use ($present, $siteDefaultLocale) {
+            Cache::remember('skills:list:v2:loc:'.($present ?? 'none'), 3600, function () use ($present) {
                 $skills = Skill::withCount('projects')
                     ->with('media')
                     ->with('translations')
                     ->with('seoMetas')
-                    ->when($present, function ($query) use ($present, $siteDefaultLocale) {
-                        $query->where(function ($q) use ($present, $siteDefaultLocale) {
-                            $q->where('content_locale', $present);
-                            if ($present === $siteDefaultLocale) {
-                                $q->orWhereNull('content_locale');
-                            }
-                            $q->orWhereHas('translations', function ($tq) use ($present) {
-                                $tq->where('locale', $present);
-                            });
-                        });
-                    })
                     ->orderBy('name')
                     ->get();
 
