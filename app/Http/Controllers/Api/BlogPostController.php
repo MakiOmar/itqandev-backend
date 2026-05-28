@@ -21,9 +21,9 @@ class BlogPostController extends Controller
         $this->authorize('viewAny', BlogPost::class);
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $cacheKey = 'blog_posts:list:v2:'.md5(json_encode($request->query())).':loc:'.($present ?? 'none');
+        $cacheKey = 'blog_posts:list:v3:'.md5(json_encode($request->query())).':loc:'.($present ?? 'none');
 
-        $paginator = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request) {
+        $paginator = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $present) {
             $query = BlogPost::with('author:id,name,email', 'translations', 'seoMetas');
 
             if ($request->has('status')) {
@@ -38,15 +38,26 @@ class BlogPostController extends Controller
                 $query->where('author_id', $request->author_id);
             }
 
+            if ($present) {
+                TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
+            }
+
             return $query->orderBy('created_at', 'desc')->paginate(20);
         });
 
         if ($present) {
-            $paginator->getCollection()->transform(function (BlogPost $post) use ($present) {
-                TranslatableContentPresenter::applyBlogPost($post, $present);
+            $paginator->setCollection(
+                $paginator->getCollection()
+                    ->map(function (BlogPost $post) use ($present) {
+                        TranslatableContentPresenter::applyBlogPost($post, $present);
 
-                return $post;
-            });
+                        return $post;
+                    })
+                    ->filter(function (BlogPost $post) use ($present) {
+                        return TranslatableContentPresenter::hasBlogPostContentForLocale($post, $present);
+                    })
+                    ->values()
+            );
         }
 
         return $paginator;

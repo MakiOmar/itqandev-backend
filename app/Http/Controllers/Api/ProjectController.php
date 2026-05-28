@@ -67,16 +67,27 @@ class ProjectController extends Controller
         $page = $request->get('page', 1);
         $cacheKey .= ':page:'.$page.':loc:'.($present ?? 'none');
 
-        $paginator = Cache::remember($cacheKey, 1800, function () use ($query) {
+        $paginator = Cache::remember($cacheKey, 1800, function () use ($query, $present) {
+            if ($present) {
+                TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
+            }
+
             return $query->paginate(20);
         });
 
         if ($present) {
-            $paginator->getCollection()->transform(function (Project $project) use ($present) {
-                TranslatableContentPresenter::applyProject($project, $present);
+            $paginator->setCollection(
+                $paginator->getCollection()
+                    ->map(function (Project $project) use ($present) {
+                        TranslatableContentPresenter::applyProject($project, $present);
 
-                return $project;
-            });
+                        return $project;
+                    })
+                    ->filter(function (Project $project) use ($present) {
+                        return TranslatableContentPresenter::hasProjectContentForLocale($project, $present);
+                    })
+                    ->values()
+            );
         }
 
         return ProjectResource::collection($paginator);

@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
 use App\Models\Testimonial;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 /**
@@ -74,6 +75,28 @@ final class TranslatableContentPresenter
             $locale,
             ['name', 'description']
         );
+    }
+
+    /**
+     * Restrict a listing query to rows with content for the presentation locale.
+     */
+    public static function scopeQueryForPresentationLocale(Builder $query, ?string $present): void
+    {
+        if ($present === null || $present === '') {
+            return;
+        }
+
+        $siteDefaultLocale = SiteLanguages::defaultCode();
+
+        $query->where(function ($q) use ($present, $siteDefaultLocale) {
+            $q->where('content_locale', $present);
+            if ($present === $siteDefaultLocale) {
+                $q->orWhereNull('content_locale');
+            }
+            $q->orWhereHas('translations', function ($tq) use ($present) {
+                $tq->where('locale', $present);
+            });
+        });
     }
 
     /**

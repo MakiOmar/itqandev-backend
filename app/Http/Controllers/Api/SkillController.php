@@ -19,20 +19,29 @@ class SkillController extends Controller
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
 
         return response()->json(
-            Cache::remember('skills:list:v2:loc:'.($present ?? 'none'), 3600, function () use ($present) {
-                $skills = Skill::withCount('projects')
+            Cache::remember('skills:list:v3:loc:'.($present ?? 'none'), 3600, function () use ($present) {
+                $query = Skill::withCount('projects')
                     ->with('media')
                     ->with('translations')
                     ->with('seoMetas')
                     ->orderBy('name')
-                    ->get();
+                    ->when($present, function ($query) use ($present) {
+                        TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
+                    });
+
+                $skills = $query->get();
 
                 if ($present) {
-                    $skills->transform(function (Skill $skill) use ($present) {
-                        TranslatableContentPresenter::applySkill($skill, $present);
+                    $skills = $skills
+                        ->map(function (Skill $skill) use ($present) {
+                            TranslatableContentPresenter::applySkill($skill, $present);
 
-                        return $skill;
-                    });
+                            return $skill;
+                        })
+                        ->filter(function (Skill $skill) use ($present) {
+                            return TranslatableContentPresenter::hasSkillContentForLocale($skill, $present);
+                        })
+                        ->values();
                 }
 
                 return $skills;

@@ -30,26 +30,17 @@ class CategoryController extends Controller
         $this->authorize('viewAny', Category::class);
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $siteDefaultLocale = SiteLanguages::defaultCode();
         $cacheEnabled = (bool) config('app.sys_cache_enabled', true);
 
         $key = self::LIST_CACHE_KEY.':loc:'.($present ?? 'none');
         $lockKey = self::LIST_LOCK_KEY;
 
-        $buildJson = function () use ($present, $siteDefaultLocale): string {
+        $buildJson = function () use ($present): string {
             $query = Category::withCount('projects')
                 ->with(['seoMetas', 'media', 'translations'])
                 ->orderBy('name')
-                ->when($present, function ($query) use ($present, $siteDefaultLocale) {
-                    $query->where(function ($q) use ($present, $siteDefaultLocale) {
-                        $q->where('content_locale', $present);
-                        if ($present === $siteDefaultLocale) {
-                            $q->orWhereNull('content_locale');
-                        }
-                        $q->orWhereHas('translations', function ($tq) use ($present) {
-                            $tq->where('locale', $present);
-                        });
-                    });
+                ->when($present, function ($query) use ($present) {
+                    TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
                 });
 
             $categories = $query->get();

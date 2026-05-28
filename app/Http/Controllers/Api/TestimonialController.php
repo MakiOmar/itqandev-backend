@@ -31,17 +31,28 @@ class TestimonialController extends Controller
             $query->where('approved', $request->boolean('approved'));
         }
 
+        if ($present) {
+            TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
+        }
+
         $paginator = $query->orderBy('created_at', 'desc')->paginate(20);
 
         if ($present) {
-            $paginator->getCollection()->transform(function (Testimonial $t) use ($present) {
-                TranslatableContentPresenter::applyTestimonial($t, $present);
-                if ($t->relationLoaded('project') && $t->project !== null) {
-                    TranslatableContentPresenter::applyProject($t->project, $present);
-                }
+            $paginator->setCollection(
+                $paginator->getCollection()
+                    ->map(function (Testimonial $t) use ($present) {
+                        TranslatableContentPresenter::applyTestimonial($t, $present);
+                        if ($t->relationLoaded('project') && $t->project !== null) {
+                            TranslatableContentPresenter::applyProject($t->project, $present);
+                        }
 
-                return $t;
-            });
+                        return $t;
+                    })
+                    ->filter(function (Testimonial $t) use ($present) {
+                        return TranslatableContentPresenter::hasTestimonialContentForLocale($t, $present);
+                    })
+                    ->values()
+            );
         }
 
         return $paginator;

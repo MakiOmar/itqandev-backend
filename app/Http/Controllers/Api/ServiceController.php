@@ -24,19 +24,28 @@ class ServiceController extends Controller
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
 
         return response()->json(
-            Cache::remember('services:list:v2:loc:'.($present ?? 'none'), 3600, function () use ($present) {
-                $services = Service::query()
+            Cache::remember('services:list:v3:loc:'.($present ?? 'none'), 3600, function () use ($present) {
+                $query = Service::query()
                     ->with('translations')
                     ->orderBy('sort_order')
                     ->orderBy('id')
-                    ->get();
+                    ->when($present, function ($query) use ($present) {
+                        TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
+                    });
+
+                $services = $query->get();
 
                 if ($present) {
-                    $services->transform(function (Service $service) use ($present) {
-                        TranslatableContentPresenter::applyService($service, $present);
+                    $services = $services
+                        ->map(function (Service $service) use ($present) {
+                            TranslatableContentPresenter::applyService($service, $present);
 
-                        return $service;
-                    });
+                            return $service;
+                        })
+                        ->filter(function (Service $service) use ($present) {
+                            return TranslatableContentPresenter::hasServiceContentForLocale($service, $present);
+                        })
+                        ->values();
                 }
 
                 return $services;
