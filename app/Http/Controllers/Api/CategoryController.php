@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
-    private const LIST_CACHE_KEY = 'categories:list:v2:json';
+    private const LIST_CACHE_KEY = 'categories:list:v3:json';
 
     private const LIST_LOCK_KEY = 'lock:categories:list:v1';
 
@@ -30,23 +30,41 @@ class CategoryController extends Controller
         $this->authorize('viewAny', Category::class);
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+        $siteDefaultLocale = SiteLanguages::defaultCode();
         $cacheEnabled = (bool) config('app.sys_cache_enabled', true);
 
         $key = self::LIST_CACHE_KEY.':loc:'.($present ?? 'none');
         $lockKey = self::LIST_LOCK_KEY;
 
-        $buildJson = function () use ($present): string {
-            $categories = Category::withCount('projects')
+        $buildJson = function () use ($present, $siteDefaultLocale): string {
+            $query = Category::withCount('projects')
                 ->with(['seoMetas', 'media', 'translations'])
                 ->orderBy('name')
-                ->get();
+                ->when($present, function ($query) use ($present, $siteDefaultLocale) {
+                    $query->where(function ($q) use ($present, $siteDefaultLocale) {
+                        $q->where('content_locale', $present);
+                        if ($present === $siteDefaultLocale) {
+                            $q->orWhereNull('content_locale');
+                        }
+                        $q->orWhereHas('translations', function ($tq) use ($present) {
+                            $tq->where('locale', $present);
+                        });
+                    });
+                });
+
+            $categories = $query->get();
 
             if ($present) {
-                $categories->transform(function (Category $category) use ($present) {
-                    TranslatableContentPresenter::applyCategory($category, $present);
+                $categories = $categories
+                    ->map(function (Category $category) use ($present) {
+                        TranslatableContentPresenter::applyCategory($category, $present);
 
-                    return $category;
-                });
+                        return $category;
+                    })
+                    ->filter(function (Category $category) use ($present) {
+                        return TranslatableContentPresenter::hasCategoryContentForLocale($category, $present);
+                    })
+                    ->values();
             }
 
             return json_encode([

@@ -32,7 +32,7 @@ class AdminContentListLocaleTest extends TestCase
         ];
     }
 
-    public function test_admin_categories_list_includes_records_without_arabic_translation(): void
+    public function test_admin_categories_list_excludes_records_without_arabic_content(): void
     {
         $admin = User::query()->where('email', 'admin@credocode.test')->first();
         $this->assertNotNull($admin);
@@ -47,7 +47,20 @@ class AdminContentListLocaleTest extends TestCase
         $this->withHeaders($this->bearerHeaders($admin, 'ar'))
             ->getJson('/api/v1/categories')
             ->assertOk()
-            ->assertJsonFragment(['slug' => $category->slug]);
+            ->assertJsonMissing(['slug' => $category->slug]);
+    }
+
+    public function test_admin_categories_list_includes_records_with_arabic_translation(): void
+    {
+        $admin = User::query()->where('email', 'admin@credocode.test')->first();
+        $this->assertNotNull($admin);
+
+        $category = Category::create([
+            'name' => 'English Only Category',
+            'slug' => 'english-only-category',
+            'content_locale' => null,
+            'description' => 'Default locale copy',
+        ]);
 
         CategoryTranslation::create([
             'category_id' => $category->id,
@@ -55,7 +68,6 @@ class AdminContentListLocaleTest extends TestCase
             'name' => 'فئة عربية',
             'description' => 'وصف عربي',
         ]);
-        Cache::flush();
 
         $this->withHeaders($this->bearerHeaders($admin, 'ar'))
             ->getJson('/api/v1/categories')
