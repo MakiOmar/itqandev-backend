@@ -5,12 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
+use App\Services\ContentExport\CategoryListCacheInvalidator;
+use App\Services\ContentExport\CategoryLocaleExportService;
+use App\Services\ContentExport\CategoryLocaleImportService;
+use App\Services\ContentExport\CategoryTranslationSync;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
+use App\Support\UniqueContentSlug;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CategoryController extends Controller
 {
@@ -20,9 +28,22 @@ class CategoryController extends Controller
 
     protected HtmlSanitizerService $sanitizer;
 
-    public function __construct(HtmlSanitizerService $sanitizer)
-    {
+    protected CategoryTranslationSync $translationSync;
+
+    protected CategoryLocaleExportService $exportService;
+
+    protected CategoryLocaleImportService $importService;
+
+    public function __construct(
+        HtmlSanitizerService $sanitizer,
+        CategoryTranslationSync $translationSync,
+        CategoryLocaleExportService $exportService,
+        CategoryLocaleImportService $importService,
+    ) {
         $this->sanitizer = $sanitizer;
+        $this->translationSync = $translationSync;
+        $this->exportService = $exportService;
+        $this->importService = $importService;
     }
 
     public function index(Request $request)
@@ -102,7 +123,7 @@ class CategoryController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:categories,slug'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:categories,slug'],
             'description' => ['nullable', 'string', 'max:1024'],
             'is_featured' => ['boolean'],
             'content_locale' => ['nullable', 'string', 'max:16'],
@@ -111,6 +132,16 @@ class CategoryController extends Controller
             'translations.*.name' => ['nullable', 'string', 'max:255'],
             'translations.*.description' => ['nullable', 'string', 'max:1024'],
         ]);
+
+        if (empty($data['slug'] ?? null) && ! empty($data['name'])) {
+            $data['slug'] = UniqueContentSlug::suggest(Category::class, Str::slug($data['name']));
+        }
+
+        if (empty($data['slug'] ?? null)) {
+            throw ValidationException::withMessages([
+                'slug' => ['The slug field is required.'],
+            ]);
+        }
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
@@ -215,17 +246,70 @@ class CategoryController extends Controller
         ]);
     }
 
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Category::class);
+
+        $locale = $this->requirePresentationLocale($request);
+
+        $data = $request->validate([
+            'ids' => ['nullable', 'array'],
+            'ids.*' => ['integer', 'exists:categories,id'],
+        ]);
+
+        $ids = isset($data['ids']) && is_array($data['ids']) ? array_map('intval', $data['ids']) : null;
+
+        $envelope = $this->exportService->buildEnvelope($locale, $ids);
+        $filename = 'categories-'.$locale.'-'.now()->format('Y-m-d-His').'.json';
+
+        return response()->streamDownload(function () use ($envelope) {
+            echo json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }, $filename, [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ]);
+    }
+
+    public function import(Request $request)
+    {
+        $this->authorize('viewAny', Category::class);
+
+        $locale = $this->requirePresentationLocale($request);
+
+        $meta = $request->validate([
+            'mode' => ['nullable', 'string', 'in:upsert,translation_only'],
+        ]);
+
+        $payload = $request->json()->all();
+        if ($payload === []) {
+            $payload = $request->all();
+        }
+
+        $mode = CategoryLocaleImportService::normalizeMode($meta['mode'] ?? null);
+
+        try {
+            $result = $this->importService->import($payload, $locale, $mode);
+        } catch (ValidationException $e) {
+            throw $e;
+        }
+
+        return response()->json($result);
+    }
+
+    private function requirePresentationLocale(Request $request): string
+    {
+        $locale = TranslatableContentPresenter::requestedPresentationLocale($request);
+        if ($locale === null || $locale === '') {
+            throw ValidationException::withMessages([
+                'X-Content-Locale' => ['A valid X-Content-Locale header is required for export/import.'],
+            ]);
+        }
+
+        return $locale;
+    }
+
     private function flushListCache(): void
     {
-        // Index caches per locale (including "none" when header is absent).
-        Cache::forget(self::LIST_CACHE_KEY); // legacy / safety
-        Cache::forget(self::LIST_CACHE_KEY.':loc:none');
-        foreach (SiteLanguages::all() as $row) {
-            $code = is_array($row) && isset($row['code']) ? (string) $row['code'] : '';
-            if ($code !== '') {
-                Cache::forget(self::LIST_CACHE_KEY.':loc:'.strtolower($code));
-            }
-        }
+        CategoryListCacheInvalidator::flush();
     }
 
     /**
@@ -233,39 +317,6 @@ class CategoryController extends Controller
      */
     private function syncCategoryTranslations(Category $category, array $translations): void
     {
-        $category->refresh();
-        $secondaryCodes = SiteLanguages::secondaryLocaleCodesForContent($category->content_locale);
-        if ($secondaryCodes === []) {
-            return;
-        }
-        $allowed = array_flip($secondaryCodes);
-        $category->translations()->whereNotIn('locale', array_keys($allowed))->delete();
-
-        foreach ($translations as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-            $locale = strtolower(trim((string) ($row['locale'] ?? '')));
-            if ($locale === '' || ! isset($allowed[$locale])) {
-                continue;
-            }
-
-            $name = isset($row['name']) ? trim((string) $row['name']) : '';
-            $description = isset($row['description']) ? trim((string) $row['description']) : '';
-
-            if ($name === '' && $description === '') {
-                $category->translations()->where('locale', $locale)->delete();
-
-                continue;
-            }
-
-            $category->translations()->updateOrCreate(
-                ['locale' => $locale],
-                [
-                    'name' => $name !== '' ? $name : null,
-                    'description' => $description !== '' ? $this->sanitizer->stripAll($description) : null,
-                ]
-            );
-        }
+        $this->translationSync->sync($category, $translations);
     }
 }
