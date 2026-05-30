@@ -9,6 +9,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use App\Http\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\SetHttpCacheHeaders;
 use App\Http\Middleware\SetSecurityHeaders;
 use App\Http\Middleware\SetLocaleFromRequest;
 
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->use([
             HandleCors::class,
             SetSecurityHeaders::class,
+            SetHttpCacheHeaders::class,
         ]);
 
         /**
