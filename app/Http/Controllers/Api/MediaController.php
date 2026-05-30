@@ -235,6 +235,8 @@ class MediaController extends Controller
             ->addMedia($file)
             ->toMediaCollection($collection);
 
+        $media = $this->mediaService->finalizeUploadedMedia($media);
+
         // Track usage
         $this->mediaService->trackUsage($media, $model, $collection);
 

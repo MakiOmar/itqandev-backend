@@ -86,6 +86,7 @@ class SettingsController extends Controller
 
             // Media
             'upload_max_size' => null,
+            'media_convert_to_webp' => true,
 
             // Multilingual site content (admin + API)
             'site_languages' => SiteLanguages::defaults(),
@@ -165,10 +166,10 @@ class SettingsController extends Controller
         $siteEmail = $this->resolveFirst($input, ['site_email', 'supportEmail'], $settings['site_email']);
         $sitePhone = $this->resolveFirst($input, ['site_phone', 'supportPhone'], $settings['site_phone']);
 
-        $logo = $this->resolveFirst($input, ['logo', 'site_logo'], $settings['logo']);
-        $logoDark = $this->resolveFirst($input, ['logoDark', 'logo_dark', 'dark_logo', 'site_logo_dark'], $settings['logoDark']);
-        $logoLight = $this->resolveFirst($input, ['logoLight', 'logo_light', 'light_logo', 'site_logo_light'], $settings['logoLight']);
-        $favicon = $this->resolveFirst($input, ['favicon', 'site_favicon'], $settings['favicon']);
+        $logo = $this->absolutizePublicUrl($this->resolveFirst($input, ['logo', 'site_logo'], $settings['logo']));
+        $logoDark = $this->absolutizePublicUrl($this->resolveFirst($input, ['logoDark', 'logo_dark', 'dark_logo', 'site_logo_dark'], $settings['logoDark']));
+        $logoLight = $this->absolutizePublicUrl($this->resolveFirst($input, ['logoLight', 'logo_light', 'light_logo', 'site_logo_light'], $settings['logoLight']));
+        $favicon = $this->absolutizePublicUrl($this->resolveFirst($input, ['favicon', 'site_favicon'], $settings['favicon']));
         $primaryColor = $this->resolveFirst($input, ['primaryColor', 'primary_color'], $settings['primaryColor']);
         $secondaryColor = $this->resolveFirst($input, ['secondaryColor', 'secondary_color'], $settings['secondaryColor']);
 
@@ -212,7 +213,41 @@ class SettingsController extends Controller
         }
         $settings['default_locale'] = $defaultLocale;
 
+        if (array_key_exists('media_convert_to_webp', $input)) {
+            $settings['media_convert_to_webp'] = filter_var(
+                $input['media_convert_to_webp'],
+                FILTER_VALIDATE_BOOL
+            );
+        } elseif (! array_key_exists('media_convert_to_webp', $settings)) {
+            $settings['media_convert_to_webp'] = true;
+        } else {
+            $settings['media_convert_to_webp'] = filter_var(
+                $settings['media_convert_to_webp'],
+                FILTER_VALIDATE_BOOL
+            );
+        }
+
         return $this->withResolvedFeatures($settings);
+    }
+
+    /** Ensure stored media URLs are absolute (APP_URL) for cross-origin Qwik dev/preview. */
+    private function absolutizePublicUrl(mixed $url): ?string
+    {
+        if ($url === null) {
+            return null;
+        }
+        if (! is_string($url)) {
+            return null;
+        }
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            return $url;
+        }
+
+        return url($url);
     }
 
     /**
@@ -382,6 +417,7 @@ class SettingsController extends Controller
             'social_linkedin' => 'sometimes|nullable|url|max:255',
             'social_instagram' => 'sometimes|nullable|url|max:255',
             'upload_max_size' => 'sometimes|nullable|integer|min:1|max:1000',
+            'media_convert_to_webp' => 'sometimes|boolean',
             'site_languages' => 'sometimes|array',
             'site_languages.*.code' => 'required_with:site_languages|string|max:16',
             'site_languages.*.label' => 'nullable|string|max:120',

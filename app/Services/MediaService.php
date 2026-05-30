@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use App\Models\AppMedia as Media;
@@ -18,9 +19,24 @@ class MediaService
 {
     protected ImageManager $imageManager;
 
-    public function __construct()
-    {
+    public function __construct(
+        protected MediaImageProcessor $mediaImageProcessor,
+    ) {
         $this->imageManager = new ImageManager(new Driver());
+    }
+
+    /**
+     * WebP conversion, thumbnails, and other post-upload image steps.
+     */
+    public function finalizeUploadedMedia(Media $media): Media
+    {
+        $media = $this->mediaImageProcessor->processAfterUpload($media);
+
+        if (config('media.generate_thumbnails', true) && $this->isImage($media)) {
+            $this->generateThumbnails($media);
+        }
+
+        return $media;
     }
 
     /**
@@ -58,12 +74,7 @@ class MediaService
             $this->attachTags($media, $tags);
         }
 
-        // Generate thumbnails for images
-        if (config('media.generate_thumbnails', true) && $this->isImage($media)) {
-            $this->generateThumbnails($media);
-        }
-
-        return $media;
+        return $this->finalizeUploadedMedia($media);
     }
 
     /**
@@ -189,7 +200,7 @@ class MediaService
         
         $sizes = config('media.image_sizes', []);
         $disk = Storage::disk($media->disk);
-        $filePath = $media->getPath();
+        $filePath = $media->getPathRelativeToRoot();
 
         if (!$disk->exists($filePath)) {
             return;
@@ -212,7 +223,7 @@ class MediaService
                 }
 
                 $thumbnailPath = $this->getThumbnailPath($media, $sizeName);
-                $disk->put($thumbnailPath, (string) $resized->encode());
+                $disk->put($thumbnailPath, $this->encodeImageVariant($resized, $media));
             }
         } catch (\Exception $e) {
             // Log error but don't fail the upload
@@ -221,15 +232,29 @@ class MediaService
     }
 
     /**
+     * Encode a resized variant; match parent format and strip metadata for WebP.
+     */
+    protected function encodeImageVariant($image, Media $media): string
+    {
+        if (strtolower((string) $media->mime_type) === 'image/webp') {
+            $quality = max(1, min(100, (int) config('media.webp_quality', 85)));
+
+            return (string) $image->encode(new WebpEncoder(quality: $quality, strip: true));
+        }
+
+        return (string) $image->encode();
+    }
+
+    /**
      * Get thumbnail path for a media item.
      */
     protected function getThumbnailPath(Media $media, string $sizeName): string
     {
-        $path = dirname($media->getPath());
+        $path = dirname($media->getPathRelativeToRoot());
         $filename = pathinfo($media->file_name, PATHINFO_FILENAME);
         $extension = pathinfo($media->file_name, PATHINFO_EXTENSION);
-        
-        return $path . '/' . $filename . '-' . $sizeName . '.' . $extension;
+
+        return $path.'/'.$filename.'-'.$sizeName.'.'.$extension;
     }
 
     /**
@@ -329,8 +354,8 @@ class MediaService
         if ($media->disk) {
             try {
                 $disk = Storage::disk($diskName);
-                $filePath = $media->getPath();
-                
+                $filePath = $media->getPathRelativeToRoot();
+
                 if ($disk->exists($filePath)) {
                     $disk->delete($filePath);
                 }

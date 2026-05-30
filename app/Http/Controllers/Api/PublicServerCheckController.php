@@ -13,6 +13,7 @@ class PublicServerCheckController extends Controller
 {
     public function ping(): JsonResponse
     {
+        $started = microtime(true);
         $dbStatus = 'ok';
         $dbError = null;
 
@@ -24,6 +25,7 @@ class PublicServerCheckController extends Controller
         }
 
         $overallStatus = $dbStatus === 'ok' ? 'ok' : 'degraded';
+        $serverMs = (int) round((microtime(true) - $started) * 1000);
 
         return response()->json([
             'success' => true,
@@ -31,6 +33,7 @@ class PublicServerCheckController extends Controller
                 'status' => $overallStatus,
                 'message' => 'Laravel API is reachable',
                 'timestamp' => now()->toIso8601String(),
+                'server_ms' => $serverMs,
                 'app_env' => config('app.env'),
                 'app_url' => config('app.url'),
                 'laravel_version' => app()->version(),

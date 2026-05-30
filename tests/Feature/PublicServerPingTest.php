@@ -19,6 +19,7 @@ class PublicServerPingTest extends TestCase
                 'status',
                 'message',
                 'timestamp',
+                'server_ms',
                 'app_env',
                 'laravel_version',
                 'php_version',
@@ -29,5 +30,8 @@ class PublicServerPingTest extends TestCase
                 ],
             ],
         ]);
+        $serverMs = $response->json('data.server_ms');
+        $this->assertIsInt($serverMs);
+        $this->assertGreaterThanOrEqual(0, $serverMs);
     }
 }

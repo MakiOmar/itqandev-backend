@@ -53,6 +53,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Convert uploads to WebP
+    |--------------------------------------------------------------------------
+    |
+    | When true, raster images (JPEG, PNG, AVIF, BMP) are re-encoded as WebP
+    | after upload. EXIF and other metadata are stripped. SVG and GIF are kept
+    | as-is. Operators can override via project settings (media_convert_to_webp).
+    |
+    */
+    'convert_to_webp' => filter_var(env('MEDIA_CONVERT_TO_WEBP', true), FILTER_VALIDATE_BOOL),
+
+    /*
+    |--------------------------------------------------------------------------
+    | WebP quality
+    |--------------------------------------------------------------------------
+    |
+    | Encoder quality (1–100) when convert_to_webp is enabled.
+    |
+    */
+    'webp_quality' => (int) env('MEDIA_WEBP_QUALITY', 85),
+
+    /*
+    |--------------------------------------------------------------------------
     | Organize by Date
     |--------------------------------------------------------------------------
     |
