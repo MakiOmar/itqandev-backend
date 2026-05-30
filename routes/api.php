@@ -38,6 +38,8 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     Route::get('site-content', [\App\Http\Controllers\Api\PublicSiteContentController::class, 'show']);
     /** Branding + site_languages + module toggles for marketing (no auth). */
     Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
+    /** Layout shell: site-meta + primary menu + services (one round-trip for SSR). */
+    Route::get('shell', [\App\Http\Controllers\Api\PublicShellController::class, 'show']);
     /** Resolved nav tree for marketing header (locale query matches UI locale). */
     Route::get('menus/{slug}', [\App\Http\Controllers\Api\PublicMenuController::class, 'show'])
         ->where('slug', '[a-z0-9_-]+');
