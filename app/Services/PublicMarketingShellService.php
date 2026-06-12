@@ -18,6 +18,34 @@ final class PublicMarketingShellService
 {
     private const CACHE_SECONDS = 300;
 
+    /** Bust cached shell payloads after typography or font library changes. */
+    public static function forgetShellCaches(): void
+    {
+        $locales = array_unique(array_merge(
+            [SiteLanguages::defaultCode(), 'en', 'ar'],
+            array_map(
+                fn ($row) => strtolower((string) ($row['code'] ?? '')),
+                SiteLanguages::all()
+            ),
+        ));
+
+        foreach ($locales as $locale) {
+            $locale = strtolower(trim($locale));
+            if ($locale === '') {
+                continue;
+            }
+            foreach ($locales as $present) {
+                $present = strtolower(trim($present));
+                if ($present === '') {
+                    continue;
+                }
+                Cache::forget('public:shell:'.$locale.':loc:'.$present);
+                Cache::forget('public:site-content:loc:'.$present);
+            }
+            Cache::forget('public:site-content:loc:'.$locale);
+        }
+    }
+
     /**
      * @return array{
      *   site_meta: array<string, mixed>,
@@ -37,7 +65,7 @@ final class PublicMarketingShellService
         /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>} $payload */
         $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present) {
             return [
-                'site_meta' => $this->buildSiteMeta(),
+                'site_meta' => $this->buildSiteMeta($present),
                 'menu' => [
                     'slug' => 'primary',
                     'locale' => $locale,
@@ -76,22 +104,12 @@ final class PublicMarketingShellService
     /**
      * @return array<string, mixed>
      */
-    private function buildSiteMeta(): array
+    private function buildSiteMeta(string $presentationLocale): array
     {
         /** @var SettingsController $settings */
         $settings = app(SettingsController::class);
-        $response = $settings->publicMeta();
-        $decoded = $response->getData(true);
 
-        if (! is_array($decoded) || ! is_array($decoded['data'] ?? null)) {
-            return [
-                'site_languages' => [],
-                'default_locale' => SiteLanguages::defaultCode(),
-                'features' => FeatureModules::all(),
-            ];
-        }
-
-        return $decoded['data'];
+        return $settings->buildPublicMetaData($presentationLocale);
     }
 
     /**

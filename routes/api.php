@@ -163,6 +163,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('seo/{type}/{id}', [\App\Http\Controllers\Api\SeoMetaController::class, 'update']);
         });
 
+        Route::get('fonts', [\App\Http\Controllers\Api\FontController::class, 'index']);
+        Route::post('fonts', [\App\Http\Controllers\Api\FontController::class, 'store']);
+        Route::post('fonts/upload', [\App\Http\Controllers\Api\FontController::class, 'upload'])->middleware('throttle:uploads');
+        Route::get('fonts/{font}', [\App\Http\Controllers\Api\FontController::class, 'show'])->where('font', '[0-9]+');
+        Route::put('fonts/{font}', [\App\Http\Controllers\Api\FontController::class, 'update'])->where('font', '[0-9]+');
+        Route::delete('fonts/{font}', [\App\Http\Controllers\Api\FontController::class, 'destroy'])->where('font', '[0-9]+');
+
         Route::get('menus', [\App\Http\Controllers\Api\MenuController::class, 'index']);
         Route::post('menus', [\App\Http\Controllers\Api\MenuController::class, 'store']);
         Route::get('menus/{menu}', [\App\Http\Controllers\Api\MenuController::class, 'show']);

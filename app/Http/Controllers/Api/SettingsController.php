@@ -3,9 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Font;
 use App\Services\ActivityLogService;
+use App\Services\PublicMarketingShellService;
 use App\Support\FeatureModules;
 use App\Support\SiteLanguages;
+use App\Support\SiteSettingsPresenter;
+use App\Support\TranslatableContentPresenter;
+use App\Support\TypographyResolver;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -91,6 +97,14 @@ class SettingsController extends Controller
             // Multilingual site content (admin + API)
             'site_languages' => SiteLanguages::defaults(),
             'default_locale' => 'en',
+
+            // Typography (system = Google Inter/Cairo; custom = self-hosted fonts)
+            'font_mode' => TypographyResolver::MODE_SYSTEM,
+            'font_ltr_id' => null,
+            'font_rtl_id' => null,
+
+            'marketing_site_content' => [],
+            'settings_translations' => [],
         ];
     }
 
@@ -227,6 +241,57 @@ class SettingsController extends Controller
             );
         }
 
+        $fontMode = TypographyResolver::normalizeMode(
+            $this->resolveFirst($input, ['font_mode'], $settings['font_mode'] ?? TypographyResolver::MODE_SYSTEM)
+        );
+        $settings['font_mode'] = $fontMode;
+
+        $fontLtrId = TypographyResolver::normalizeFontId(
+            $this->resolveFirst($input, ['font_ltr_id'], $settings['font_ltr_id'] ?? null)
+        );
+        $fontRtlId = TypographyResolver::normalizeFontId(
+            $this->resolveFirst($input, ['font_rtl_id'], $settings['font_rtl_id'] ?? null)
+        );
+
+        if ($fontMode === TypographyResolver::MODE_CUSTOM) {
+            if ($fontLtrId && ! Font::query()->whereKey($fontLtrId)->exists()) {
+                $fontLtrId = null;
+            }
+            if ($fontRtlId && ! Font::query()->whereKey($fontRtlId)->exists()) {
+                $fontRtlId = null;
+            }
+        } else {
+            $fontLtrId = null;
+            $fontRtlId = null;
+        }
+
+        $settings['font_ltr_id'] = $fontLtrId;
+        $settings['font_rtl_id'] = $fontRtlId;
+
+        if (array_key_exists('marketing_site_content', $input)) {
+            $settings['marketing_site_content'] = is_array($input['marketing_site_content'])
+                ? $input['marketing_site_content']
+                : [];
+        } elseif (! is_array($settings['marketing_site_content'] ?? null)) {
+            $settings['marketing_site_content'] = [];
+        }
+
+        if (array_key_exists('settings_translations', $input)) {
+            $rawTranslations = is_array($input['settings_translations'])
+                ? $input['settings_translations']
+                : [];
+            $existingTranslations = is_array($settings['settings_translations'] ?? null)
+                ? $settings['settings_translations']
+                : [];
+            $incoming = SiteSettingsPresenter::normalizeTranslationsPayload($rawTranslations);
+            $settings['settings_translations'] = SiteSettingsPresenter::mergeTranslationsStorage(
+                $existingTranslations,
+                $incoming
+            );
+        } elseif (! is_array($settings['settings_translations'] ?? null)) {
+            $settings['settings_translations'] = [];
+        }
+
         return $this->withResolvedFeatures($settings);
     }
 
@@ -306,13 +371,44 @@ class SettingsController extends Controller
     /**
      * Public marketing payload: branding + locales only (no auth). Same cache as GET /settings.
      */
-    public function publicMeta(): JsonResponse
+    public function publicMeta(Request $request): JsonResponse
     {
-        $settings = $this->loadNormalizedSettings();
+        $locale = TranslatableContentPresenter::requestedPresentationLocale($request);
+        if ($locale === null) {
+            $queryLocale = strtolower(trim((string) $request->query('locale', '')));
+            $locale = $queryLocale !== '' ? $queryLocale : null;
+        }
 
-        $data = [
+        return response()->json([
+            'success' => true,
+            'data' => $this->buildPublicMetaData($locale),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    /**
+     * @return array<string, mixed>
+     */
+    public function localizedSettings(?string $locale = null): array
+    {
+        return SiteSettingsPresenter::apply($this->loadNormalizedSettings(), $locale);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function buildPublicMetaData(?string $locale = null): array
+    {
+        $settings = $this->localizedSettings($locale);
+
+        return [
             'site_name' => $settings['site_name'] ?? null,
             'name' => $settings['name'] ?? null,
+            'site_description' => $settings['site_description'] ?? null,
+            'description' => $settings['description'] ?? null,
+            'site_address' => $settings['site_address'] ?? null,
             'logo' => $settings['logo'] ?? null,
             'site_logo' => $settings['site_logo'] ?? null,
             'logoDark' => $settings['logoDark'] ?? null,
@@ -328,12 +424,8 @@ class SettingsController extends Controller
                 : [],
             'default_locale' => $settings['default_locale'] ?? 'en',
             'features' => FeatureModules::all(),
+            'typography' => TypographyResolver::resolveFromSettings($settings),
         ];
-
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-        ]);
     }
 
     /**
@@ -424,14 +516,49 @@ class SettingsController extends Controller
             'site_languages.*.native_label' => 'nullable|string|max:120',
             'site_languages.*.rtl' => 'sometimes|boolean',
             'default_locale' => 'sometimes|string|max:16',
+            'font_mode' => ['sometimes', 'string', Rule::in([TypographyResolver::MODE_SYSTEM, TypographyResolver::MODE_CUSTOM])],
+            'font_ltr_id' => ['sometimes', 'nullable', 'integer', 'exists:fonts,id'],
+            'font_rtl_id' => ['sometimes', 'nullable', 'integer', 'exists:fonts,id'],
+            'marketing_site_content' => 'sometimes|array',
+            'settings_translations' => 'sometimes|array',
         ]);
+
+        $mergedForMode = array_merge($this->loadStoredSettings(), $validated);
+        $mode = TypographyResolver::normalizeMode($mergedForMode['font_mode'] ?? TypographyResolver::MODE_SYSTEM);
+        if ($mode === TypographyResolver::MODE_CUSTOM) {
+            $ltr = TypographyResolver::normalizeFontId($mergedForMode['font_ltr_id'] ?? null);
+            $rtl = TypographyResolver::normalizeFontId($mergedForMode['font_rtl_id'] ?? null);
+            if (! $ltr || ! $rtl) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Custom typography requires both LTR and RTL fonts.',
+                ], 422);
+            }
+        }
 
         // Load existing settings, apply updates, normalize aliases, then persist.
         $existingSettings = $this->loadStoredSettings();
         unset($existingSettings['features']);
 
-        $mergedSettings = array_merge($existingSettings, $validated);
+        $incomingTranslations = null;
+        $validatedScalars = $validated;
+        if (array_key_exists('settings_translations', $validatedScalars)) {
+            $incomingTranslations = $validatedScalars['settings_translations'];
+            unset($validatedScalars['settings_translations']);
+        }
+
+        $mergedSettings = array_merge($existingSettings, $validatedScalars);
         $normalizedSettings = $this->normalizeSettingsPayload($mergedSettings);
+
+        if ($incomingTranslations !== null && is_array($incomingTranslations)) {
+            $existingTranslations = is_array($normalizedSettings['settings_translations'] ?? null)
+                ? $normalizedSettings['settings_translations']
+                : [];
+            $normalizedSettings['settings_translations'] = SiteSettingsPresenter::mergeTranslationsStorage(
+                $existingTranslations,
+                SiteSettingsPresenter::normalizeTranslationsPayload($incomingTranslations)
+            );
+        }
 
         $persisted = $normalizedSettings;
         unset($persisted['features']);
@@ -440,6 +567,7 @@ class SettingsController extends Controller
         // Invalidate and refresh cache to keep GET /settings fast and consistent.
         Cache::forget(self::SETTINGS_CACHE_KEY);
         Cache::put(self::SETTINGS_CACHE_KEY, $normalizedSettings, $this->settingsCacheTtlSeconds());
+        PublicMarketingShellService::forgetShellCaches();
 
         ActivityLogService::record('settings.updated', null, [], $request);
 

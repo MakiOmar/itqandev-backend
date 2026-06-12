@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\AppMedia;
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\Font;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\Project;
@@ -15,6 +16,7 @@ use App\Models\Testimonial;
 use App\Models\User;
 use App\Policies\BlogPostPolicy;
 use App\Policies\CategoryPolicy;
+use App\Policies\FontPolicy;
 use App\Policies\MediaPolicy;
 use App\Policies\MenuItemPolicy;
 use App\Policies\MenuPolicy;
@@ -42,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
         User::class => UserPolicy::class,
         Project::class => ProjectPolicy::class,
         Category::class => CategoryPolicy::class,
+        Font::class => FontPolicy::class,
         Service::class => ServicePolicy::class,
         AppMedia::class => MediaPolicy::class,
         BlogPost::class => BlogPostPolicy::class,

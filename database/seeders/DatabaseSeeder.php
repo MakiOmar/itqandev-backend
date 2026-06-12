@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
             'view analytics',
             'manage system',
             'manage menus',
+            'manage fonts',
             'view activity',
         ];
 
@@ -60,6 +61,7 @@ class DatabaseSeeder extends Seeder
             'manage testimonials',
             'manage seo',
             'manage menus',
+            'manage fonts',
         ]);
 
         $editorRole = Role::findOrCreate('editor');
@@ -73,6 +75,7 @@ class DatabaseSeeder extends Seeder
             'manage seo',
             'manage blog',
             'manage menus',
+            'manage fonts',
         ]);
 
         $viewerRole = Role::findOrCreate('viewer');

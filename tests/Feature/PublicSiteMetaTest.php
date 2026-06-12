@@ -19,6 +19,11 @@ class PublicSiteMetaTest extends TestCase
                 'name',
                 'site_languages',
                 'default_locale',
+                'typography' => [
+                    'mode',
+                    'ltr',
+                    'rtl',
+                ],
             ],
         ]);
     }
