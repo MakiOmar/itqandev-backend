@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Font;
 use App\Services\ActivityLogService;
-use App\Services\PublicMarketingShellService;
 use App\Support\FeatureModules;
+use App\Support\MarketingSettingsCache;
 use App\Support\SiteLanguages;
 use App\Support\SiteSettingsPresenter;
 use App\Support\TranslatableContentPresenter;
@@ -19,7 +19,6 @@ use Illuminate\Support\Facades\Storage;
 
 class SettingsController extends Controller
 {
-    private const SETTINGS_CACHE_KEY = 'project-settings';
     private const SETTINGS_FILE_PATH = 'project-settings.json';
 
     private function settingsCacheTtlSeconds(): int
@@ -359,7 +358,7 @@ class SettingsController extends Controller
      */
     private function loadNormalizedSettings(): array
     {
-        $settings = Cache::remember(self::SETTINGS_CACHE_KEY, $this->settingsCacheTtlSeconds(), function () {
+        $settings = Cache::remember(MarketingSettingsCache::SETTINGS_CACHE_KEY, $this->settingsCacheTtlSeconds(), function () {
             $stored = $this->loadStoredSettings();
 
             return $this->normalizeSettingsPayload($stored);
@@ -439,6 +438,8 @@ class SettingsController extends Controller
      */
     public function index(): JsonResponse
     {
+        $this->authorize('manageSettings');
+
         // Get actual PHP server limits (not application config)
         // These are fetched on each request to reflect real-time server config
         $uploadMaxFilesize = ini_get('upload_max_filesize') ?: '8M'; // Default fallback if ini_get fails
@@ -475,6 +476,8 @@ class SettingsController extends Controller
      */
     public function update(Request $request): JsonResponse
     {
+        $this->authorize('manageSettings');
+
         // Validate full settings payload (canonical + compatibility aliases).
         $hexColor = 'regex:/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/';
 
@@ -565,9 +568,8 @@ class SettingsController extends Controller
         $this->saveStoredSettings($persisted);
 
         // Invalidate and refresh cache to keep GET /settings fast and consistent.
-        Cache::forget(self::SETTINGS_CACHE_KEY);
-        Cache::put(self::SETTINGS_CACHE_KEY, $normalizedSettings, $this->settingsCacheTtlSeconds());
-        PublicMarketingShellService::forgetShellCaches();
+        MarketingSettingsCache::forgetAll();
+        Cache::put(MarketingSettingsCache::SETTINGS_CACHE_KEY, $normalizedSettings, $this->settingsCacheTtlSeconds());
 
         ActivityLogService::record('settings.updated', null, [], $request);
 

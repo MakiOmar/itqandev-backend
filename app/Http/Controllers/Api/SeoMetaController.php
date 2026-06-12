@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesResolvedModel;
 use App\Http\Controllers\Controller;
 use App\Models\SeoMeta;
 use App\Services\ModelResolverService;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class SeoMetaController extends Controller
 {
+    use AuthorizesResolvedModel;
+
     protected ModelResolverService $modelResolver;
 
     public function __construct(ModelResolverService $modelResolver)
@@ -23,6 +26,7 @@ class SeoMetaController extends Controller
         $this->authorize('update', new SeoMeta);
 
         $model = $this->modelResolver->resolveModel($type, $id);
+        $this->authorizeParentUpdate($model);
 
         $enabledLocales = array_values(array_map(static fn (array $row) => $row['code'], SiteLanguages::all()));
 

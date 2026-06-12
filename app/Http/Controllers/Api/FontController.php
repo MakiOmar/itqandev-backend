@@ -4,18 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Font;
-use App\Services\PublicMarketingShellService;
+use App\Rules\ValidatesStoragePath;
+use App\Support\MarketingSettingsCache;
 use App\Support\TypographyResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class FontController extends Controller
 {
-    private const SETTINGS_CACHE_KEY = 'project-settings';
-
     private const SETTINGS_FILE_PATH = 'project-settings.json';
 
     /**
@@ -35,8 +33,7 @@ class FontController extends Controller
 
     private function flushPublicCaches(): void
     {
-        Cache::forget(self::SETTINGS_CACHE_KEY);
-        PublicMarketingShellService::forgetShellCaches();
+        MarketingSettingsCache::forgetAll();
     }
 
     /**
@@ -50,10 +47,7 @@ class FontController extends Controller
             $prefix,
             'string',
             'max:2048',
-            Rule::when(
-                fn () => true,
-                ['regex:/^(https?:\/\/|\/)/i']
-            ),
+            new ValidatesStoragePath(),
         ];
     }
 

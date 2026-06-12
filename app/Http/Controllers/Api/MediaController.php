@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesResolvedModel;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ListQueryRequest;
 use App\Http\Resources\MediaResource;
 use App\Models\BlogPost;
 use App\Models\Category;
@@ -28,6 +30,8 @@ use ZipArchive;
 
 class MediaController extends Controller
 {
+    use AuthorizesResolvedModel;
+
     protected MediaService $mediaService;
     protected ModelResolverService $modelResolver;
 
@@ -40,10 +44,11 @@ class MediaController extends Controller
     /**
      * List all media items with optional filters.
      */
-    public function index(Request $request)
+    public function index(ListQueryRequest $request)
     {
         $this->authorize('viewAny', Media::class);
 
+        $request->validated();
         $query = Media::query();
 
         // Filter by model type
@@ -102,20 +107,13 @@ class MediaController extends Controller
             });
         }
 
-        // Sort
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $allowedSorts = ['created_at', 'name', 'size', 'mime_type'];
-        
-        if (in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortOrder);
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
+        $sortBy = $request->sortBy('created_at', ['created_at', 'name', 'size', 'mime_type']);
+        $sortOrder = $request->sortOrder('desc');
+        $query->orderBy($sortBy, $sortOrder);
 
         $media = $query
             ->with(['folder:id,name', 'tags:id,name'])
-            ->paginate($request->get('per_page', 20));
+            ->paginate($request->perPage(20));
 
         return MediaResource::collection($media);
     }
@@ -210,6 +208,7 @@ class MediaController extends Controller
     public function store(Request $request, string $type, int $id, string $collection)
     {
         $model = $this->resolveModel($type, $id);
+        $this->authorizeParentUpdate($model);
         $this->ensureCollectionAllowed($model, $collection);
 
         // Check if attaching existing media or uploading new file
@@ -248,6 +247,8 @@ class MediaController extends Controller
      */
     protected function attachExistingMedia(Request $request, Model $model, string $collection)
     {
+        $this->authorizeParentUpdate($model);
+
         $data = $request->validate([
             'media_id' => ['required', 'integer', 'exists:media,id'],
         ]);
@@ -457,6 +458,7 @@ class MediaController extends Controller
     public function downloadLink(Request $request, $id)
     {
         $media = Media::findOrFail($id);
+        $this->authorize('download', $media);
         $expires = now()->addMinutes(5);
         $signedUrl = URL::temporarySignedRoute(
             'signed-media-download',
@@ -572,6 +574,8 @@ class MediaController extends Controller
      */
     public function statistics()
     {
+        $this->authorize('viewAny', Media::class);
+
         $total = Media::count();
         $images = Media::where('mime_type', 'like', 'image/%')->count();
         $videos = Media::where('mime_type', 'like', 'video/%')->count();
@@ -599,6 +603,8 @@ class MediaController extends Controller
      */
     public function getFolders()
     {
+        $this->authorize('viewAny', Media::class);
+
         $folders = MediaFolder::with('children')
             ->whereNull('parent_id')
             ->orderBy('order')
@@ -612,6 +618,8 @@ class MediaController extends Controller
      */
     public function createFolder(Request $request)
     {
+        $this->authorize('upload', Media::class);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:media_folders,id'],
@@ -628,6 +636,8 @@ class MediaController extends Controller
      */
     public function updateFolder(Request $request, MediaFolder $folder)
     {
+        $this->authorize('upload', Media::class);
+
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:media_folders,id', 'not_in:' . $folder->id],
@@ -645,6 +655,8 @@ class MediaController extends Controller
      */
     public function deleteFolder(MediaFolder $folder)
     {
+        $this->authorize('upload', Media::class);
+
         // Move media to root (null folder)
         Media::where('folder_id', $folder->id)->update(['folder_id' => null]);
 

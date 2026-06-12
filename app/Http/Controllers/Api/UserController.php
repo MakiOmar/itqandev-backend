@@ -3,20 +3,23 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ListQueryRequest;
 use App\Models\User;
+use App\Support\RoleAssignmentGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index(Request $request)
+    public function index(ListQueryRequest $request)
     {
         $this->authorize('viewAny', User::class);
+        $request->validated();
 
         $users = User::with('roles:id,name', 'permissions:id,name')
             ->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 20));
+            ->paginate($request->perPage(20));
 
         return response()->json($users);
     }
@@ -41,7 +44,8 @@ class UserController extends Controller
 
         if (! empty($data['role_ids'])) {
             $this->authorize('assignRoles', $user);
-            $user->assignRole($data['role_ids']);
+            $roleIds = RoleAssignmentGuard::assertAssignable($request->user(), $data['role_ids']);
+            $user->assignRole($roleIds);
         }
 
         return response()->json($user->load('roles:id,name', 'permissions:id,name'), 201);
@@ -77,7 +81,8 @@ class UserController extends Controller
         $user->update(array_filter($data, fn ($key) => $key !== 'role_ids', ARRAY_FILTER_USE_KEY));
 
         if (isset($data['role_ids'])) {
-            $user->syncRoles($data['role_ids']);
+            $roleIds = RoleAssignmentGuard::assertAssignable($request->user(), $data['role_ids']);
+            $user->syncRoles($roleIds);
         }
 
         return response()->json($user->load('roles:id,name', 'permissions:id,name'));

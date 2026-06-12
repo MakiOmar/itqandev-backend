@@ -93,6 +93,10 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        Gate::define('manageSettings', function (\App\Models\User $user): bool {
+            return $user->hasAnyRole(['super_admin', 'admin']);
+        });
+
         if (str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }

@@ -66,7 +66,7 @@ Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [MeController::class, 'show']);
     Route::patch('/me', [MeController::class, 'update']);
-    Route::put('/me/password', [MeController::class, 'updatePassword']);
+    Route::put('/me/password', [MeController::class, 'updatePassword'])->middleware('throttle:login');
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     // Settings routes (outside v1 prefix to match frontend expectations)
@@ -119,7 +119,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::middleware('feature.module:users')->group(function () {
             Route::apiResource('users', \App\Http\Controllers\Api\UserController::class);
-            Route::get('roles', fn () => \Spatie\Permission\Models\Role::select('id', 'name')->get());
+            Route::get('roles', [\App\Http\Controllers\Api\RoleController::class, 'index']);
         });
 
         Route::get('cache/status', [\App\Http\Controllers\Api\CacheController::class, 'status']);
@@ -128,7 +128,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('system/health', [\App\Http\Controllers\Api\SystemHealthController::class, 'show']);
 
         Route::get('activity', [\App\Http\Controllers\Api\ActivityController::class, 'index']);
-        Route::get('activity/export', [\App\Http\Controllers\Api\ActivityController::class, 'export']);
+        Route::get('activity/export', [\App\Http\Controllers\Api\ActivityController::class, 'export'])->middleware('throttle:bulk');
+        Route::get('dashboard/metrics', [\App\Http\Controllers\Api\DashboardMetricsController::class, 'index']);
 
         Route::prefix('notifications')->group(function () {
             Route::get('/', [\App\Http\Controllers\Api\NotificationController::class, 'index']);

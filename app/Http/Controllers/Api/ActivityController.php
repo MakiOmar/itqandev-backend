@@ -76,21 +76,31 @@ class ActivityController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $user = $request->user();
-        if (! $user || ! $user->hasRole('super_admin')) {
-            abort(403);
-        }
+        $this->authorize('viewActivityLogs');
+
+        $filters = $request->validate([
+            'date_from' => ['nullable', 'date', 'before_or_equal:today'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
 
         $filename = 'activity-logs-'.now()->format('Y-m-d-His').'.csv';
 
-        return response()->streamDownload(function () {
+        return response()->streamDownload(function () use ($filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['id', 'user', 'action', 'resource', 'ip', 'created_at']);
 
-            ActivityLog::query()
+            $query = ActivityLog::query()
                 ->with('user:id,name,email')
-                ->orderByDesc('created_at')
-                ->chunk(200, function ($logs) use ($handle) {
+                ->orderByDesc('created_at');
+
+            if (! empty($filters['date_from'])) {
+                $query->whereDate('created_at', '>=', $filters['date_from']);
+            }
+            if (! empty($filters['date_to'])) {
+                $query->whereDate('created_at', '<=', $filters['date_to']);
+            }
+
+            $query->chunk(200, function ($logs) use ($handle) {
                     foreach ($logs as $log) {
                         fputcsv($handle, [
                             $log->id,
