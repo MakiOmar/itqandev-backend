@@ -5,9 +5,9 @@ namespace App\Services;
 use App\Http\Controllers\Api\SettingsController;
 use App\Models\Service;
 use App\Support\FeatureModules;
+use App\Support\PublishedServicesQuery;
 use App\Support\SeoMetaPresenter;
 use App\Support\SiteLanguages;
-use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -118,35 +118,9 @@ final class PublicMarketingShellService
     private function buildServicesPayload(string $present): array
     {
         $cacheKey = 'public:services:loc:'.($present !== '' ? $present : 'none');
-        $siteDefaultLocale = SiteLanguages::defaultCode();
 
-        $services = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($present, $siteDefaultLocale) {
-            $list = Service::query()
-                ->with(['translations', 'seoMetas'])
-                ->where('is_published', true)
-                ->when($present !== '', function ($query) use ($present, $siteDefaultLocale) {
-                    $query->where(function ($q) use ($present, $siteDefaultLocale) {
-                        $q->where('content_locale', $present);
-                        if ($present === $siteDefaultLocale) {
-                            $q->orWhereNull('content_locale');
-                        }
-                        $q->orWhereHas('translations', function ($tq) use ($present) {
-                            $tq->where('locale', $present);
-                        });
-                    });
-                })
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get();
-            if ($present !== '') {
-                $list->each(function (Service $service) use ($present) {
-                    TranslatableContentPresenter::applyService($service, $present);
-                })->filter(function (Service $service) use ($present) {
-                    return TranslatableContentPresenter::hasServiceContentForLocale($service, $present);
-                })->values();
-            }
-
-            return $list;
+        $services = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($present) {
+            return PublishedServicesQuery::fetchPublished($present !== '' ? $present : null);
         });
 
         return $services->map(function (Service $s) use ($present) {

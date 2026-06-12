@@ -31,10 +31,8 @@ trait InvalidatesCache
                 if (method_exists(Cache::getStore(), 'supportsTags') && Cache::getStore()->supportsTags()) {
                     $tag = str_replace(':*', '', $key);
                     Cache::tags([$tag])->flush();
-                } else {
-                    // Fallback: clear all cache (not ideal, but works)
-                    Cache::flush();
                 }
+                // Non-tag drivers: skip wildcard keys instead of flushing the entire cache store.
             } else {
                 Cache::forget($key);
             }

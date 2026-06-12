@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Concerns\InvalidatesCache;
 use App\Concerns\RefreshesCache;
+use App\Services\ContentExport\CategoryListCacheInvalidator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
@@ -13,8 +13,18 @@ class Category extends Model implements HasMedia
 {
     use HasFactory;
     use InteractsWithMedia;
-    use InvalidatesCache;
     use RefreshesCache;
+
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            CategoryListCacheInvalidator::flush();
+        });
+
+        static::deleted(function () {
+            CategoryListCacheInvalidator::flush();
+        });
+    }
 
     protected $fillable = [
         'name',
