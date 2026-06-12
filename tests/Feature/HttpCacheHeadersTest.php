@@ -53,7 +53,9 @@ class HttpCacheHeadersTest extends TestCase
 
     public function test_authenticated_settings_api_is_private_no_cache(): void
     {
-        $user = \App\Models\User::factory()->create();
+        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+        $user = \App\Models\User::query()->where('email', 'admin@credocode.test')->first();
+        $this->assertNotNull($user);
         $token = $user->createToken('test')->plainTextToken;
 
         $response = $this->getJson('/api/settings', [

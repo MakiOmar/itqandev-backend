@@ -66,7 +66,7 @@ class FontManagementTest extends TestCase
             ->postJson('/api/v1/fonts', [
                 'name' => 'Brand Sans',
                 'css_family' => 'Brand Sans',
-                'file_woff2' => 'https://example.test/fonts/brand.woff2',
+                'file_woff2' => '/storage/fonts/brand.woff2',
             ])
             ->assertCreated()
             ->assertJsonPath('data.css_family', 'Brand Sans');
@@ -98,12 +98,12 @@ class FontManagementTest extends TestCase
         $ltr = Font::query()->create([
             'name' => 'LTR Font',
             'css_family' => 'LTR Font',
-            'file_woff2' => 'https://example.test/ltr.woff2',
+            'file_woff2' => '/storage/fonts/ltr.woff2',
         ]);
         $rtl = Font::query()->create([
             'name' => 'RTL Font',
             'css_family' => 'RTL Font',
-            'file_woff2' => 'https://example.test/rtl.woff2',
+            'file_woff2' => '/storage/fonts/rtl.woff2',
         ]);
 
         $this->withHeaders($this->bearerHeaders($admin))
@@ -128,12 +128,12 @@ class FontManagementTest extends TestCase
         $ltr = Font::query()->create([
             'name' => 'Custom LTR',
             'css_family' => 'Custom LTR',
-            'file_woff2' => 'https://example.test/custom-ltr.woff2',
+            'file_woff2' => '/storage/fonts/custom-ltr.woff2',
         ]);
         $rtl = Font::query()->create([
             'name' => 'Custom RTL',
             'css_family' => 'Custom RTL',
-            'file_woff2' => 'https://example.test/custom-rtl.woff2',
+            'file_woff2' => '/storage/fonts/custom-rtl.woff2',
         ]);
 
         $this->withHeaders($this->bearerHeaders($admin))
@@ -149,6 +149,6 @@ class FontManagementTest extends TestCase
             ->assertJsonPath('data.typography.mode', TypographyResolver::MODE_CUSTOM)
             ->assertJsonPath('data.typography.ltr.css_family', 'Custom LTR')
             ->assertJsonPath('data.typography.rtl.css_family', 'Custom RTL')
-            ->assertJsonPath('data.typography.ltr.sources.woff2', 'https://example.test/custom-ltr.woff2');
+            ->assertJsonPath('data.typography.ltr.sources.woff2', '/storage/fonts/custom-ltr.woff2');
     }
 }
