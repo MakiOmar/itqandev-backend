@@ -37,8 +37,12 @@ final class TypographyResolver
 
             return [
                 'mode' => self::MODE_CUSTOM,
-                'ltr' => self::faceFromFont($ltrFont, self::FALLBACK_LTR),
-                'rtl' => self::faceFromFont($rtlFont, self::FALLBACK_RTL),
+                'ltr' => $ltrFont instanceof Font
+                    ? self::faceFromFont($ltrFont, self::FALLBACK_LTR)
+                    : self::systemFace(true),
+                'rtl' => $rtlFont instanceof Font
+                    ? self::faceFromFont($rtlFont, self::FALLBACK_RTL)
+                    : self::systemFace(false),
             ];
         }
 
@@ -102,10 +106,23 @@ final class TypographyResolver
 
         return [
             'css_family' => $font->css_family,
-            'fallback_stack' => $fallbackStack,
+            'fallback_stack' => self::stackWithFamily($font->css_family, $fallbackStack),
             'google_css_href' => null,
             'sources' => (object) $sources,
         ];
+    }
+
+    private static function stackWithFamily(string $cssFamily, string $baseStack): string
+    {
+        $family = trim($cssFamily);
+        if ($family === '') {
+            return $baseStack;
+        }
+        if (str_starts_with(strtolower($baseStack), strtolower($family))) {
+            return $baseStack;
+        }
+
+        return "'{$family}', {$baseStack}";
     }
 
     /**

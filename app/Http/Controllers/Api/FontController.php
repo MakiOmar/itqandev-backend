@@ -9,12 +9,36 @@ use App\Support\MarketingSettingsCache;
 use App\Support\TypographyResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class FontController extends Controller
 {
     private const SETTINGS_FILE_PATH = 'project-settings.json';
+
+    /** @var list<string> */
+    private const FONT_EXTENSIONS = ['woff', 'woff2', 'ttf', 'eot', 'svg'];
+
+    /** @var list<string> */
+    private const FONT_MIME_TYPES = [
+        'font/woff',
+        'font/woff2',
+        'font/ttf',
+        'font/sfnt',
+        'application/font-woff',
+        'application/font-woff2',
+        'application/x-font-woff',
+        'application/x-font-ttf',
+        'application/font-sfnt',
+        'application/vnd.ms-fontobject',
+        'image/svg+xml',
+        'application/svg+xml',
+        'text/xml',
+        'text/plain',
+        'application/octet-stream',
+        'binary/octet-stream',
+    ];
 
     /**
      * @return array<string, mixed>
@@ -34,6 +58,69 @@ class FontController extends Controller
     private function flushPublicCaches(): void
     {
         MarketingSettingsCache::forgetAll();
+    }
+
+    private function publicStoragePath(string $path): string
+    {
+        $normalized = str_replace('\\', '/', ltrim($path, '/'));
+
+        return '/storage/'.$normalized;
+    }
+
+    /**
+     * Persist relative /storage/... paths; accept legacy absolute app URLs from uploads.
+     */
+    private function normalizeFontFilePath(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        if (str_starts_with($trimmed, '/storage/')) {
+            return $trimmed;
+        }
+
+        if (preg_match('#^https?://[^/]+(/storage/.+)$#i', $trimmed, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return $trimmed;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function normalizeFontFileFields(array $data): array
+    {
+        foreach (['file_woff2', 'file_woff', 'file_ttf', 'file_eot', 'file_svg'] as $key) {
+            if (array_key_exists($key, $data)) {
+                $data[$key] = $this->normalizeFontFilePath($data[$key]);
+            }
+        }
+
+        return $data;
+    }
+
+    private function validateFontUploadFile(UploadedFile $file, string $expectedFormat): bool
+    {
+        $ext = strtolower($file->getClientOriginalExtension() ?: '');
+        if (! in_array($ext, self::FONT_EXTENSIONS, true)) {
+            return false;
+        }
+
+        if ($ext !== strtolower($expectedFormat)) {
+            return false;
+        }
+
+        $mime = strtolower((string) $file->getMimeType());
+
+        return in_array($mime, self::FONT_MIME_TYPES, true);
     }
 
     /**
@@ -101,6 +188,8 @@ class FontController extends Controller
     {
         $this->authorize('create', Font::class);
 
+        $request->merge($this->normalizeFontFileFields($request->all()));
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'css_family' => ['required', 'string', 'max:120', 'regex:/^[a-zA-Z0-9 _-]+$/'],
@@ -135,6 +224,8 @@ class FontController extends Controller
     public function update(Request $request, Font $font): JsonResponse
     {
         $this->authorize('update', $font);
+
+        $request->merge($this->normalizeFontFileFields($request->all()));
 
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:120'],
@@ -197,23 +288,40 @@ class FontController extends Controller
                 'required',
                 'file',
                 'max:'.max(1, (int) config('media.max_file_size', 10485760) / 1024),
-                'mimes:woff,woff2,ttf,eot,svg',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if (! $value instanceof UploadedFile) {
+                        $fail(__('Invalid file upload.'));
+
+                        return;
+                    }
+
+                    $format = strtolower((string) $request->input('format', ''));
+                    if (! in_array($format, self::FONT_EXTENSIONS, true)) {
+                        $fail(__('The format field is invalid.'));
+
+                        return;
+                    }
+
+                    if (! $this->validateFontUploadFile($value, $format)) {
+                        $fail(__('The file field must be a file of type: woff, woff2, ttf, eot, svg.'));
+                    }
+                },
             ],
-            'format' => ['required', 'string', Rule::in(['woff2', 'woff', 'ttf', 'eot', 'svg'])],
+            'format' => ['required', 'string', Rule::in(self::FONT_EXTENSIONS)],
         ]);
 
         $file = $request->file('file');
         $format = $data['format'];
-        $ext = $file->getClientOriginalExtension() ?: $format;
+        $ext = strtolower($file->getClientOriginalExtension() ?: $format);
         $filename = uniqid('font_', true).'.'.$ext;
 
         $path = $file->storeAs('fonts', $filename, 'public');
-        $url = Storage::disk('public')->url($path);
+        $publicPath = $this->publicStoragePath($path);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'url' => $url,
+                'url' => $publicPath,
                 'path' => $path,
                 'format' => $format,
             ],

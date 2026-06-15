@@ -526,19 +526,6 @@ class SettingsController extends Controller
             'settings_translations' => 'sometimes|array',
         ]);
 
-        $mergedForMode = array_merge($this->loadStoredSettings(), $validated);
-        $mode = TypographyResolver::normalizeMode($mergedForMode['font_mode'] ?? TypographyResolver::MODE_SYSTEM);
-        if ($mode === TypographyResolver::MODE_CUSTOM) {
-            $ltr = TypographyResolver::normalizeFontId($mergedForMode['font_ltr_id'] ?? null);
-            $rtl = TypographyResolver::normalizeFontId($mergedForMode['font_rtl_id'] ?? null);
-            if (! $ltr || ! $rtl) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Custom typography requires both LTR and RTL fonts.',
-                ], 422);
-            }
-        }
-
         // Load existing settings, apply updates, normalize aliases, then persist.
         $existingSettings = $this->loadStoredSettings();
         unset($existingSettings['features']);
