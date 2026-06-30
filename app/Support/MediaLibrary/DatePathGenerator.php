@@ -19,9 +19,11 @@ class DatePathGenerator extends DefaultPathGenerator
 
         $basePath = config('media.path', 'media');
         $createdAt = $media->created_at ?? now();
-        
+
+        // Trailing slash is required: Spatie concatenates the file name directly
+        // onto this path (getPathRelativeToRoot() = getPath() . file_name).
         return sprintf(
-            '%s/%s/%s/%s',
+            '%s/%s/%s/%s/',
             $basePath,
             $createdAt->format('Y'),
             $createdAt->format('m'),
@@ -34,7 +36,7 @@ class DatePathGenerator extends DefaultPathGenerator
      */
     public function getPathForConversions(Media $media): string
     {
-        return $this->getPath($media) . '/conversions';
+        return $this->getPath($media) . 'conversions/';
     }
 
     /**
@@ -42,7 +44,7 @@ class DatePathGenerator extends DefaultPathGenerator
      */
     public function getPathForResponsiveImages(Media $media): string
     {
-        return $this->getPath($media) . '/responsive-images';
+        return $this->getPath($media) . 'responsive-images/';
     }
 }
 
