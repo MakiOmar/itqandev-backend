@@ -5,7 +5,8 @@ namespace App\Services\Appearance;
 /**
  * Footer-specific block types (not homepage section types).
  *
- * @phpstan-type BlockTypeDef array{label: string, max_instances: int|null, default_settings: array<string, mixed>}
+ * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int}
+ * @phpstan-type BlockTypeDef array{label: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
  */
 final class FooterBlockRegistry
 {
@@ -23,6 +24,11 @@ final class FooterBlockRegistry
                     'show_logo' => true,
                     'show_name' => true,
                 ],
+                'settings_fields' => [
+                    ['key' => 'tagline', 'type' => 'textarea', 'label' => 'Tagline'],
+                    ['key' => 'show_logo', 'type' => 'boolean', 'label' => 'Show logo'],
+                    ['key' => 'show_name', 'type' => 'boolean', 'label' => 'Show name'],
+                ],
             ],
             'contact' => [
                 'label' => 'Contact',
@@ -31,12 +37,19 @@ final class FooterBlockRegistry
                     'title' => 'Contact',
                     'show_email' => true,
                 ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'show_email', 'type' => 'boolean', 'label' => 'Show email'],
+                ],
             ],
             'social' => [
                 'label' => 'Social links',
                 'max_instances' => 1,
                 'default_settings' => [
                     'title' => 'Follow us',
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
                 ],
             ],
             'menu' => [
@@ -45,6 +58,10 @@ final class FooterBlockRegistry
                 'default_settings' => [
                     'title' => 'Quick links',
                     'menu_slug' => 'primary',
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'menu_slug', 'type' => 'text', 'label' => 'Menu slug'],
                 ],
             ],
             'links' => [
@@ -59,6 +76,10 @@ final class FooterBlockRegistry
                         ['id' => 'lnk_contact', 'label' => 'Contact', 'url' => '/contact'],
                     ],
                 ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'links', 'type' => 'json', 'label' => 'Links (JSON array of {id,label,url})'],
+                ],
             ],
             'rich_text' => [
                 'label' => 'Rich text',
@@ -67,6 +88,10 @@ final class FooterBlockRegistry
                     'title' => '',
                     'body' => '',
                 ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'body', 'type' => 'textarea', 'label' => 'Body'],
+                ],
             ],
             'cta' => [
                 'label' => 'Call to action',
@@ -74,6 +99,10 @@ final class FooterBlockRegistry
                 'default_settings' => [
                     'button_label' => 'Get in touch',
                     'button_url' => '/contact',
+                ],
+                'settings_fields' => [
+                    ['key' => 'button_label', 'type' => 'text', 'label' => 'Button label'],
+                    ['key' => 'button_url', 'type' => 'text', 'label' => 'Button URL'],
                 ],
             ],
         ];
@@ -85,7 +114,7 @@ final class FooterBlockRegistry
     }
 
     /**
-     * @return list<array{type: string, label: string, max_instances: int|null}>
+     * @return list<array{type: string, label: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
      */
     public static function forAdmin(): array
     {
@@ -95,6 +124,8 @@ final class FooterBlockRegistry
                 'type' => $type,
                 'label' => $def['label'],
                 'max_instances' => $def['max_instances'],
+                'default_settings' => $def['default_settings'],
+                'settings_fields' => $def['settings_fields'],
             ];
         }
 

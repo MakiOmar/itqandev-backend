@@ -93,5 +93,12 @@ class AppearanceBuilderServiceTest extends TestCase
         $types = array_column($admin, 'type');
         $this->assertContains('hero', $types);
         $this->assertContains('cta', $types);
+
+        $hero = collect($admin)->firstWhere('type', 'hero');
+        $this->assertIsArray($hero);
+        $this->assertNotEmpty($hero['settings_fields']);
+        $fieldKeys = array_column($hero['settings_fields'], 'key');
+        $this->assertContains('image', $fieldKeys);
+        $this->assertContains('headline', $fieldKeys);
     }
 }

@@ -115,8 +115,12 @@ class AppearanceApiTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'data' => [
-                    'homepage_sections' => [['type', 'label', 'max_instances']],
-                    'footer_blocks' => [['type', 'label', 'max_instances']],
+                    'homepage_sections' => [
+                        ['type', 'label', 'max_instances', 'default_settings', 'settings_fields'],
+                    ],
+                    'footer_blocks' => [
+                        ['type', 'label', 'max_instances', 'default_settings', 'settings_fields'],
+                    ],
                 ],
             ]);
     }

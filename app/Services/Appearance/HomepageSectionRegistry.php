@@ -5,7 +5,8 @@ namespace App\Services\Appearance;
 /**
  * Canonical homepage section types for the Appearance builder.
  *
- * @phpstan-type SectionTypeDef array{label: string, max_instances: int|null, default_settings: array<string, mixed>}
+ * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int}
+ * @phpstan-type SectionTypeDef array{label: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
  */
 final class HomepageSectionRegistry
 {
@@ -26,6 +27,14 @@ final class HomepageSectionRegistry
                     'image' => '/hero-banner.webp',
                     'image_mobile' => '/hero-banner-mobile.webp',
                 ],
+                'settings_fields' => [
+                    ['key' => 'headline', 'type' => 'text', 'label' => 'Headline'],
+                    ['key' => 'subheadline', 'type' => 'textarea', 'label' => 'Subheadline'],
+                    ['key' => 'primary_cta_label', 'type' => 'text', 'label' => 'Primary CTA label'],
+                    ['key' => 'secondary_cta_label', 'type' => 'text', 'label' => 'Secondary CTA label'],
+                    ['key' => 'image', 'type' => 'media', 'label' => 'Desktop image', 'accept' => 'image/*'],
+                    ['key' => 'image_mobile', 'type' => 'media', 'label' => 'Mobile image', 'accept' => 'image/*'],
+                ],
             ],
             'services_teaser' => [
                 'label' => 'Services teaser',
@@ -36,6 +45,12 @@ final class HomepageSectionRegistry
                     'subtitle' => 'Full-stack development for web and mobile — from interfaces to APIs and app stores.',
                     'limit' => 6,
                 ],
+                'settings_fields' => [
+                    ['key' => 'eyebrow', 'type' => 'text', 'label' => 'Eyebrow'],
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
+                    ['key' => 'limit', 'type' => 'number', 'label' => 'Limit', 'min' => 1, 'max' => 24],
+                ],
             ],
             'case_studies' => [
                 'label' => 'Case studies',
@@ -44,6 +59,11 @@ final class HomepageSectionRegistry
                     'title' => 'Selected work',
                     'subtitle' => 'Recent projects we are proud of.',
                     'limit' => 3,
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
+                    ['key' => 'limit', 'type' => 'number', 'label' => 'Limit', 'min' => 1, 'max' => 24],
                 ],
             ],
             'testimonials' => [
@@ -54,12 +74,20 @@ final class HomepageSectionRegistry
                     'subtitle' => 'Trusted by startups and enterprises.',
                     'limit' => 6,
                 ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
+                    ['key' => 'limit', 'type' => 'number', 'label' => 'Limit', 'min' => 1, 'max' => 24],
+                ],
             ],
             'tech_stack' => [
                 'label' => 'Tech stack',
                 'max_instances' => 1,
                 'default_settings' => [
                     'eyebrow' => 'Built with',
+                ],
+                'settings_fields' => [
+                    ['key' => 'eyebrow', 'type' => 'text', 'label' => 'Eyebrow'],
                 ],
             ],
             'blog_preview' => [
@@ -70,6 +98,11 @@ final class HomepageSectionRegistry
                     'subtitle' => 'Tips and updates from our team.',
                     'limit' => 3,
                 ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
+                    ['key' => 'limit', 'type' => 'number', 'label' => 'Limit', 'min' => 1, 'max' => 24],
+                ],
             ],
             'cta' => [
                 'label' => 'Call to action',
@@ -78,6 +111,11 @@ final class HomepageSectionRegistry
                     'title' => 'Ready to start your project?',
                     'subtitle' => "Tell us about your idea. We'll get back within 24 hours.",
                     'button_label' => 'Get in touch',
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
+                    ['key' => 'button_label', 'type' => 'text', 'label' => 'Button label'],
                 ],
             ],
         ];
@@ -89,7 +127,7 @@ final class HomepageSectionRegistry
     }
 
     /**
-     * @return list<array{type: string, label: string, max_instances: int|null}>
+     * @return list<array{type: string, label: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
      */
     public static function forAdmin(): array
     {
@@ -99,6 +137,8 @@ final class HomepageSectionRegistry
                 'type' => $type,
                 'label' => $def['label'],
                 'max_instances' => $def['max_instances'],
+                'default_settings' => $def['default_settings'],
+                'settings_fields' => $def['settings_fields'],
             ];
         }
 
