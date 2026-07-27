@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Http\Controllers\Api\SettingsController;
 use App\Models\Service;
+use App\Services\Appearance\FooterBuilderService;
+use App\Services\Appearance\HomepageBuilderService;
 use App\Support\FeatureModules;
 use App\Support\PublishedServicesQuery;
 use App\Support\SeoMetaPresenter;
@@ -50,7 +52,9 @@ final class PublicMarketingShellService
      * @return array{
      *   site_meta: array<string, mixed>,
      *   menu: array{slug: string, locale: string, items: list<mixed>},
-     *   services: list<array<string, mixed>>
+     *   services: list<array<string, mixed>>,
+     *   homepage_sections: list<array<string, mixed>>,
+     *   footer: array<string, mixed>
      * }
      */
     public function build(string $locale, ?string $presentationLocale = null): array
@@ -62,8 +66,11 @@ final class PublicMarketingShellService
 
         $cacheKey = 'public:shell:'.$locale.':loc:'.$present;
 
-        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>} $payload */
+        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, footer: array<string, mixed>} $payload */
         $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present) {
+            $homepage = app(HomepageBuilderService::class);
+            $footer = app(FooterBuilderService::class);
+
             return [
                 'site_meta' => $this->buildSiteMeta($present),
                 'menu' => [
@@ -74,6 +81,8 @@ final class PublicMarketingShellService
                 'services' => FeatureModules::enabled('services')
                     ? $this->buildServicesPayload($present)
                     : [],
+                'homepage_sections' => $homepage->presentPublic(),
+                'footer' => $footer->presentPublic($locale),
             ];
         });
 

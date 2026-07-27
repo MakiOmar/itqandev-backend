@@ -73,6 +73,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'index'])->middleware('throttle:api');
     Route::put('/settings', [\App\Http\Controllers\Api\SettingsController::class, 'update'])->middleware('throttle:api');
 
+    // Appearance builders (homepage sections + zoned footer)
+    Route::prefix('appearance')->middleware('throttle:api')->group(function () {
+        Route::get('registries', [\App\Http\Controllers\Api\AppearanceController::class, 'registries']);
+        Route::get('homepage', [\App\Http\Controllers\Api\AppearanceController::class, 'showHomepage']);
+        Route::put('homepage', [\App\Http\Controllers\Api\AppearanceController::class, 'updateHomepage']);
+        Route::get('footer', [\App\Http\Controllers\Api\AppearanceController::class, 'showFooter']);
+        Route::put('footer', [\App\Http\Controllers\Api\AppearanceController::class, 'updateFooter']);
+    });
+
     Route::prefix('v1')->name('v1.')->middleware('throttle:api')->group(function () {
         Route::post('content-slugs/suggest', [\App\Http\Controllers\Api\ContentSlugSuggestionController::class, 'suggest']);
 
