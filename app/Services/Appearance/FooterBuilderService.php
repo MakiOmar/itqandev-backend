@@ -127,6 +127,12 @@ final class FooterBuilderService
                         continue;
                     }
                     $settings = is_array($block['settings'] ?? null) ? $block['settings'] : [];
+                    $settings = AppearanceLocalizedSettings::resolveForLocale(
+                        $settings,
+                        $locale,
+                        SiteLanguages::defaultCode(),
+                        FooterBlockRegistry::translatableKeys($type),
+                    );
                     if ($type === 'menu') {
                         $slug = strtolower(trim((string) ($settings['menu_slug'] ?? 'primary')));
                         if ($slug === '') {
@@ -300,8 +306,11 @@ final class FooterBuilderService
      */
     private function normalizeBlockSettings(string $type, array $settings): array
     {
-        $defaults = FooterBlockRegistry::defaultSettings($type);
-        $merged = array_merge($defaults, $settings);
+        $merged = AppearanceLocalizedSettings::normalize(
+            $settings,
+            FooterBlockRegistry::defaultSettings($type),
+            FooterBlockRegistry::translatableKeys($type),
+        );
 
         if ($type === 'links') {
             $links = [];
@@ -334,12 +343,6 @@ final class FooterBuilderService
         if ($type === 'menu') {
             $slug = strtolower(trim((string) ($merged['menu_slug'] ?? 'primary')));
             $merged['menu_slug'] = $slug !== '' ? $slug : 'primary';
-        }
-
-        foreach (['title', 'tagline', 'body', 'button_label', 'button_url'] as $strKey) {
-            if (array_key_exists($strKey, $merged) && is_string($merged[$strKey])) {
-                $merged[$strKey] = trim($merged[$strKey]);
-            }
         }
 
         foreach (['show_logo', 'show_name', 'show_email'] as $boolKey) {

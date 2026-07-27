@@ -61,7 +61,7 @@ final class FooterBlockRegistry
                 ],
                 'settings_fields' => [
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
-                    ['key' => 'menu_slug', 'type' => 'text', 'label' => 'Menu slug'],
+                    ['key' => 'menu_slug', 'type' => 'text', 'label' => 'Menu slug', 'translatable' => false],
                 ],
             ],
             'links' => [
@@ -102,7 +102,7 @@ final class FooterBlockRegistry
                 ],
                 'settings_fields' => [
                     ['key' => 'button_label', 'type' => 'text', 'label' => 'Button label'],
-                    ['key' => 'button_url', 'type' => 'text', 'label' => 'Button URL'],
+                    ['key' => 'button_url', 'type' => 'text', 'label' => 'Button URL', 'translatable' => false],
                 ],
             ],
         ];
@@ -125,8 +125,37 @@ final class FooterBlockRegistry
                 'label' => $def['label'],
                 'max_instances' => $def['max_instances'],
                 'default_settings' => $def['default_settings'],
-                'settings_fields' => $def['settings_fields'],
+                'settings_fields' => self::fieldsForAdmin($def['settings_fields']),
             ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function translatableKeys(string $type): array
+    {
+        $all = self::all();
+        $fields = is_array($all[$type]['settings_fields'] ?? null) ? $all[$type]['settings_fields'] : [];
+
+        return AppearanceLocalizedSettings::translatableKeysFromFields($fields);
+    }
+
+    /**
+     * @param  list<SettingsField>  $fields
+     * @return list<SettingsField>
+     */
+    private static function fieldsForAdmin(array $fields): array
+    {
+        $out = [];
+        foreach ($fields as $field) {
+            if (! is_array($field)) {
+                continue;
+            }
+            $field['translatable'] = AppearanceLocalizedSettings::isFieldTranslatable($field);
+            $out[] = $field;
         }
 
         return $out;

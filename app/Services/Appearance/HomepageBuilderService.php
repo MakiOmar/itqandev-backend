@@ -4,6 +4,7 @@ namespace App\Services\Appearance;
 
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
+use App\Support\SiteLanguages;
 use Illuminate\Support\Str;
 
 final class HomepageBuilderService
@@ -51,12 +52,17 @@ final class HomepageBuilderService
 
     /**
      * Enabled sections for public shell (unknown types dropped).
+     * Text settings are localized via settings.translations when locale ≠ default.
      *
      * @return list<array{id: string, type: string, layout_width: string, settings: array<string, mixed>}>
      */
-    public function presentPublic(): array
+    public function presentPublic(?string $locale = null): array
     {
         $doc = $this->loadAdminDocument();
+        $defaultLocale = SiteLanguages::defaultCode();
+        $locale = $locale !== null && $locale !== ''
+            ? strtolower(trim($locale))
+            : $defaultLocale;
         $out = [];
         foreach ($doc['sections'] as $section) {
             if (! ($section['enabled'] ?? false)) {
@@ -66,11 +72,18 @@ final class HomepageBuilderService
             if (! HomepageSectionRegistry::has($type)) {
                 continue;
             }
+            $settings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
+            $settings = AppearanceLocalizedSettings::resolveForLocale(
+                $settings,
+                $locale,
+                $defaultLocale,
+                HomepageSectionRegistry::translatableKeys($type),
+            );
             $out[] = [
                 'id' => (string) $section['id'],
                 'type' => $type,
                 'layout_width' => (string) ($section['layout_width'] ?? 'boxed'),
-                'settings' => is_array($section['settings'] ?? null) ? $section['settings'] : [],
+                'settings' => $settings,
             ];
         }
 
@@ -149,19 +162,11 @@ final class HomepageBuilderService
      */
     private function normalizeSettings(string $type, array $settings): array
     {
-        $defaults = HomepageSectionRegistry::defaultSettings($type);
-        $merged = array_merge($defaults, $settings);
-
-        foreach ($merged as $key => $value) {
-            if (is_string($value)) {
-                $merged[$key] = trim($value);
-            }
-            if (in_array($key, ['limit'], true)) {
-                $merged[$key] = max(1, min(24, (int) $value));
-            }
-        }
-
-        return $merged;
+        return AppearanceLocalizedSettings::normalize(
+            $settings,
+            HomepageSectionRegistry::defaultSettings($type),
+            HomepageSectionRegistry::translatableKeys($type),
+        );
     }
 
     /**

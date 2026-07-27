@@ -81,8 +81,8 @@ final class PublicMarketingShellService
                 'services' => FeatureModules::enabled('services')
                     ? $this->buildServicesPayload($present)
                     : [],
-                'homepage_sections' => $homepage->presentPublic(),
-                'footer' => $footer->presentPublic($locale),
+                'homepage_sections' => $homepage->presentPublic($present),
+                'footer' => $footer->presentPublic($present),
             ];
         });
 

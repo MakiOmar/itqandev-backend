@@ -59,6 +59,33 @@ class AppearanceBuilderServiceTest extends TestCase
         $this->assertArrayNotHasKey('enabled', $public[0]);
     }
 
+    public function test_homepage_public_merges_locale_translations(): void
+    {
+        $service = new HomepageBuilderService;
+        $service->save([
+            'sections' => [
+                [
+                    'type' => 'hero',
+                    'enabled' => true,
+                    'settings' => [
+                        'headline' => 'Hello EN',
+                        'translations' => [
+                            'ar' => ['headline' => 'مرحبا'],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $en = $service->presentPublic('en');
+        $this->assertSame('Hello EN', $en[0]['settings']['headline']);
+        $this->assertArrayNotHasKey('translations', $en[0]['settings']);
+
+        $ar = $service->presentPublic('ar');
+        $this->assertSame('مرحبا', $ar[0]['settings']['headline']);
+        $this->assertArrayNotHasKey('translations', $ar[0]['settings']);
+    }
+
     public function test_footer_defaults_hardcoded_mode(): void
     {
         $doc = (new FooterBuilderService)->defaultDocument();
@@ -100,5 +127,9 @@ class AppearanceBuilderServiceTest extends TestCase
         $fieldKeys = array_column($hero['settings_fields'], 'key');
         $this->assertContains('image', $fieldKeys);
         $this->assertContains('headline', $fieldKeys);
+        $headline = collect($hero['settings_fields'])->firstWhere('key', 'headline');
+        $this->assertTrue($headline['translatable'] ?? false);
+        $image = collect($hero['settings_fields'])->firstWhere('key', 'image');
+        $this->assertFalse($image['translatable'] ?? true);
     }
 }
