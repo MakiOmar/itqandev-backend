@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
-use App\Services\Appearance\ContentSectionDocument;
+use App\Services\Appearance\PageLayoutDocument;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
@@ -73,7 +73,7 @@ class PageController extends Controller
         unset($data['translations']);
         $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
         $data['status'] = $data['status'] ?? Page::STATUS_DRAFT;
-        $data['sections'] = ContentSectionDocument::normalizeSections($data['sections'] ?? [], false);
+        $data['sections'] = PageLayoutDocument::normalizeSectionsForPages($data['sections'] ?? []);
         if ($data['status'] === Page::STATUS_PUBLISHED && empty($data['published_at'])) {
             $data['published_at'] = now();
         }
@@ -120,7 +120,7 @@ class PageController extends Controller
             $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
         }
         if (array_key_exists('sections', $data)) {
-            $data['sections'] = ContentSectionDocument::normalizeSections($data['sections'], false);
+            $data['sections'] = PageLayoutDocument::normalizeSectionsForPages($data['sections']);
         }
         if (($data['status'] ?? $page->status) === Page::STATUS_PUBLISHED
             && empty($data['published_at'])

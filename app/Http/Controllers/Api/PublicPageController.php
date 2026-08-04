@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
-use App\Services\Appearance\ContentSectionDocument;
+use App\Services\Appearance\PageLayoutDocument;
 use App\Support\SeoMetaPresenter;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -78,7 +78,7 @@ class PublicPageController extends Controller
                 return null;
             }
 
-            $sections = ContentSectionDocument::presentPublic(
+            $sections = PageLayoutDocument::presentPublicForPages(
                 is_array($page->sections) ? $page->sections : [],
                 $present,
             );

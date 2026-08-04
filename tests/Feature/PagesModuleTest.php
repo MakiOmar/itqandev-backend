@@ -173,4 +173,70 @@ class PagesModuleTest extends TestCase
         $this->actingEditor();
         $this->getJson('/api/v1/pages')->assertForbidden();
     }
+
+    public function test_admin_create_wraps_legacy_and_accepts_layout_tree(): void
+    {
+        $this->actingEditor();
+
+        $legacy = $this->postJson('/api/v1/pages', [
+            'title' => 'Legacy wrap',
+            'slug' => 'legacy-wrap',
+            'status' => 'published',
+            'sections' => [
+                [
+                    'type' => 'cta',
+                    'enabled' => true,
+                    'layout_width' => 'boxed',
+                    'settings' => ['title' => 'CTA'],
+                ],
+            ],
+        ]);
+        $legacy->assertCreated();
+        $this->assertSame('layout', $legacy->json('sections.0.type'));
+        $this->assertSame('cta', $legacy->json('sections.0.rows.0.columns.0.blocks.0.type'));
+
+        $layout = $this->postJson('/api/v1/pages', [
+            'title' => 'Layout tree',
+            'slug' => 'layout-tree',
+            'status' => 'published',
+            'sections' => [
+                [
+                    'type' => 'layout',
+                    'layout_width' => 'full',
+                    'rows' => [
+                        [
+                            'stack_below' => 'tablet',
+                            'columns' => [
+                                [
+                                    'span' => ['mobile' => 12, 'tablet' => 6, 'desktop' => 6],
+                                    'blocks' => [
+                                        ['type' => 'cta', 'settings' => ['title' => 'Left']],
+                                    ],
+                                ],
+                                [
+                                    'span' => ['mobile' => 12, 'tablet' => 6, 'desktop' => 6],
+                                    'blocks' => [
+                                        ['type' => 'tech_stack', 'settings' => []],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+        $layout->assertCreated();
+        $this->assertCount(2, $layout->json('sections.0.rows.0.columns'));
+
+        $public = $this->getJson('/api/public/pages/layout-tree', [
+            'X-Content-Locale' => 'en',
+        ]);
+        $public->assertOk();
+        $this->assertSame('layout', $public->json('sections.0.type'));
+        $this->assertSame(
+            ['mobile' => 12, 'tablet' => 6, 'desktop' => 6],
+            $public->json('sections.0.rows.0.columns.0.span'),
+        );
+        $this->assertSame('cta', $public->json('sections.0.rows.0.columns.0.blocks.0.type'));
+    }
 }
