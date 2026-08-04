@@ -132,4 +132,52 @@ class AppearanceBuilderServiceTest extends TestCase
         $image = collect($hero['settings_fields'])->firstWhere('key', 'image');
         $this->assertTrue($image['translatable'] ?? false);
     }
+
+    public function test_hero_save_normalizes_viewport_and_floating_icons(): void
+    {
+        $service = new HomepageBuilderService;
+        $saved = $service->save([
+            'sections' => [
+                [
+                    'type' => 'hero',
+                    'enabled' => true,
+                    'settings' => [
+                        'full_viewport' => '1',
+                        'nav_top_space' => 240,
+                        'watermark_enabled' => true,
+                        'watermark_text' => 'Brand',
+                        'floating_icons_enabled' => true,
+                        'floating_icons' => [
+                            [
+                                'id' => 'icon_a',
+                                'enabled' => true,
+                                'media_id' => 5,
+                                'motion' => 'diagonal',
+                                'x' => 10,
+                                'y' => 20,
+                                'size' => 48,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $settings = $saved['sections'][0]['settings'];
+        $this->assertTrue($settings['full_viewport']);
+        $this->assertSame(200, $settings['nav_top_space']);
+        $this->assertTrue($settings['watermark_enabled']);
+        $this->assertTrue($settings['floating_icons_enabled']);
+        $this->assertCount(1, $settings['floating_icons']);
+        $this->assertSame('diagonal', $settings['floating_icons'][0]['motion']);
+        $this->assertSame(5, $settings['floating_icons'][0]['media_id']);
+
+        $fieldKeys = array_column(
+            collect(HomepageSectionRegistry::forAdmin())->firstWhere('type', 'hero')['settings_fields'],
+            'key'
+        );
+        $this->assertContains('full_viewport', $fieldKeys);
+        $this->assertContains('floating_icons', $fieldKeys);
+        $this->assertContains('watermark_text', $fieldKeys);
+    }
 }

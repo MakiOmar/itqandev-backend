@@ -67,6 +67,15 @@ final class AppearanceLocalizedSettings
             if ($key === 'limit') {
                 $merged[$key] = max(1, min(24, (int) $value));
             }
+            if ($key === 'floating_icons') {
+                $merged[$key] = HeroFloatingIcons::normalize($value);
+            }
+            if ($key === 'floating_icons_enabled' || $key === 'full_viewport' || $key === 'watermark_enabled') {
+                $merged[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            }
+            if ($key === 'nav_top_space') {
+                $merged[$key] = max(0, min(200, (int) $value));
+            }
         }
 
         $normalizedTranslations = [];

@@ -83,6 +83,16 @@ final class HomepageBuilderService
             $entry = HomepageSectionRegistry::all()[$type] ?? null;
             $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
             $settings = AppearanceMediaResolver::expandMediaFields($settings, $fields, $locale);
+            if ($type === 'hero') {
+                $enabled = filter_var($settings['floating_icons_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $settings['floating_icons_enabled'] = $enabled;
+                $settings['floating_icons'] = $enabled
+                    ? HeroFloatingIcons::presentPublic(
+                        is_array($settings['floating_icons'] ?? null) ? $settings['floating_icons'] : [],
+                        $locale,
+                    )
+                    : [];
+            }
             $out[] = [
                 'id' => (string) $section['id'],
                 'type' => $type,
