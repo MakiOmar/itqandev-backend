@@ -8,6 +8,7 @@ use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
+use App\Support\CacheKey;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
@@ -76,10 +77,13 @@ class ProjectController extends Controller
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
 
-        // Create cache key based on filters + presentation locale
-        $cacheKey = 'projects:list:'.md5(serialize($filters));
+        // Versioned via CacheKey::bump(Project::class) on save/delete (RefreshesCache + bulkDelete).
         $page = $request->get('page', 1);
-        $cacheKey .= ':page:'.$page.':loc:'.($present ?? 'none');
+        $cacheKey = CacheKey::versioned(Project::class)
+            .':list:'
+            .md5(serialize($filters))
+            .':page:'.$page
+            .':loc:'.($present ?? 'none');
 
         $paginator = Cache::remember($cacheKey, 1800, function () use ($query, $present) {
             if ($present) {
@@ -285,12 +289,16 @@ class ProjectController extends Controller
     {
         $this->authorize('bulkDelete', Project::class);
 
+        // Do not require exists:* — a stale list cache can offer IDs already removed.
+        // Mass whereIn()->delete() skips model events, so bump the list cache version explicitly.
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'exists:projects,id'],
+            'ids.*' => ['integer', 'distinct', 'min:1'],
         ]);
 
-        $count = Project::whereIn('id', $data['ids'])->delete();
+        $ids = array_values(array_unique(array_map('intval', $data['ids'])));
+        $count = Project::whereIn('id', $ids)->delete();
+        CacheKey::bump(Project::class);
 
         return response()->json([
             'deleted' => $count,

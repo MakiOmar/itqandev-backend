@@ -87,10 +87,12 @@ class ProjectResource extends JsonResource
     {
         $hero = $this->getFirstMedia('hero');
         $video = $this->getFirstMedia('video');
+        $gallery = $this->getMedia('gallery')->map(fn ($media) => $this->transformMediaItem($media))->values()->all();
 
         return [
             'hero' => $hero ? $this->transformMediaItem($hero) : null,
             'video' => $video ? $this->transformMediaItem($video) : null,
+            'gallery' => $gallery,
         ];
     }
 
