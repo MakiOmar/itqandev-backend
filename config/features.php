@@ -23,6 +23,7 @@ return [
         'services' => true,
         'testimonials' => true,
         'blog' => true,
+        'pages' => true,
         'media' => true,
         'users' => true,
         'seo' => true,

@@ -35,6 +35,11 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
         Route::get('blog-posts/{slug}', [\App\Http\Controllers\Api\PublicBlogPostController::class, 'show'])
             ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
     });
+    Route::middleware('feature.module:pages')->group(function () {
+        Route::get('pages', [\App\Http\Controllers\Api\PublicPageController::class, 'index']);
+        Route::get('pages/{slug}', [\App\Http\Controllers\Api\PublicPageController::class, 'show'])
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+    });
     Route::get('site-content', [\App\Http\Controllers\Api\PublicSiteContentController::class, 'show']);
     /** Branding + site_languages + module toggles for marketing (no auth). */
     Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
@@ -124,6 +129,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('blog-posts/export', [\App\Http\Controllers\Api\BlogPostController::class, 'export']);
             Route::post('blog-posts/import', [\App\Http\Controllers\Api\BlogPostController::class, 'import'])->middleware('throttle:bulk');
             Route::apiResource('blog-posts', \App\Http\Controllers\Api\BlogPostController::class);
+        });
+
+        Route::middleware('feature.module:pages')->group(function () {
+            Route::post('pages/bulk-delete', [\App\Http\Controllers\Api\PageController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::apiResource('pages', \App\Http\Controllers\Api\PageController::class);
         });
 
         Route::middleware('feature.module:users')->group(function () {

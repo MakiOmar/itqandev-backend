@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
@@ -76,6 +77,7 @@ final class PublicMenuResolver
             MenuItem::TYPE_SERVICE => [],
             MenuItem::TYPE_CATEGORY => [],
             MenuItem::TYPE_SKILL => [],
+            MenuItem::TYPE_PAGE => [],
         ];
 
         foreach ($items as $item) {
@@ -139,6 +141,22 @@ final class PublicMenuResolver
                     ->whereIn('id', array_unique($idsByType[MenuItem::TYPE_SKILL]))
                     ->get()
                     ->each(fn (Skill $s) => TranslatableContentPresenter::applySkill($s, $locale))
+            );
+        }
+
+        if ($idsByType[MenuItem::TYPE_PAGE] !== []) {
+            $out[MenuItem::TYPE_PAGE] = self::indexById(
+                Page::query()
+                    ->select(['id', 'title', 'slug', 'content_locale', 'status'])
+                    ->with('translations')
+                    ->where('status', Page::STATUS_PUBLISHED)
+                    ->whereIn('id', array_unique($idsByType[MenuItem::TYPE_PAGE]))
+                    ->get()
+                    ->each(function (Page $p) use ($locale) {
+                        TranslatableContentPresenter::applyPage($p, $locale);
+                    })
+                    ->filter(fn (Page $p) => TranslatableContentPresenter::hasPageContentForLocale($p, $locale))
+                    ->values()
             );
         }
 
@@ -282,6 +300,20 @@ final class PublicMenuResolver
                 }
                 $href = self::prefixLocale($locale, '/work/?skill_slug='.rawurlencode($slug));
                 $label ??= (string) $skill->name;
+
+                break;
+
+            case MenuItem::TYPE_PAGE:
+                $page = self::lookupReference($references, MenuItem::TYPE_PAGE, $item->reference_id);
+                if (! $page instanceof Page) {
+                    return null;
+                }
+                $slug = (string) $page->slug;
+                if ($slug === '') {
+                    return null;
+                }
+                $href = self::prefixLocale($locale, '/pages/'.$slug.'/');
+                $label ??= (string) $page->title;
 
                 break;
 

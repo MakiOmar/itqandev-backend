@@ -21,6 +21,7 @@ final class FeatureModules
             'services',
             'testimonials',
             'blog',
+            'pages',
             'media',
             'users',
             'seo',

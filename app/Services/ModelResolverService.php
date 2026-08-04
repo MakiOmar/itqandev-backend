@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
@@ -22,6 +23,7 @@ class ModelResolverService
         'skill' => Skill::class,
         'service' => Service::class,
         'blog-post' => BlogPost::class,
+        'page' => Page::class,
     ];
 
     /**

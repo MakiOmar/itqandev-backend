@@ -133,6 +133,7 @@ class MenuItemController extends Controller
             MenuItem::TYPE_SERVICE,
             MenuItem::TYPE_CATEGORY,
             MenuItem::TYPE_SKILL,
+            MenuItem::TYPE_PAGE,
         ], true)) {
             $refRule = $existing === null ? ['required'] : ['sometimes', 'required'];
             $table = match ($type) {
@@ -141,6 +142,7 @@ class MenuItemController extends Controller
                 MenuItem::TYPE_SERVICE => 'services',
                 MenuItem::TYPE_CATEGORY => 'categories',
                 MenuItem::TYPE_SKILL => 'skills',
+                MenuItem::TYPE_PAGE => 'pages',
                 default => '',
             };
             $request->validate([
@@ -175,6 +177,7 @@ class MenuItemController extends Controller
                 MenuItem::TYPE_SERVICE,
                 MenuItem::TYPE_CATEGORY,
                 MenuItem::TYPE_SKILL,
+                MenuItem::TYPE_PAGE,
             ], true)
                 ? (int) $referenceId
                 : null,

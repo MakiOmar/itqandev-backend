@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
@@ -54,6 +55,16 @@ final class TranslatableContentPresenter
             $service,
             $locale,
             ['name', 'short_description', 'description', 'process', 'deliverables']
+        );
+    }
+
+    public static function hasPageContentForLocale(Page $page, string $locale): bool
+    {
+        return self::hasTranslatedContentForLocale(
+            SiteLanguages::primaryLocaleForContent($page->content_locale),
+            $page,
+            $locale,
+            ['title', 'excerpt']
         );
     }
 
@@ -280,6 +291,32 @@ final class TranslatableContentPresenter
         }
         if (is_array($row->deliverables) && count($row->deliverables) > 0) {
             $service->setAttribute('deliverables', $row->deliverables);
+        }
+    }
+
+    public static function applyPage(Page $page, string $locale): void
+    {
+        $primary = SiteLanguages::primaryLocaleForContent($page->content_locale);
+        if ($locale === $primary) {
+            return;
+        }
+
+        if (! $page->relationLoaded('translations')) {
+            $page->load('translations');
+        }
+
+        $row = $page->translations->first(
+            static fn ($t) => strtolower((string) $t->locale) === $locale
+        );
+        if ($row === null) {
+            return;
+        }
+
+        if (is_string($row->title) && $row->title !== '') {
+            $page->setAttribute('title', $row->title);
+        }
+        if (is_string($row->excerpt) && $row->excerpt !== '') {
+            $page->setAttribute('excerpt', $row->excerpt);
         }
     }
 
