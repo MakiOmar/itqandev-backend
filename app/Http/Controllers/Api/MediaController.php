@@ -26,6 +26,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Models\AppMedia as Media;
+use App\Models\MediaTranslation;
+use App\Support\SiteLanguages;
 use ZipArchive;
 
 class MediaController extends Controller
@@ -125,8 +127,8 @@ class MediaController extends Controller
     {
         $media = Media::findOrFail($id);
         $this->authorize('view', $media);
-        
-        $media->load(['folder', 'tags', 'usages.usable']);
+
+        $media->load(['folder', 'tags', 'usages.usable', 'translations']);
 
         return new MediaResource($media);
     }
@@ -349,6 +351,10 @@ class MediaController extends Controller
 
     /**
      * Update a media item.
+     *
+     * Locale-aware meta: primary locale writes media.alt_text / description columns;
+     * secondary locales upsert media_translations. Optional `translations` map updates
+     * several locales in one request. Query/body `locale` selects which fields apply.
      */
     public function update(Request $request, $id)
     {
@@ -358,6 +364,11 @@ class MediaController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'alt_text' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'locale' => ['nullable', 'string', 'max:16'],
+            'translations' => ['nullable', 'array'],
+            'translations.*' => ['array'],
+            'translations.*.alt_text' => ['nullable', 'string', 'max:255'],
+            'translations.*.description' => ['nullable', 'string'],
             'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:255'],
@@ -367,12 +378,45 @@ class MediaController extends Controller
             $media->update(['name' => $data['name']]);
         }
 
-        if (isset($data['alt_text'])) {
-            $media->update(['alt_text' => $data['alt_text']]);
+        $defaultLocale = SiteLanguages::defaultCode();
+        $localeParam = $data['locale']
+            ?? $request->query('locale')
+            ?? $request->header('X-Content-Locale');
+        $activeLocale = is_string($localeParam) && trim($localeParam) !== ''
+            ? strtolower(trim($localeParam))
+            : $defaultLocale;
+
+        if (array_key_exists('alt_text', $data) || array_key_exists('description', $data)) {
+            $this->upsertMediaMeta(
+                $media,
+                $activeLocale,
+                $defaultLocale,
+                array_key_exists('alt_text', $data) ? $data['alt_text'] : null,
+                array_key_exists('description', $data) ? $data['description'] : null,
+                array_key_exists('alt_text', $data),
+                array_key_exists('description', $data),
+            );
         }
 
-        if (isset($data['description'])) {
-            $media->update(['description' => $data['description']]);
+        if (isset($data['translations']) && is_array($data['translations'])) {
+            foreach ($data['translations'] as $code => $bag) {
+                if (! is_array($bag)) {
+                    continue;
+                }
+                $code = strtolower(trim((string) $code));
+                if ($code === '') {
+                    continue;
+                }
+                $this->upsertMediaMeta(
+                    $media,
+                    $code,
+                    $defaultLocale,
+                    array_key_exists('alt_text', $bag) ? $bag['alt_text'] : null,
+                    array_key_exists('description', $bag) ? $bag['description'] : null,
+                    array_key_exists('alt_text', $bag),
+                    array_key_exists('description', $bag),
+                );
+            }
         }
 
         if (isset($data['folder_id'])) {
@@ -384,9 +428,61 @@ class MediaController extends Controller
         }
 
         $media->refresh();
-        $media->load(['folder', 'tags']);
+        $media->load(['folder', 'tags', 'translations']);
 
         return new MediaResource($media);
+    }
+
+    /**
+     * Write alt/description for a locale (primary columns or translation row).
+     */
+    private function upsertMediaMeta(
+        Media $media,
+        string $locale,
+        string $defaultLocale,
+        mixed $altText,
+        mixed $description,
+        bool $hasAlt,
+        bool $hasDescription,
+    ): void {
+        $locale = strtolower(trim($locale));
+        $defaultLocale = strtolower(trim($defaultLocale));
+
+        if ($locale === '' || $locale === $defaultLocale) {
+            $patch = [];
+            if ($hasAlt) {
+                $patch['alt_text'] = is_string($altText) ? trim($altText) : $altText;
+                if ($patch['alt_text'] === '') {
+                    $patch['alt_text'] = null;
+                }
+            }
+            if ($hasDescription) {
+                $patch['description'] = is_string($description) ? trim($description) : $description;
+                if ($patch['description'] === '') {
+                    $patch['description'] = null;
+                }
+            }
+            if ($patch !== []) {
+                $media->update($patch);
+            }
+
+            return;
+        }
+
+        /** @var MediaTranslation $row */
+        $row = MediaTranslation::query()->firstOrNew([
+            'media_id' => $media->id,
+            'locale' => $locale,
+        ]);
+        if ($hasAlt) {
+            $row->alt_text = is_string($altText) ? (trim($altText) === '' ? null : trim($altText)) : $altText;
+        }
+        if ($hasDescription) {
+            $row->description = is_string($description)
+                ? (trim($description) === '' ? null : trim($description))
+                : $description;
+        }
+        $row->save();
     }
 
     /**

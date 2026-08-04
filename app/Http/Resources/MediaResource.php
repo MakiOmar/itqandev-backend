@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Media\LocalizedMediaMeta;
+use App\Support\SiteLanguages;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,11 +18,19 @@ class MediaResource extends JsonResource
     {
         $url = $this->getUrl();
         // Ensure URL is absolute
-        if ($url && !filter_var($url, FILTER_VALIDATE_URL)) {
+        if ($url && ! filter_var($url, FILTER_VALIDATE_URL)) {
             $url = url($url);
         }
 
-        return [
+        $defaultLocale = SiteLanguages::defaultCode();
+        $localeParam = $request->query('locale') ?? $request->header('X-Content-Locale');
+        $locale = is_string($localeParam) && trim($localeParam) !== ''
+            ? strtolower(trim($localeParam))
+            : $defaultLocale;
+
+        $meta = LocalizedMediaMeta::resolve($this->resource, $locale, $defaultLocale);
+
+        $payload = [
             'id' => $this->id,
             'file_name' => $this->file_name,
             'name' => $this->name,
@@ -32,8 +42,8 @@ class MediaResource extends JsonResource
             'model_type' => $this->model_type,
             'model_id' => $this->model_id,
             'created_at' => $this->created_at?->toIso8601String(),
-            'alt_text' => $this->getCustomProperty('alt_text'),
-            'description' => $this->getCustomProperty('description'),
+            'alt_text' => $meta['alt_text'],
+            'description' => $meta['description'],
             'folder' => $this->whenLoaded('folder', function () {
                 return [
                     'id' => $this->folder->id,
@@ -47,5 +57,12 @@ class MediaResource extends JsonResource
                 ]);
             }),
         ];
+
+        // Admin edit forms need the full translation map when translations are loaded.
+        if ($this->relationLoaded('translations')) {
+            $payload['translations'] = LocalizedMediaMeta::translationsBag($this->resource);
+        }
+
+        return $payload;
     }
 }

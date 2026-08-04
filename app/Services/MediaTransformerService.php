@@ -29,7 +29,7 @@ class MediaTransformerService
             'model_type' => $media->model_type,
             'model_id' => $media->model_id,
             'created_at' => $media->created_at?->toIso8601String(),
-            'alt_text' => $media->getCustomProperty('alt_text'),
+            'alt_text' => $media->alt_text ?? null,
         ];
 
         if ($media->relationLoaded('folder') && $media->folder) {

@@ -32,8 +32,8 @@ final class HomepageSectionRegistry
                     ['key' => 'subheadline', 'type' => 'textarea', 'label' => 'Subheadline'],
                     ['key' => 'primary_cta_label', 'type' => 'text', 'label' => 'Primary CTA label'],
                     ['key' => 'secondary_cta_label', 'type' => 'text', 'label' => 'Secondary CTA label'],
-                    ['key' => 'image', 'type' => 'media', 'label' => 'Desktop image', 'accept' => 'image/*'],
-                    ['key' => 'image_mobile', 'type' => 'media', 'label' => 'Mobile image', 'accept' => 'image/*'],
+                    ['key' => 'image', 'type' => 'media', 'label' => 'Desktop image', 'accept' => 'image/*', 'translatable' => true],
+                    ['key' => 'image_mobile', 'type' => 'media', 'label' => 'Mobile image', 'accept' => 'image/*', 'translatable' => true],
                 ],
             ],
             'services_teaser' => [

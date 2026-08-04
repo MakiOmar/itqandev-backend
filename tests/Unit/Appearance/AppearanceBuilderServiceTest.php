@@ -130,6 +130,6 @@ class AppearanceBuilderServiceTest extends TestCase
         $headline = collect($hero['settings_fields'])->firstWhere('key', 'headline');
         $this->assertTrue($headline['translatable'] ?? false);
         $image = collect($hero['settings_fields'])->firstWhere('key', 'image');
-        $this->assertFalse($image['translatable'] ?? true);
+        $this->assertTrue($image['translatable'] ?? false);
     }
 }

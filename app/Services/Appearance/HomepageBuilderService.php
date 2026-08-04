@@ -52,7 +52,8 @@ final class HomepageBuilderService
 
     /**
      * Enabled sections for public shell (unknown types dropped).
-     * Text settings are localized via settings.translations when locale ≠ default.
+     * Text/media settings are localized via settings.translations when locale ≠ default.
+     * Media ids resolve to URL + {key}_alt for the presentation locale.
      *
      * @return list<array{id: string, type: string, layout_width: string, settings: array<string, mixed>}>
      */
@@ -79,6 +80,9 @@ final class HomepageBuilderService
                 $defaultLocale,
                 HomepageSectionRegistry::translatableKeys($type),
             );
+            $entry = HomepageSectionRegistry::all()[$type] ?? null;
+            $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
+            $settings = AppearanceMediaResolver::expandMediaFields($settings, $fields, $locale);
             $out[] = [
                 'id' => (string) $section['id'],
                 'type' => $type,

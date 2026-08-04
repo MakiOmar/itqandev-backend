@@ -37,5 +37,13 @@ class AppMedia extends SpatieMedia
     {
         return $this->hasMany(MediaUsage::class, 'media_id');
     }
+
+    /**
+     * Secondary-locale alt_text / description (primary lives on columns).
+     */
+    public function translations(): HasMany
+    {
+        return $this->hasMany(MediaTranslation::class, 'media_id');
+    }
 }
 
