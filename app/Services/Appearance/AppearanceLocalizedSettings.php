@@ -70,12 +70,27 @@ final class AppearanceLocalizedSettings
             if ($key === 'floating_icons') {
                 $merged[$key] = HeroFloatingIcons::normalize($value);
             }
-            if ($key === 'floating_icons_enabled' || $key === 'full_viewport' || $key === 'watermark_enabled') {
+            if (
+                $key === 'floating_icons_enabled'
+                || $key === 'full_viewport'
+                || $key === 'watermark_enabled'
+                || $key === 'particles_enabled'
+            ) {
                 $merged[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
             }
             if ($key === 'nav_top_space') {
                 $merged[$key] = max(0, min(200, (int) $value));
             }
+        }
+
+        if (array_key_exists('particles_enabled', $merged)
+            || array_key_exists('particles_density', $merged)
+            || array_key_exists('particles_speed', $merged)
+            || array_key_exists('particles_opacity', $merged)
+            || array_key_exists('particles_size', $merged)
+            || array_key_exists('particles_color', $merged)
+        ) {
+            $merged = HeroParticlesSettings::normalizeInto($merged);
         }
 
         $normalizedTranslations = [];

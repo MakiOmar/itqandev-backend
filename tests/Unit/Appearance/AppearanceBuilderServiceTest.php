@@ -179,5 +179,7 @@ class AppearanceBuilderServiceTest extends TestCase
         $this->assertContains('full_viewport', $fieldKeys);
         $this->assertContains('floating_icons', $fieldKeys);
         $this->assertContains('watermark_text', $fieldKeys);
+        $this->assertContains('particles_enabled', $fieldKeys);
+        $this->assertContains('particles_color', $fieldKeys);
     }
 }
