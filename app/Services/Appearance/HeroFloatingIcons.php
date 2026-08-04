@@ -114,14 +114,19 @@ final class HeroFloatingIcons
         return $out;
     }
 
+    /** Allow slight outside placement so icons can hang past image edges (−20…120). */
+    public const POSITION_MIN = -20.0;
+
+    public const POSITION_MAX = 120.0;
+
     private static function clampPercent(mixed $value): float
     {
         $n = is_numeric($value) ? (float) $value : 0.0;
-        if ($n < 0) {
-            return 0.0;
+        if ($n < self::POSITION_MIN) {
+            return self::POSITION_MIN;
         }
-        if ($n > 100) {
-            return 100.0;
+        if ($n > self::POSITION_MAX) {
+            return self::POSITION_MAX;
         }
 
         return round($n, 2);
