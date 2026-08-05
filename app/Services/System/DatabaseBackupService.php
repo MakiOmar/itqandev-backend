@@ -166,19 +166,19 @@ class DatabaseBackupService
      */
     private function createMysqlDump(array $connection, string $path): void
     {
-        $cli = trim((string) config('database-backup.mysqldump_path', ''));
-        if ($cli !== '' && is_executable($cli)) {
-            $this->runMysqldumpCli($cli, $connection, $path);
+        $candidates = array_values(array_filter([
+            $this->resolveConfiguredBinary((string) config('database-backup.mysqldump_path', '')),
+            $this->resolveBinaryOnPath('mysqldump'),
+        ]));
 
-            return;
-        }
+        foreach ($candidates as $cli) {
+            try {
+                $this->runMysqldumpCli($cli, $connection, $path);
 
-        // Prefer mysqldump from PATH when available (portable installs).
-        $which = $this->resolveBinaryOnPath('mysqldump');
-        if ($which !== null) {
-            $this->runMysqldumpCli($which, $connection, $path);
-
-            return;
+                return;
+            } catch (Throwable) {
+                // Fall through to the next candidate / PHP dump.
+            }
         }
 
         $this->createMysqlDumpWithPhp($connection, $path);
@@ -380,12 +380,12 @@ class DatabaseBackupService
      */
     private function restoreMysql(array $connection, string $path, string $sql): void
     {
-        $cli = trim((string) config('database-backup.mysql_cli_path', ''));
-        if ($cli === '' || ! is_executable($cli)) {
-            $cli = $this->resolveBinaryOnPath('mysql') ?? '';
-        }
+        $candidates = array_values(array_filter([
+            $this->resolveConfiguredBinary((string) config('database-backup.mysql_cli_path', '')),
+            $this->resolveBinaryOnPath('mysql'),
+        ]));
 
-        if ($cli !== '') {
+        foreach ($candidates as $cli) {
             $host = (string) ($connection['host'] ?? '127.0.0.1');
             $port = (string) ($connection['port'] ?? 3306);
             $database = (string) ($connection['database'] ?? '');
@@ -561,6 +561,44 @@ class DatabaseBackupService
         }
     }
 
+    /**
+     * Resolve a configured absolute binary path, adding `.exe` on Windows when needed.
+     */
+    private function resolveConfiguredBinary(string $configured): ?string
+    {
+        $configured = trim($configured);
+        if ($configured === '') {
+            return null;
+        }
+
+        $candidates = [$configured];
+        if (DIRECTORY_SEPARATOR === '\\' && ! str_ends_with(strtolower($configured), '.exe')) {
+            $candidates[] = $configured.'.exe';
+        }
+
+        foreach ($candidates as $path) {
+            if ($this->isUsableBinary($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    private function isUsableBinary(string $path): bool
+    {
+        if ($path === '' || ! is_file($path)) {
+            return false;
+        }
+
+        // Windows often reports false for is_executable() on otherwise usable .exe files.
+        if (DIRECTORY_SEPARATOR === '\\') {
+            return true;
+        }
+
+        return is_executable($path);
+    }
+
     private function resolveBinaryOnPath(string $name): ?string
     {
         $isWindows = DIRECTORY_SEPARATOR === '\\';
@@ -574,7 +612,7 @@ class DatabaseBackupService
                 continue;
             }
             $first = trim(explode("\n", str_replace("\r", '', $process->getOutput()))[0] ?? '');
-            if ($first !== '' && is_executable($first)) {
+            if ($first !== '' && $this->isUsableBinary($first)) {
                 return $first;
             }
         }

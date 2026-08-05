@@ -73,4 +73,24 @@ class DatabaseBackupServiceTest extends TestCase
         $count = (int) DB::connection()->getPdo()->query('SELECT COUNT(*) FROM sample_items')->fetchColumn();
         $this->assertSame(2, $count);
     }
+
+    public function test_resolve_configured_binary_appends_exe_on_windows(): void
+    {
+        if (DIRECTORY_SEPARATOR !== '\\') {
+            $this->markTestSkipped('Windows-only path normalization.');
+        }
+
+        $service = app(DatabaseBackupService::class);
+        $method = new \ReflectionMethod(DatabaseBackupService::class, 'resolveConfiguredBinary');
+        $method->setAccessible(true);
+
+        $withoutExe = 'E:\\xampp\\mysql\\bin\\mysqldump';
+        $withExe = $withoutExe.'.exe';
+        if (! is_file($withExe)) {
+            $this->markTestSkipped('XAMPP mysqldump.exe not present on this machine.');
+        }
+
+        $resolved = $method->invoke($service, $withoutExe);
+        $this->assertSame($withExe, $resolved);
+    }
 }
