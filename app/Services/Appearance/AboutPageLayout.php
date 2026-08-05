@@ -10,7 +10,7 @@ namespace App\Services\Appearance;
 final class AboutPageLayout
 {
     /** Bump when seeded layout shape should replace older about pages missing this marker. */
-    public const LAYOUT_REVISION = 2;
+    public const LAYOUT_REVISION = 3;
 
     /**
      * @return list<array<string, mixed>>
@@ -92,14 +92,14 @@ final class AboutPageLayout
                                             'body' => '<p>Since <strong>2014</strong> we have partnered with ambitious teams to ship web and mobile products that stay fast, reliable, and a pleasure to use.</p><p>We are not a volume agency. We are a focused studio: senior engineering judgment, design that earns trust, and communication you can brief a stakeholder with.</p>',
                                             'image' => null,
                                             'image_position' => 'right',
-                                            'button_label' => 'View our work',
-                                            'button_url' => '/work',
+                                            'button_label' => 'View our portfolio',
+                                            'button_url' => '/portfolio',
                                             'translations' => [
                                                 'ar' => [
                                                     'eyebrow' => 'من نكون',
                                                     'title' => 'نقدّم أنفسنا بوضوح',
                                                     'body' => '<p>منذ <strong>٢٠١٤</strong> نشارك فرقًا طموحة في إطلاق منتجات ويب وموبايل تبقى سريعة وموثوقة وممتعة في الاستخدام.</p><p>لسنا وكالة حجم. نحن استوديو مركّز: حكم هندسي ناضج، تصميم يبني الثقة، وتواصل يمكنك عرضه على أصحاب المصلحة بثقة.</p>',
-                                                    'button_label' => 'اطّلع على أعمالنا',
+                                                    'button_label' => 'اطّلع على المحفظة',
                                                 ],
                                             ],
                                         ],

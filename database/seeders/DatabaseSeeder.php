@@ -111,6 +111,10 @@ class DatabaseSeeder extends Seeder
             $this->call(WebDevDemoSeeder::class);
         }
 
+        if (FeatureModules::enabled('projects')) {
+            $this->call(ClientSitesPortfolioSeeder::class);
+        }
+
         if (FeatureModules::enabled('services')) {
             $this->call(ServicesSeeder::class);
         }
@@ -122,7 +126,7 @@ class DatabaseSeeder extends Seeder
         if (FeatureModules::enabled('pages')) {
             $this->call(ContactPageSeeder::class);
             $this->call(AboutPageSeeder::class);
-            $this->call(WorkPageSeeder::class);
+            $this->call(PortfolioPageSeeder::class);
         }
 
         $this->call(PrimaryMenuSeeder::class);

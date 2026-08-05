@@ -42,7 +42,7 @@ final class FooterBuilderService
                                 'title' => 'Quick links',
                                 'links' => [
                                     ['id' => 'lnk_services', 'label' => 'Services', 'url' => '/services'],
-                                    ['id' => 'lnk_work', 'label' => 'Work', 'url' => '/work'],
+                                    ['id' => 'lnk_portfolio', 'label' => 'Portfolio', 'url' => '/portfolio'],
                                     ['id' => 'lnk_about', 'label' => 'About', 'url' => '/about'],
                                     ['id' => 'lnk_pricing', 'label' => 'Pricing', 'url' => '/pricing'],
                                     ['id' => 'lnk_blog', 'label' => 'Blog', 'url' => '/blog'],

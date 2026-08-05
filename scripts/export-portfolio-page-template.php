@@ -4,7 +4,7 @@ require __DIR__ . '/../vendor/autoload.php';
 $app = require __DIR__ . '/../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-use App\Services\Appearance\WorkPageLayout;
+use App\Services\Appearance\PortfolioPageLayout;
 
 $payload = [
     'format' => 'credocode.builder-export',
@@ -12,10 +12,10 @@ $payload = [
     'builder' => 'page',
     'exported_at' => now()->toIso8601String(),
     'document' => [
-        'sections' => WorkPageLayout::sections(),
+        'sections' => PortfolioPageLayout::sections(),
     ],
 ];
 
-$out = dirname(__DIR__, 2) . '/website/src/lib/admin/page-templates/work-page.builder.json';
+$out = dirname(__DIR__, 2) . '/website/src/lib/admin/page-templates/portfolio-page.builder.json';
 file_put_contents($out, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
 echo "Wrote {$out}\n";

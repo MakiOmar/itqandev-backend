@@ -32,7 +32,7 @@ final class KitRegistry
                     'headline' => 'We build web, Android & iOS apps that scale',
                     'subheadline' => 'From MVPs to enterprise products. Modern stack, clear process, and long-term support.',
                     'primary_cta_label' => 'Get in touch',
-                    'secondary_cta_label' => 'View our work',
+                    'secondary_cta_label' => 'View our portfolio',
                     'image' => '/hero-banner.webp',
                     'image_mobile' => '/hero-banner-mobile.webp',
                     'floating_icons_enabled' => false,
@@ -91,7 +91,7 @@ final class KitRegistry
                 'category' => 'Marketing',
                 'max_instances' => 1,
                 'default_settings' => [
-                    'title' => 'Selected work',
+                    'title' => 'Selected portfolio',
                     'subtitle' => 'Recent projects we are proud of.',
                     'limit' => 3,
                 ],

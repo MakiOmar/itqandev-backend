@@ -3,14 +3,14 @@
 namespace App\Services\Appearance;
 
 /**
- * Default professional Work / Portfolio CMS page layout (page builder document).
- * Used by {@see \Database\Seeders\WorkPageSeeder}.
+ * Default professional Portfolio CMS page layout (page builder document).
+ * Used by {@see \Database\Seeders\PortfolioPageSeeder}.
  * Primary (English) copy on flat settings; Arabic under settings.translations.ar.
  */
-final class WorkPageLayout
+final class PortfolioPageLayout
 {
-    /** Bump when seeded layout shape should replace older work pages missing this marker. */
-    public const LAYOUT_REVISION = 1;
+    /** Bump when seeded layout shape should replace older portfolio pages missing this marker. */
+    public const LAYOUT_REVISION = 2;
 
     /**
      * @return list<array<string, mixed>>
@@ -19,7 +19,7 @@ final class WorkPageLayout
     {
         return PageLayoutDocument::normalizeSectionsForPages([
             [
-                'id' => 'band_work_header',
+                'id' => 'band_portfolio_header',
                 'type' => 'layout',
                 'enabled' => true,
                 'layout_width' => 'boxed',
@@ -28,16 +28,16 @@ final class WorkPageLayout
                 ],
                 'rows' => [
                     [
-                        'id' => 'row_work_header',
+                        'id' => 'row_portfolio_header',
                         'stack_below' => 'none',
                         'gap' => 4,
                         'columns' => [
                             [
-                                'id' => 'col_work_header',
+                                'id' => 'col_portfolio_header',
                                 'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
                                 'blocks' => [
                                     [
-                                        'id' => 'kit_work_page_header',
+                                        'id' => 'kit_portfolio_page_header',
                                         'kind' => 'kit',
                                         'type' => 'page_header',
                                         'enabled' => true,
@@ -45,15 +45,15 @@ final class WorkPageLayout
                                             'show_breadcrumbs' => true,
                                             'show_title' => true,
                                             'home_label' => 'Home',
-                                            'eyebrow' => 'Portfolio',
-                                            'title_override' => 'Our work',
+                                            'eyebrow' => 'Selected projects',
+                                            'title_override' => 'Portfolio',
                                             'subtitle' => 'Selected projects across web, mobile, and product platforms.',
                                             'extra_crumbs' => [],
                                             'translations' => [
                                                 'ar' => [
                                                     'home_label' => 'الرئيسية',
-                                                    'eyebrow' => 'المحفظة',
-                                                    'title_override' => 'أعمالنا',
+                                                    'eyebrow' => 'مشاريع مختارة',
+                                                    'title_override' => 'المحفظة',
                                                     'subtitle' => 'مشاريع مختارة عبر الويب والموبايل ومنصات المنتجات.',
                                                 ],
                                             ],
@@ -66,23 +66,23 @@ final class WorkPageLayout
                 ],
             ],
             [
-                'id' => 'band_work_projects',
+                'id' => 'band_portfolio_projects',
                 'type' => 'layout',
                 'enabled' => true,
                 'layout_width' => 'boxed',
                 'settings' => [],
                 'rows' => [
                     [
-                        'id' => 'row_work_projects',
+                        'id' => 'row_portfolio_projects',
                         'stack_below' => 'none',
                         'gap' => 4,
                         'columns' => [
                             [
-                                'id' => 'col_work_projects',
+                                'id' => 'col_portfolio_projects',
                                 'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
                                 'blocks' => [
                                     [
-                                        'id' => 'kit_work_projects_list',
+                                        'id' => 'kit_portfolio_projects_list',
                                         'kind' => 'kit',
                                         'type' => 'projects_list',
                                         'enabled' => true,
@@ -97,23 +97,23 @@ final class WorkPageLayout
                 ],
             ],
             [
-                'id' => 'band_work_cta',
+                'id' => 'band_portfolio_cta',
                 'type' => 'layout',
                 'enabled' => true,
                 'layout_width' => 'boxed',
                 'settings' => [],
                 'rows' => [
                     [
-                        'id' => 'row_work_cta',
+                        'id' => 'row_portfolio_cta',
                         'stack_below' => 'none',
                         'gap' => 4,
                         'columns' => [
                             [
-                                'id' => 'col_work_cta',
+                                'id' => 'col_portfolio_cta',
                                 'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
                                 'blocks' => [
                                     [
-                                        'id' => 'kit_work_cta',
+                                        'id' => 'kit_portfolio_cta',
                                         'kind' => 'kit',
                                         'type' => 'cta',
                                         'enabled' => true,

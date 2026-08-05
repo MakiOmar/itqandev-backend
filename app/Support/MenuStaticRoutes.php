@@ -11,11 +11,13 @@ final class MenuStaticRoutes
     public const KEYS = [
         'home',
         'services',
-        'work',
+        'portfolio',
         'about',
         'pricing',
         'blog',
         'contact',
+        /** @deprecated Prefer `portfolio`; still accepted for older menu rows. */
+        'work',
     ];
 
     /**
@@ -28,7 +30,8 @@ final class MenuStaticRoutes
         return [
             'home' => '/',
             'services' => '/services/',
-            'work' => '/work/',
+            'portfolio' => '/portfolio/',
+            'work' => '/portfolio/',
             'about' => '/about/',
             'pricing' => '/pricing/',
             'blog' => '/blog/',
@@ -46,7 +49,8 @@ final class MenuStaticRoutes
         return [
             'home' => 'Home',
             'services' => 'Services',
-            'work' => 'Work',
+            'portfolio' => 'Portfolio',
+            'work' => 'Portfolio',
             'about' => 'About',
             'pricing' => 'Pricing',
             'blog' => 'Blog',

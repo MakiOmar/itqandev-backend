@@ -71,7 +71,7 @@ final class FooterBlockRegistry
                     'title' => 'Links',
                     'links' => [
                         ['id' => 'lnk_services', 'label' => 'Services', 'url' => '/services'],
-                        ['id' => 'lnk_work', 'label' => 'Work', 'url' => '/work'],
+                        ['id' => 'lnk_portfolio', 'label' => 'Portfolio', 'url' => '/portfolio'],
                         ['id' => 'lnk_about', 'label' => 'About', 'url' => '/about'],
                         ['id' => 'lnk_contact', 'label' => 'Contact', 'url' => '/contact'],
                     ],

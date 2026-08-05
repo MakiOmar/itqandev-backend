@@ -242,7 +242,7 @@ final class PublicMenuResolver
                 if ($slug === '') {
                     return null;
                 }
-                $href = self::prefixLocale($locale, '/work/'.$slug.'/');
+                $href = self::prefixLocale($locale, '/portfolio/'.$slug.'/');
                 $label ??= (string) $project->title;
 
                 break;
@@ -284,7 +284,7 @@ final class PublicMenuResolver
                 if ($slug === '') {
                     return null;
                 }
-                $href = self::prefixLocale($locale, '/work/?category_slug='.rawurlencode($slug));
+                $href = self::prefixLocale($locale, '/portfolio/?category_slug='.rawurlencode($slug));
                 $label ??= (string) $category->name;
 
                 break;
@@ -298,7 +298,7 @@ final class PublicMenuResolver
                 if ($slug === '') {
                     return null;
                 }
-                $href = self::prefixLocale($locale, '/work/?skill_slug='.rawurlencode($slug));
+                $href = self::prefixLocale($locale, '/portfolio/?skill_slug='.rawurlencode($slug));
                 $label ??= (string) $skill->name;
 
                 break;
