@@ -91,6 +91,21 @@ class SearchReplaceTest extends TestCase
 
         $this->assertTrue($names->contains('sr_demo_items'));
         $this->assertFalse($names->contains('migrations'));
+        // Never expose schema-qualified foreign-database tables.
+        $this->assertFalse($names->contains(fn ($n) => is_string($n) && str_contains($n, '.')));
+    }
+
+    public function test_list_tables_is_scoped_to_connection_database(): void
+    {
+        $service = app(\App\Services\System\SearchReplaceService::class);
+        $names = collect($service->listTables())->pluck('name');
+
+        $this->assertTrue($names->contains('users'));
+        $this->assertFalse($names->contains('migrations'));
+        foreach ($names as $name) {
+            $this->assertIsString($name);
+            $this->assertStringNotContainsString('.', $name);
+        }
     }
 
     public function test_preview_finds_matches_and_can_ignore_slugs(): void

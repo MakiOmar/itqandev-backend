@@ -257,8 +257,13 @@ class SearchReplaceService
         $schema = Schema::connection($connection->getName());
         $raw = [];
         if (method_exists($schema, 'getTableListing')) {
+            // Without an explicit schema, MySQL lists tables from *every* database on the server.
+            // Scope to this connection's database so Search & Replace only sees project tables.
+            $schemaNames = $this->connectionSchemaNames($connection);
             /** @var list<string> $listing */
-            $listing = $schema->getTableListing();
+            $listing = $schemaNames === null
+                ? $schema->getTableListing(null, false)
+                : $schema->getTableListing($schemaNames, false);
             $raw = array_values($listing);
         } else {
             $driver = $connection->getDriverName();
@@ -287,6 +292,27 @@ class SearchReplaceService
         }
 
         return array_values(array_unique($out));
+    }
+
+    /**
+     * Schema/database names to pass to Schema::getTableListing(), or null when the driver
+     * has a single implicit schema (e.g. SQLite file).
+     *
+     * @return list<string>|null
+     */
+    private function connectionSchemaNames(Connection $connection): ?array
+    {
+        $driver = $connection->getDriverName();
+        if ($driver === 'sqlite') {
+            return null;
+        }
+
+        $database = trim((string) $connection->getDatabaseName());
+        if ($database === '') {
+            throw new RuntimeException('Database name is not configured for search/replace.');
+        }
+
+        return [$database];
     }
 
     private function normalizeTableName(string $table): string
