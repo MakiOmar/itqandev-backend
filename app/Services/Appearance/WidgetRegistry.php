@@ -399,6 +399,28 @@ final class WidgetRegistry
                     ['key' => 'anchor_id', 'type' => 'text', 'label' => 'Anchor ID', 'translatable' => false],
                 ],
             ],
+            'breadcrumb' => [
+                'label' => 'Breadcrumbs',
+                'category' => 'Layout',
+                'max_instances' => null,
+                'default_settings' => [
+                    'home_label' => 'Home',
+                    'items' => [],
+                ],
+                'settings_fields' => [
+                    ['key' => 'home_label', 'type' => 'text', 'label' => 'Home label'],
+                    [
+                        'key' => 'items',
+                        'type' => 'repeater',
+                        'label' => 'Crumbs',
+                        'translatable' => true,
+                        'item_fields' => [
+                            ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
+                            ['key' => 'url', 'type' => 'url', 'label' => 'URL', 'translatable' => false],
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 

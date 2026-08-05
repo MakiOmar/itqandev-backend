@@ -503,6 +503,36 @@ final class KitRegistry
                     ['key' => 'button_url', 'type' => 'url', 'label' => 'Button URL', 'translatable' => false],
                 ],
             ],
+            'page_header' => [
+                'label' => 'Page title + breadcrumbs',
+                'category' => 'Navigation',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'show_breadcrumbs' => true,
+                    'show_title' => true,
+                    'home_label' => 'Home',
+                    'title_override' => '',
+                    'subtitle' => '',
+                    'extra_crumbs' => [],
+                ],
+                'settings_fields' => [
+                    ['key' => 'show_breadcrumbs', 'type' => 'boolean', 'label' => 'Show breadcrumbs', 'translatable' => false],
+                    ['key' => 'show_title', 'type' => 'boolean', 'label' => 'Show page title', 'translatable' => false],
+                    ['key' => 'home_label', 'type' => 'text', 'label' => 'Home crumb label'],
+                    ['key' => 'title_override', 'type' => 'text', 'label' => 'Title override (empty = current page title)'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Optional subtitle'],
+                    [
+                        'key' => 'extra_crumbs',
+                        'type' => 'repeater',
+                        'label' => 'Extra crumbs before current page',
+                        'translatable' => true,
+                        'item_fields' => [
+                            ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
+                            ['key' => 'url', 'type' => 'url', 'label' => 'URL', 'translatable' => false],
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 
