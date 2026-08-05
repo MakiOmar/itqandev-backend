@@ -127,6 +127,7 @@ class DatabaseSeeder extends Seeder
             $this->call(ContactPageSeeder::class);
             $this->call(AboutPageSeeder::class);
             $this->call(PortfolioPageSeeder::class);
+            $this->call(ArticlesPageSeeder::class);
         }
 
         $this->call(PrimaryMenuSeeder::class);

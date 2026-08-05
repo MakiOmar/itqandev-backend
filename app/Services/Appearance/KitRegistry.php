@@ -190,6 +190,24 @@ final class KitRegistry
                     ],
                 ],
             ],
+            'blog_posts_list' => [
+                'label' => 'Blog / articles list',
+                'category' => 'Marketing',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'per_page' => 12,
+                ],
+                'settings_fields' => [
+                    [
+                        'key' => 'per_page',
+                        'type' => 'number',
+                        'label' => 'Posts per page',
+                        'min' => 1,
+                        'max' => 48,
+                        'translatable' => false,
+                    ],
+                ],
+            ],
         ];
     }
 
