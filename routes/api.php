@@ -24,6 +24,9 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
                 \App\Http\Middleware\OptionalMarketingApiUser::class,
             ]);
     });
+    Route::middleware('feature.module:categories')->group(function () {
+        Route::get('categories', [\App\Http\Controllers\Api\PublicCategoryController::class, 'index']);
+    });
     Route::middleware('feature.module:testimonials')->group(function () {
         Route::get('testimonials', [\App\Http\Controllers\Api\PublicTestimonialController::class, 'index']);
     });
