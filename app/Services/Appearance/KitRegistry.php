@@ -174,6 +174,22 @@ final class KitRegistry
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Optional intro'],
                 ],
             ],
+            'projects_list' => [
+                'label' => 'Portfolio / projects list',
+                'category' => 'Marketing',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'show_filters' => true,
+                ],
+                'settings_fields' => [
+                    [
+                        'key' => 'show_filters',
+                        'type' => 'boolean',
+                        'label' => 'Show category side filters',
+                        'translatable' => false,
+                    ],
+                ],
+            ],
         ];
     }
 
