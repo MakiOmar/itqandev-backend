@@ -119,6 +119,10 @@ class DatabaseSeeder extends Seeder
             $this->call(ContactFormSeeder::class);
         }
 
+        if (FeatureModules::enabled('pages')) {
+            $this->call(ContactPageSeeder::class);
+        }
+
         $this->call(PrimaryMenuSeeder::class);
     }
 }

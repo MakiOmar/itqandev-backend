@@ -293,14 +293,32 @@ final class KitRegistry
                     'phone' => '',
                     'calendar_link' => '',
                     'calendar_label' => 'Book a call',
+                    'use_site_contact' => true,
+                    'socials' => [],
                 ],
                 'settings_fields' => [
+                    [
+                        'key' => 'use_site_contact',
+                        'type' => 'boolean',
+                        'label' => 'Fill empty fields from site contact settings',
+                        'translatable' => false,
+                    ],
                     ['key' => 'office_heading', 'type' => 'text', 'label' => 'Heading'],
                     ['key' => 'address', 'type' => 'textarea', 'label' => 'Address'],
                     ['key' => 'email', 'type' => 'text', 'label' => 'Email'],
                     ['key' => 'phone', 'type' => 'text', 'label' => 'Phone'],
                     ['key' => 'calendar_link', 'type' => 'url', 'label' => 'Calendar URL', 'translatable' => false],
                     ['key' => 'calendar_label', 'type' => 'text', 'label' => 'Calendar button label'],
+                    [
+                        'key' => 'socials',
+                        'type' => 'repeater',
+                        'label' => 'Social links',
+                        'translatable' => false,
+                        'item_fields' => [
+                            ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
+                            ['key' => 'url', 'type' => 'url', 'label' => 'URL'],
+                        ],
+                    ],
                 ],
             ],
             'image_text' => [
