@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Form;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Page;
@@ -18,7 +19,7 @@ class ContentSlugSuggestionController extends Controller
     public function suggest(Request $request)
     {
         $data = $request->validate([
-            'entity' => ['required', 'string', 'in:projects,blog_posts,services,categories,skills,pages'],
+            'entity' => ['required', 'string', 'in:projects,blog_posts,services,categories,skills,pages,forms'],
             'source' => ['required', 'string', 'max:255'],
             'ignore_id' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -30,6 +31,7 @@ class ContentSlugSuggestionController extends Controller
             'categories' => Category::class,
             'skills' => Skill::class,
             'pages' => Page::class,
+            'forms' => Form::class,
         };
 
         $this->authorize('viewAny', $modelClass);

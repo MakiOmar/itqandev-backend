@@ -115,6 +115,10 @@ class DatabaseSeeder extends Seeder
             $this->call(ServicesSeeder::class);
         }
 
+        if (FeatureModules::enabled('forms')) {
+            $this->call(ContactFormSeeder::class);
+        }
+
         $this->call(PrimaryMenuSeeder::class);
     }
 }

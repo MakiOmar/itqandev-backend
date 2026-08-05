@@ -3,17 +3,33 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Form;
 use App\Models\User;
 use App\Notifications\ContactSubmissionReceived;
 use App\Services\ActivityLogService;
+use App\Services\Forms\FormSubmissionPipeline;
+use App\Support\FeatureModules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 
 class ContactController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, FormSubmissionPipeline $pipeline): JsonResponse
     {
+        // Prefer CMS Forms module when a published slug "contact" exists.
+        if (FeatureModules::enabled('forms')) {
+            $form = Form::query()
+                ->where('slug', 'contact')
+                ->where('status', Form::STATUS_PUBLISHED)
+                ->first();
+            if ($form) {
+                $result = $pipeline->submit($form, $request);
+
+                return response()->json($result);
+            }
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],

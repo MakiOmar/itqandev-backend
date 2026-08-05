@@ -22,6 +22,7 @@ final class FeatureModules
             'testimonials',
             'blog',
             'pages',
+            'forms',
             'media',
             'users',
             'seo',

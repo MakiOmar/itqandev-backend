@@ -40,6 +40,13 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
         Route::get('pages/{slug}', [\App\Http\Controllers\Api\PublicPageController::class, 'show'])
             ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
     });
+    Route::middleware('feature.module:forms')->group(function () {
+        Route::get('forms/{slug}', [\App\Http\Controllers\Api\PublicFormController::class, 'show'])
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+        Route::post('forms/{slug}/submit', [\App\Http\Controllers\Api\PublicFormController::class, 'submit'])
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*')
+            ->middleware('throttle:form-submit');
+    });
     Route::get('site-content', [\App\Http\Controllers\Api\PublicSiteContentController::class, 'show']);
     /** Branding + site_languages + module toggles for marketing (no auth). */
     Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
@@ -134,6 +141,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('feature.module:pages')->group(function () {
             Route::post('pages/bulk-delete', [\App\Http\Controllers\Api\PageController::class, 'bulkDelete'])->middleware('throttle:bulk');
             Route::apiResource('pages', \App\Http\Controllers\Api\PageController::class);
+        });
+
+        Route::middleware('feature.module:forms')->group(function () {
+            Route::post('forms/bulk-delete', [\App\Http\Controllers\Api\FormController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::get('forms/{form}/submissions/export', [\App\Http\Controllers\Api\FormSubmissionController::class, 'exportCsv']);
+            Route::post('forms/{form}/submissions/bulk-update', [\App\Http\Controllers\Api\FormSubmissionController::class, 'bulkUpdate'])->middleware('throttle:bulk');
+            Route::get('forms/{form}/submissions', [\App\Http\Controllers\Api\FormSubmissionController::class, 'index']);
+            Route::get('forms/{form}/submissions/{submission}', [\App\Http\Controllers\Api\FormSubmissionController::class, 'show']);
+            Route::patch('forms/{form}/submissions/{submission}', [\App\Http\Controllers\Api\FormSubmissionController::class, 'update']);
+            Route::delete('forms/{form}/submissions/{submission}', [\App\Http\Controllers\Api\FormSubmissionController::class, 'destroy']);
+            Route::apiResource('forms', \App\Http\Controllers\Api\FormController::class);
         });
 
         Route::middleware('feature.module:users')->group(function () {

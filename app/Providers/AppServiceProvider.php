@@ -154,5 +154,15 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute($n)->by($request->ip());
         });
+
+        RateLimiter::for('form-submit', function (Request $request) {
+            if (app()->environment('local')) {
+                return Limit::none();
+            }
+            $n = max(1, min((int) env('FORM_SUBMIT_RATE_LIMIT_PER_MINUTE', 8), 60));
+            $slug = (string) $request->route('slug');
+
+            return Limit::perMinute($n)->by($request->ip().'|form:'.$slug);
+        });
     }
 }

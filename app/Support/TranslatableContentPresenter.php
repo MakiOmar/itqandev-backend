@@ -68,6 +68,16 @@ final class TranslatableContentPresenter
         );
     }
 
+    public static function hasFormContentForLocale(\App\Models\Form $form, string $locale): bool
+    {
+        return self::hasTranslatedContentForLocale(
+            SiteLanguages::primaryLocaleForContent($form->content_locale),
+            $form,
+            $locale,
+            ['title']
+        );
+    }
+
     public static function hasBlogPostContentForLocale(BlogPost $post, string $locale): bool
     {
         return self::hasTranslatedContentForLocale(
@@ -317,6 +327,29 @@ final class TranslatableContentPresenter
         }
         if (is_string($row->excerpt) && $row->excerpt !== '') {
             $page->setAttribute('excerpt', $row->excerpt);
+        }
+    }
+
+    public static function applyForm(\App\Models\Form $form, string $locale): void
+    {
+        $primary = SiteLanguages::primaryLocaleForContent($form->content_locale);
+        if ($locale === $primary) {
+            return;
+        }
+
+        if (! $form->relationLoaded('translations')) {
+            $form->load('translations');
+        }
+
+        $row = $form->translations->first(
+            static fn ($t) => strtolower((string) $t->locale) === $locale
+        );
+        if ($row === null) {
+            return;
+        }
+
+        if (is_string($row->title) && $row->title !== '') {
+            $form->setAttribute('title', $row->title);
         }
     }
 

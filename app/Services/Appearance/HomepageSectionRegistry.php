@@ -142,6 +142,20 @@ final class HomepageSectionRegistry
                     ['key' => 'button_label', 'type' => 'text', 'label' => 'Button label'],
                 ],
             ],
+            'form' => [
+                'label' => 'Form',
+                'max_instances' => null,
+                'default_settings' => [
+                    'form_slug' => '',
+                    'title' => '',
+                    'subtitle' => '',
+                ],
+                'settings_fields' => [
+                    ['key' => 'form_slug', 'type' => 'text', 'label' => 'Form slug', 'translatable' => false],
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Optional heading'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Optional intro'],
+                ],
+            ],
         ];
     }
 

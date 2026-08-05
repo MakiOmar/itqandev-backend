@@ -27,6 +27,8 @@ class AppearanceController extends Controller
             'data' => [
                 'homepage_sections' => HomepageSectionRegistry::forAdmin(),
                 'footer_blocks' => FooterBlockRegistry::forAdmin(),
+                'form_fields' => \App\Services\Forms\FormFieldRegistry::forAdmin(),
+                'form_actions' => \App\Services\Forms\FormActionRegistry::forAdmin(),
             ],
         ]);
     }

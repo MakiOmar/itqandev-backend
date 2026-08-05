@@ -24,6 +24,7 @@ return [
         'testimonials' => true,
         'blog' => true,
         'pages' => true,
+        'forms' => true,
         'media' => true,
         'users' => true,
         'seo' => true,
