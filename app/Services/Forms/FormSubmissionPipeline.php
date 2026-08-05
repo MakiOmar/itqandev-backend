@@ -12,6 +12,7 @@ use App\Services\Forms\Actions\RedirectAction;
 use App\Services\Forms\Actions\StoreSubmissionAction;
 use App\Services\Forms\Actions\WebhookAction;
 use App\Support\SiteLanguages;
+use App\Support\WesternDigits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -50,6 +51,7 @@ final class FormSubmissionPipeline
 
         $rules = [];
         $attributes = [];
+        $digitNormalizeMerge = [];
         foreach ($fields as $field) {
             $id = (string) $field['id'];
             $type = (string) $field['type'];
@@ -62,6 +64,16 @@ final class FormSubmissionPipeline
             $required = ! empty($resolved['required']);
             $attributes[$id] = (string) ($resolved['label'] ?? $type);
             $rules[$id] = $this->rulesForField($type, $required, $resolved);
+            // Email/tel must use Western ASCII digits (convert Eastern/Persian numerals).
+            if (($type === 'email' || $type === 'tel') && $request->has($id)) {
+                $raw = $request->input($id);
+                if (is_string($raw)) {
+                    $digitNormalizeMerge[$id] = WesternDigits::normalize($raw);
+                }
+            }
+        }
+        if ($digitNormalizeMerge !== []) {
+            $request->merge($digitNormalizeMerge);
         }
 
         $validated = $request->validate($rules, [], $attributes);
