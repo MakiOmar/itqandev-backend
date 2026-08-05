@@ -28,6 +28,7 @@ class DatabaseBackupController extends Controller
                 'confirm_phrase' => $this->backups->confirmPhrase(),
                 'driver' => config('database.default'),
                 'max_files' => (int) config('database-backup.max_files', 20),
+                'schedule' => $this->backups->scheduleMeta(),
             ],
         ]);
     }

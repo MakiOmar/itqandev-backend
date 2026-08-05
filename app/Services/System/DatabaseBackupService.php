@@ -156,6 +156,28 @@ class DatabaseBackupService
         return (string) config('database-backup.confirm_phrase', 'CONFIRM');
     }
 
+    /**
+     * @return array{interval: string, at: string, weekly_day: int, enabled: bool}
+     */
+    public function scheduleMeta(): array
+    {
+        $interval = strtolower(trim((string) config('database-backup.schedule_interval', 'disabled')));
+        $normalized = match ($interval) {
+            'hourly' => 'hourly',
+            'every_six_hours', 'every6hours', '6h' => 'every_six_hours',
+            'daily' => 'daily',
+            'weekly' => 'weekly',
+            default => 'disabled',
+        };
+
+        return [
+            'interval' => $normalized,
+            'at' => (string) config('database-backup.schedule_at', '02:00'),
+            'weekly_day' => (int) config('database-backup.schedule_weekly_day', 1),
+            'enabled' => $normalized !== 'disabled',
+        ];
+    }
+
     public function isAllowedFilename(string $filename): bool
     {
         return (bool) preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.sql$/', $filename);

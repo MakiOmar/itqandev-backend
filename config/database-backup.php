@@ -54,4 +54,21 @@ return [
     */
     'max_upload_kb' => max(1024, (int) env('DB_BACKUP_MAX_UPLOAD_KB', 512000)),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Automatic backup schedule
+    |--------------------------------------------------------------------------
+    |
+    | Requires `php artisan schedule:run` via system cron (or Task Scheduler).
+    | Interval values: disabled | hourly | every_six_hours | daily | weekly
+    | For daily/weekly, DB_BACKUP_AT is HH:MM (24h, app timezone).
+    | Weekly runs on Monday by default (DB_BACKUP_WEEKLY_DAY: 0=Sun … 6=Sat).
+    |
+    */
+    'schedule_interval' => strtolower(trim((string) env('DB_BACKUP_INTERVAL', 'disabled'))),
+
+    'schedule_at' => (string) env('DB_BACKUP_AT', '02:00'),
+
+    'schedule_weekly_day' => max(0, min(6, (int) env('DB_BACKUP_WEEKLY_DAY', 1))),
+
 ];
