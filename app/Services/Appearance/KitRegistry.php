@@ -529,6 +529,7 @@ final class KitRegistry
                     'show_breadcrumbs' => true,
                     'show_title' => true,
                     'home_label' => 'Home',
+                    'eyebrow' => '',
                     'title_override' => '',
                     'subtitle' => '',
                     'extra_crumbs' => [],
@@ -537,6 +538,7 @@ final class KitRegistry
                     ['key' => 'show_breadcrumbs', 'type' => 'boolean', 'label' => 'Show breadcrumbs', 'translatable' => false],
                     ['key' => 'show_title', 'type' => 'boolean', 'label' => 'Show page title', 'translatable' => false],
                     ['key' => 'home_label', 'type' => 'text', 'label' => 'Home crumb label'],
+                    ['key' => 'eyebrow', 'type' => 'text', 'label' => 'Eyebrow (optional)'],
                     ['key' => 'title_override', 'type' => 'text', 'label' => 'Title override (empty = current page title)'],
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Optional subtitle'],
                     [

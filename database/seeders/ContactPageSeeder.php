@@ -37,9 +37,13 @@ class ContactPageSeeder extends Seeder
                 'sections' => ContactPageLayout::sections(),
             ]);
         } else {
-            // Refresh starter layout when Arabic section overlays are still missing.
+            // Refresh starter layout when Arabic overlays or layout revision are missing.
             $encoded = json_encode($page->sections ?? []);
-            if ($encoded === false || ! str_contains($encoded, '"translations"')) {
+            $needsLayoutRefresh =
+                $encoded === false
+                || ! str_contains($encoded, '"translations"')
+                || ! str_contains($encoded, '"layout_revision":'.ContactPageLayout::LAYOUT_REVISION);
+            if ($needsLayoutRefresh) {
                 $page->sections = ContactPageLayout::sections();
                 $page->save();
             }

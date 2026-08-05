@@ -9,6 +9,9 @@ namespace App\Services\Appearance;
  */
 final class ContactPageLayout
 {
+    /** Bump when seeded layout shape should replace older contact pages missing this marker. */
+    public const LAYOUT_REVISION = 2;
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -20,7 +23,9 @@ final class ContactPageLayout
                 'type' => 'layout',
                 'enabled' => true,
                 'layout_width' => 'boxed',
-                'settings' => [],
+                'settings' => [
+                    'layout_revision' => self::LAYOUT_REVISION,
+                ],
                 'rows' => [
                     [
                         'id' => 'row_contact_header',
@@ -40,12 +45,14 @@ final class ContactPageLayout
                                             'show_breadcrumbs' => true,
                                             'show_title' => true,
                                             'home_label' => 'Home',
+                                            'eyebrow' => 'Contact',
                                             'title_override' => 'Get in touch',
                                             'subtitle' => "Tell us about your project. We'll respond within 24 hours.",
                                             'extra_crumbs' => [],
                                             'translations' => [
                                                 'ar' => [
                                                     'home_label' => 'الرئيسية',
+                                                    'eyebrow' => 'تواصل',
                                                     'title_override' => 'تواصل معنا',
                                                     'subtitle' => 'أخبرنا عن مشروعك. نرد خلال ٢٤ ساعة.',
                                                 ],
@@ -142,7 +149,7 @@ final class ContactPageLayout
             [
                 'id' => 'band_contact_map',
                 'type' => 'layout',
-                'enabled' => true,
+                'enabled' => false,
                 'layout_width' => 'boxed',
                 'settings' => [],
                 'rows' => [
@@ -177,7 +184,7 @@ final class ContactPageLayout
                                         'type' => 'map',
                                         'enabled' => true,
                                         'settings' => [
-                                            // Operator: paste Google Maps iframe src in Page Builder.
+                                            // Enable this band in Page Builder after pasting a Maps iframe src.
                                             'embed_url' => '',
                                             'height' => 360,
                                         ],
