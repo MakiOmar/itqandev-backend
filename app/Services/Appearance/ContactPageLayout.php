@@ -5,6 +5,7 @@ namespace App\Services\Appearance;
 /**
  * Default professional Contact CMS page layout (page builder document).
  * Used by {@see \Database\Seeders\ContactPageSeeder} and as the canonical starter shape.
+ * Primary (English) copy lives on flat settings; Arabic under settings.translations.ar.
  */
 final class ContactPageLayout
 {
@@ -42,6 +43,13 @@ final class ContactPageLayout
                                             'title_override' => 'Get in touch',
                                             'subtitle' => "Tell us about your project. We'll respond within 24 hours.",
                                             'extra_crumbs' => [],
+                                            'translations' => [
+                                                'ar' => [
+                                                    'home_label' => 'الرئيسية',
+                                                    'title_override' => 'تواصل معنا',
+                                                    'subtitle' => 'أخبرنا عن مشروعك. نرد خلال ٢٤ ساعة.',
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
@@ -75,6 +83,12 @@ final class ContactPageLayout
                                             'form_slug' => 'contact',
                                             'title' => 'Send a message',
                                             'subtitle' => 'Share a few details and we will follow up by email.',
+                                            'translations' => [
+                                                'ar' => [
+                                                    'title' => 'أرسل رسالة',
+                                                    'subtitle' => 'شارك بعض التفاصيل وسنتابع معك عبر البريد الإلكتروني.',
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
@@ -97,6 +111,12 @@ final class ContactPageLayout
                                             'calendar_label' => 'Book a call',
                                             'use_site_contact' => true,
                                             'socials' => [],
+                                            'translations' => [
+                                                'ar' => [
+                                                    'office_heading' => 'المكتب',
+                                                    'calendar_label' => 'احجز مكالمة',
+                                                ],
+                                            ],
                                         ],
                                     ],
                                     [
@@ -106,6 +126,11 @@ final class ContactPageLayout
                                         'enabled' => true,
                                         'settings' => [
                                             'text' => 'Typical reply: within 24 hours',
+                                            'translations' => [
+                                                'ar' => [
+                                                    'text' => 'الرد المعتاد: خلال ٢٤ ساعة',
+                                                ],
+                                            ],
                                         ],
                                     ],
                                 ],
@@ -139,6 +164,11 @@ final class ContactPageLayout
                                             'text' => 'Visit us',
                                             'level' => 'h2',
                                             'align' => 'start',
+                                            'translations' => [
+                                                'ar' => [
+                                                    'text' => 'زرنا',
+                                                ],
+                                            ],
                                         ],
                                     ],
                                     [
@@ -193,6 +223,25 @@ final class ContactPageLayout
                                                 [
                                                     'question' => 'Do you take discovery calls?',
                                                     'answer' => 'Yes — use the calendar link on this page or ask for a slot in your message.',
+                                                ],
+                                            ],
+                                            'translations' => [
+                                                'ar' => [
+                                                    'title' => 'قبل أن تكتب',
+                                                    'items' => [
+                                                        [
+                                                            'question' => 'ما سرعة الرد؟',
+                                                            'answer' => 'نهدف للرد خلال يوم عمل واحد. يمكنكم الإشارة إلى الإطلاقات العاجلة في عنوان الرسالة.',
+                                                        ],
+                                                        [
+                                                            'question' => 'ماذا أضمّن في الرسالة؟',
+                                                            'answer' => 'الأهداف والجدول الزمني ونطاق الميزانية وأي روابط (ملخصات أو مستودعات أو مراجع) تساعدنا على الرد بخطوة تالية واضحة.',
+                                                        ],
+                                                        [
+                                                            'question' => 'هل تقدّمون مكالمات استكشافية؟',
+                                                            'answer' => 'نعم — استخدموا رابط التقويم في هذه الصفحة أو اطلبوا موعداً في رسالتكم.',
+                                                        ],
+                                                    ],
                                                 ],
                                             ],
                                         ],

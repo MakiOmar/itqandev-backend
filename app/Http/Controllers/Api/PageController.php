@@ -20,9 +20,10 @@ class PageController extends Controller
         $this->authorize('viewAny', Page::class);
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+        $version = (int) Cache::get('pages:cache_version', 1);
 
         return response()->json(
-            Cache::remember(self::LIST_CACHE_KEY.':loc:'.($present ?? 'none'), 3600, function () use ($present) {
+            Cache::remember(self::LIST_CACHE_KEY.':v'.$version.':loc:'.($present ?? 'none'), 3600, function () use ($present) {
                 $query = Page::query()
                     ->with('translations')
                     ->orderByDesc('updated_at')

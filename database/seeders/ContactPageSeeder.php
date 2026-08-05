@@ -10,6 +10,7 @@ use Illuminate\Database\Seeder;
 /**
  * Seeds a published CMS page (slug `contact`) editable in Page Builder.
  * Public route `/{lang}/contact/` prefers this layout when the pages module is on.
+ * Ensures an Arabic page_translations row linked to the same record.
  */
 class ContactPageSeeder extends Seeder
 {
@@ -23,18 +24,36 @@ class ContactPageSeeder extends Seeder
             $this->call(ContactFormSeeder::class);
         }
 
-        if (Page::query()->where('slug', 'contact')->exists()) {
-            return;
+        $page = Page::query()->where('slug', 'contact')->first();
+
+        if ($page === null) {
+            $page = Page::create([
+                'title' => 'Contact',
+                'slug' => 'contact',
+                'excerpt' => 'Get in touch with our team about your next project.',
+                'status' => Page::STATUS_PUBLISHED,
+                'published_at' => now(),
+                'content_locale' => null,
+                'sections' => ContactPageLayout::sections(),
+            ]);
+        } else {
+            // Refresh starter layout when Arabic section overlays are still missing.
+            $encoded = json_encode($page->sections ?? []);
+            if ($encoded === false || ! str_contains($encoded, '"translations"')) {
+                $page->sections = ContactPageLayout::sections();
+                $page->save();
+            }
         }
 
-        Page::create([
-            'title' => 'Contact',
-            'slug' => 'contact',
-            'excerpt' => 'Get in touch with our team about your next project.',
-            'status' => Page::STATUS_PUBLISHED,
-            'published_at' => now(),
-            'content_locale' => null,
-            'sections' => ContactPageLayout::sections(),
-        ]);
+        $page->translations()->updateOrCreate(
+            ['locale' => 'ar'],
+            [
+                'title' => 'تواصل معنا',
+                'excerpt' => 'تواصل مع فريقنا بشأن مشروعك القادم.',
+            ]
+        );
+
+        // Bust admin list + public page caches (model boot may not run on translation-only writes).
+        Page::bumpPublicCacheVersion();
     }
 }
