@@ -26,6 +26,17 @@ final class StoreSubmissionAction implements FormActionHandler
             'payload' => [
                 'values' => $context->values,
                 'labeled' => $context->labeled,
+                // Snapshot field types/labels so admin can render mailto/tel without the live layout.
+                'fields' => array_values(array_map(static function (array $field): array {
+                    $type = (string) ($field['type'] ?? 'text');
+                    $settings = is_array($field['settings'] ?? null) ? $field['settings'] : [];
+
+                    return [
+                        'id' => (string) ($field['id'] ?? ''),
+                        'type' => $type,
+                        'label' => (string) ($settings['label'] ?? $type),
+                    ];
+                }, $context->fields)),
             ],
             'ip_address' => $storeIp ? $context->ip : null,
             'user_agent' => $storeIp ? $context->userAgent : null,
