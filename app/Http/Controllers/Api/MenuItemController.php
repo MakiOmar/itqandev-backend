@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuItem;
+use App\Services\ContentExport\TranslatableTranslationSync;
 use App\Support\MenuStaticRoutes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,18 +13,27 @@ use Illuminate\Validation\Rule;
 
 class MenuItemController extends Controller
 {
+    public function __construct(
+        private readonly TranslatableTranslationSync $translationSync,
+    ) {}
+
     public function store(Request $request, Menu $menu): JsonResponse
     {
         $this->authorize('update', $menu);
 
         $data = $this->validatedPayload($request, $menu, null);
+        $translations = $data['translations'] ?? null;
+        unset($data['translations']);
         $data['menu_id'] = $menu->id;
 
         $item = MenuItem::query()->create($data);
+        if (is_array($translations)) {
+            $this->syncMenuItemTranslations($item, $translations);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $item,
+            'data' => $this->serializeItem($item->fresh(['translations'])),
         ], 201);
     }
 
@@ -33,11 +43,16 @@ class MenuItemController extends Controller
         $menu = $menuItem->menu;
 
         $data = $this->validatedPayload($request, $menu, $menuItem);
+        $translations = $data['translations'] ?? null;
+        unset($data['translations']);
         $menuItem->update($data);
+        if (is_array($translations)) {
+            $this->syncMenuItemTranslations($menuItem, $translations);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $menuItem->fresh(),
+            'data' => $this->serializeItem($menuItem->fresh(['translations'])),
         ]);
     }
 
@@ -83,6 +98,37 @@ class MenuItemController extends Controller
     }
 
     /**
+     * @param  array<int, array<string, mixed>>  $translations
+     */
+    private function syncMenuItemTranslations(MenuItem $item, array $translations): void
+    {
+        $this->translationSync->sync($item, $translations, ['label']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeItem(MenuItem $item): array
+    {
+        return [
+            'id' => $item->id,
+            'menu_id' => $item->menu_id,
+            'parent_id' => $item->parent_id,
+            'sort_order' => $item->sort_order,
+            'label' => $item->label,
+            'item_type' => $item->item_type,
+            'url' => $item->url,
+            'static_route_key' => $item->static_route_key,
+            'reference_id' => $item->reference_id,
+            'open_in_new_tab' => $item->open_in_new_tab,
+            'translations' => $item->translations
+                ->map(fn ($t) => ['locale' => $t->locale, 'label' => $t->label])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function validatedPayload(Request $request, Menu $menu, ?MenuItem $existing): array
@@ -110,6 +156,9 @@ class MenuItemController extends Controller
             'static_route_key' => ['nullable', 'string', 'max:32'],
             'reference_id' => ['nullable', 'integer', 'min:1'],
             'open_in_new_tab' => ['sometimes', 'boolean'],
+            'translations' => ['nullable', 'array'],
+            'translations.*.locale' => ['required_with:translations', 'string', 'max:16'],
+            'translations.*.label' => ['nullable', 'string', 'max:255'],
         ]);
 
         $type = isset($base['item_type']) ? (string) $base['item_type'] : (string) ($existing?->item_type ?? '');
@@ -183,6 +232,10 @@ class MenuItemController extends Controller
                 : null,
             'open_in_new_tab' => $openInNew,
         ];
+
+        if (array_key_exists('translations', $base)) {
+            $out['translations'] = $base['translations'];
+        }
 
         if ($existing === null && $sortOrder === null) {
             $max = (int) MenuItem::query()->where('menu_id', $menu->id)->max('sort_order');

@@ -15,7 +15,237 @@ final class KitRegistry
      */
     public static function all(): array
     {
-        return array_merge(self::marketingKits(), self::contentKits());
+        return array_merge(self::marketingKits(), self::contentKits(), self::chromeKits());
+    }
+
+    /**
+     * Header / footer chrome kits (appearance builders).
+     *
+     * @return array<string, KitDef>
+     */
+    private static function chromeKits(): array
+    {
+        return [
+            'header_brand' => [
+                'label' => 'Header brand',
+                'category' => 'Header',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'show_name' => true,
+                    'show_logo' => true,
+                ],
+                'settings_fields' => [
+                    ['key' => 'show_logo', 'type' => 'boolean', 'label' => 'Show logo', 'translatable' => false],
+                    ['key' => 'show_name', 'type' => 'boolean', 'label' => 'Show site name', 'translatable' => false],
+                ],
+            ],
+            'header_menu' => [
+                'label' => 'Header menu',
+                'category' => 'Header',
+                'max_instances' => 2,
+                'default_settings' => [
+                    'menu_slug' => 'primary',
+                    'show_children_mobile' => true,
+                ],
+                'settings_fields' => [
+                    ['key' => 'menu_slug', 'type' => 'text', 'label' => 'Menu slug', 'translatable' => false],
+                    ['key' => 'show_children_mobile', 'type' => 'boolean', 'label' => 'Show nested items on mobile', 'translatable' => false],
+                ],
+            ],
+            'header_cta' => [
+                'label' => 'Header CTA',
+                'category' => 'Header',
+                'max_instances' => 2,
+                'default_settings' => [
+                    'label' => 'Get in touch',
+                    'url' => '/contact/',
+                    'translations' => [
+                        'ar' => ['label' => 'تواصل معنا'],
+                    ],
+                ],
+                'settings_fields' => [
+                    ['key' => 'label', 'type' => 'text', 'label' => 'Button label'],
+                    ['key' => 'url', 'type' => 'url', 'label' => 'Button URL', 'translatable' => false],
+                ],
+            ],
+            'header_actions' => [
+                'label' => 'Header actions',
+                'category' => 'Header',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'show_theme' => true,
+                    'show_language' => true,
+                    'show_auth' => true,
+                ],
+                'settings_fields' => [
+                    ['key' => 'show_theme', 'type' => 'boolean', 'label' => 'Theme toggle', 'translatable' => false],
+                    ['key' => 'show_language', 'type' => 'boolean', 'label' => 'Language switcher', 'translatable' => false],
+                    ['key' => 'show_auth', 'type' => 'boolean', 'label' => 'Login / account', 'translatable' => false],
+                ],
+            ],
+            'header_spacer' => [
+                'label' => 'Header spacer',
+                'category' => 'Header',
+                'max_instances' => null,
+                'default_settings' => [],
+                'settings_fields' => [],
+            ],
+            'footer_brand' => [
+                'label' => 'Footer brand',
+                'category' => 'Footer',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'show_logo' => true,
+                    'show_name' => true,
+                    'tagline' => 'We build web, Android & iOS apps that scale.',
+                    'translations' => [
+                        'ar' => ['tagline' => 'نبني تطبيقات ويب وأندرويد وiOS قابلة للتوسع.'],
+                    ],
+                ],
+                'settings_fields' => [
+                    ['key' => 'show_logo', 'type' => 'boolean', 'label' => 'Show logo', 'translatable' => false],
+                    ['key' => 'show_name', 'type' => 'boolean', 'label' => 'Show site name', 'translatable' => false],
+                    ['key' => 'tagline', 'type' => 'textarea', 'label' => 'Tagline'],
+                ],
+            ],
+            'footer_menu' => [
+                'label' => 'Footer menu',
+                'category' => 'Footer',
+                'max_instances' => 4,
+                'default_settings' => [
+                    'title' => 'Navigate',
+                    'menu_slug' => 'primary',
+                    'translations' => [
+                        'ar' => ['title' => 'تصفح'],
+                    ],
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'menu_slug', 'type' => 'text', 'label' => 'Menu slug', 'translatable' => false],
+                ],
+            ],
+            'footer_links' => [
+                'label' => 'Footer links',
+                'category' => 'Footer',
+                'max_instances' => 4,
+                'default_settings' => [
+                    'title' => 'Quick links',
+                    'links' => [
+                        ['id' => 'lnk_services', 'label' => 'Services', 'url' => '/services/'],
+                        ['id' => 'lnk_portfolio', 'label' => 'Portfolio', 'url' => '/portfolio/'],
+                        ['id' => 'lnk_about', 'label' => 'About', 'url' => '/about/'],
+                        ['id' => 'lnk_contact', 'label' => 'Contact', 'url' => '/contact/'],
+                    ],
+                    'translations' => [
+                        'ar' => [
+                            'title' => 'روابط سريعة',
+                            'links' => [
+                                ['id' => 'lnk_services', 'label' => 'الخدمات', 'url' => '/services/'],
+                                ['id' => 'lnk_portfolio', 'label' => 'المحفظة', 'url' => '/portfolio/'],
+                                ['id' => 'lnk_about', 'label' => 'من نحن', 'url' => '/about/'],
+                                ['id' => 'lnk_contact', 'label' => 'تواصل', 'url' => '/contact/'],
+                            ],
+                        ],
+                    ],
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    [
+                        'key' => 'links',
+                        'type' => 'repeater',
+                        'label' => 'Links',
+                        'item_fields' => [
+                            ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
+                            ['key' => 'url', 'type' => 'url', 'label' => 'URL', 'translatable' => false],
+                        ],
+                    ],
+                ],
+            ],
+            'footer_contact' => [
+                'label' => 'Footer contact',
+                'category' => 'Footer',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'title' => 'Contact',
+                    'use_site_contact' => true,
+                    'show_email' => true,
+                    'email' => '',
+                    'translations' => [
+                        'ar' => ['title' => 'تواصل'],
+                    ],
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'use_site_contact', 'type' => 'boolean', 'label' => 'Use site contact', 'translatable' => false],
+                    ['key' => 'show_email', 'type' => 'boolean', 'label' => 'Show email', 'translatable' => false],
+                    ['key' => 'email', 'type' => 'text', 'label' => 'Email override', 'translatable' => false],
+                ],
+            ],
+            'footer_social' => [
+                'label' => 'Footer social',
+                'category' => 'Footer',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'title' => '',
+                    'use_site_socials' => true,
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'use_site_socials', 'type' => 'boolean', 'label' => 'Use site social links', 'translatable' => false],
+                ],
+            ],
+            'footer_rich_text' => [
+                'label' => 'Footer rich text',
+                'category' => 'Footer',
+                'max_instances' => null,
+                'default_settings' => [
+                    'title' => '',
+                    'body' => '',
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'body', 'type' => 'richtext', 'label' => 'Body'],
+                ],
+            ],
+            'footer_cta' => [
+                'label' => 'Footer CTA',
+                'category' => 'Footer',
+                'max_instances' => 2,
+                'default_settings' => [
+                    'title' => 'Ready to start?',
+                    'subtitle' => 'Tell us about your project.',
+                    'button_label' => 'Get in touch',
+                    'button_url' => '/contact/',
+                    'translations' => [
+                        'ar' => [
+                            'title' => 'جاهز للبدء؟',
+                            'subtitle' => 'أخبرنا عن مشروعك.',
+                            'button_label' => 'تواصل معنا',
+                        ],
+                    ],
+                ],
+                'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
+                    ['key' => 'button_label', 'type' => 'text', 'label' => 'Button label'],
+                    ['key' => 'button_url', 'type' => 'url', 'label' => 'Button URL', 'translatable' => false],
+                ],
+            ],
+            'footer_copyright' => [
+                'label' => 'Footer copyright',
+                'category' => 'Footer',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'text' => '© {year} {brand}. All rights reserved.',
+                    'translations' => [
+                        'ar' => ['text' => '© {year} {brand}. جميع الحقوق محفوظة.'],
+                    ],
+                ],
+                'settings_fields' => [
+                    ['key' => 'text', 'type' => 'text', 'label' => 'Copyright text ({year}, {brand})'],
+                ],
+            ],
+        ];
     }
 
     /**

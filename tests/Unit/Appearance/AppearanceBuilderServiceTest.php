@@ -86,32 +86,85 @@ class AppearanceBuilderServiceTest extends TestCase
         $this->assertArrayNotHasKey('translations', $ar[0]['settings']);
     }
 
-    public function test_footer_defaults_hardcoded_mode(): void
+    public function test_footer_defaults_use_layout_sections(): void
     {
         $doc = (new FooterBuilderService)->defaultDocument();
-        $this->assertSame('hardcoded', $doc['mode']);
-        $this->assertTrue($doc['zones']['main']['enabled']);
-        $this->assertCount(4, $doc['zones']['main']['columns']);
+        $this->assertArrayHasKey('sections', $doc);
+        $this->assertNotEmpty($doc['sections']);
+        $this->assertSame('layout', $doc['sections'][0]['type']);
+        $json = json_encode($doc);
+        $this->assertNotFalse($json);
+        $this->assertStringContainsString('footer_brand', $json);
+        $this->assertStringContainsString('footer_copyright', $json);
     }
 
-    public function test_footer_public_hardcoded_omits_zones(): void
+    public function test_footer_public_presents_layout_sections(): void
     {
         $service = new FooterBuilderService;
         $service->save($service->defaultDocument());
         $public = $service->presentPublic();
-        $this->assertSame(['mode' => 'hardcoded'], $public);
+        $this->assertArrayHasKey('sections', $public);
+        $this->assertNotEmpty($public['sections']);
+        $this->assertSame('layout', $public['sections'][0]['type']);
     }
 
-    public function test_footer_builder_mode_presents_enabled_blocks(): void
+    public function test_header_defaults_and_public_include_menu_kit(): void
     {
-        $service = new FooterBuilderService;
-        $doc = $service->defaultDocument();
-        $doc['mode'] = 'builder';
-        $service->save($doc);
-        $public = $service->presentPublic();
-        $this->assertSame('builder', $public['mode']);
-        $this->assertArrayHasKey('main', $public['zones']);
-        $this->assertNotEmpty($public['zones']['main']['columns']);
+        $header = new \App\Services\Appearance\HeaderBuilderService;
+        $doc = $header->defaultDocument();
+        $this->assertNotEmpty($doc['sections']);
+        $json = json_encode($doc);
+        $this->assertNotFalse($json);
+        $this->assertStringContainsString('header_menu', $json);
+        $this->assertStringContainsString('header_brand', $json);
+
+        $header->save($doc);
+        $public = $header->presentPublic('en');
+        $this->assertArrayHasKey('sections', $public);
+        $this->assertNotEmpty($public['sections']);
+    }
+
+    public function test_legacy_footer_zones_migrate_to_layout(): void
+    {
+        $legacy = [
+            'mode' => 'builder',
+            'zones' => [
+                'main' => [
+                    'enabled' => true,
+                    'columns' => [
+                        [
+                            'id' => 'c1',
+                            'span' => 4,
+                            'blocks' => [
+                                [
+                                    'id' => 'b1',
+                                    'type' => 'brand',
+                                    'enabled' => true,
+                                    'settings' => ['tagline' => 'Hello'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                'top' => ['enabled' => false, 'columns' => []],
+                'bottom' => ['enabled' => false, 'columns' => []],
+            ],
+        ];
+        $migrated = \App\Services\Appearance\ChromeLayoutSupport::migrateLegacyFooterZones($legacy);
+        $this->assertNotNull($migrated);
+        $this->assertArrayHasKey('sections', $migrated);
+        $this->assertNotEmpty($migrated['sections']);
+        $json = json_encode($migrated);
+        $this->assertNotFalse($json);
+        $this->assertStringContainsString('footer_brand', $json);
+    }
+
+    public function test_registry_includes_chrome_kits(): void
+    {
+        $types = array_column(\App\Services\Appearance\KitRegistry::forAdmin(), 'type');
+        $this->assertContains('header_menu', $types);
+        $this->assertContains('footer_brand', $types);
+        $this->assertContains('footer_copyright', $types);
     }
 
     public function test_registry_for_admin_lists_homepage_types(): void

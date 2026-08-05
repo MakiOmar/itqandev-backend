@@ -98,12 +98,31 @@ class AppearanceApiTest extends TestCase
             ->assertOk()
             ->json('data');
 
-        $get['mode'] = 'builder';
+        $this->assertArrayHasKey('sections', $get);
+        $this->assertNotEmpty($get['sections']);
 
         $this->withHeaders($this->bearerHeaders($admin))
-            ->putJson('/api/appearance/footer', $get)
+            ->putJson('/api/appearance/footer', ['sections' => $get['sections']])
             ->assertOk()
-            ->assertJsonPath('data.mode', 'builder');
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_admin_can_get_and_put_header(): void
+    {
+        $admin = $this->admin();
+
+        $get = $this->withHeaders($this->bearerHeaders($admin))
+            ->getJson('/api/appearance/header')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertArrayHasKey('sections', $get);
+        $this->assertNotEmpty($get['sections']);
+
+        $this->withHeaders($this->bearerHeaders($admin))
+            ->putJson('/api/appearance/header', ['sections' => $get['sections']])
+            ->assertOk()
+            ->assertJsonPath('success', true);
     }
 
     public function test_registries_endpoint(): void
@@ -118,14 +137,15 @@ class AppearanceApiTest extends TestCase
                     'homepage_sections' => [
                         ['type', 'label', 'max_instances', 'default_settings', 'settings_fields'],
                     ],
-                    'footer_blocks' => [
-                        ['type', 'label', 'max_instances', 'default_settings', 'settings_fields'],
+                    'kits' => [
+                        ['type', 'label', 'category', 'max_instances', 'default_settings', 'settings_fields'],
                     ],
                 ],
-            ]);
+            ])
+            ->assertJsonMissingPath('data.footer_blocks');
     }
 
-    public function test_public_shell_includes_homepage_sections_and_footer(): void
+    public function test_public_shell_includes_homepage_sections_header_and_footer(): void
     {
         app(HomepageBuilderService::class)->save([
             'sections' => [
@@ -137,6 +157,11 @@ class AppearanceApiTest extends TestCase
         $this->getJson('/api/public/shell')
             ->assertOk()
             ->assertJsonPath('data.homepage_sections.0.type', 'hero')
-            ->assertJsonPath('data.footer.mode', 'hardcoded');
+            ->assertJsonStructure([
+                'data' => [
+                    'header' => ['sections'],
+                    'footer' => ['sections'],
+                ],
+            ]);
     }
 }

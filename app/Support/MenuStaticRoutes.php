@@ -58,6 +58,30 @@ final class MenuStaticRoutes
         ];
     }
 
+    /**
+     * Locale-aware default labels for static routes (when item label/translation empty).
+     *
+     * @return array<string, string>
+     */
+    public static function defaultLabelsForLocale(string $locale): array
+    {
+        $locale = strtolower(trim($locale));
+        if ($locale === 'ar') {
+            return [
+                'home' => 'الرئيسية',
+                'services' => 'الخدمات',
+                'portfolio' => 'المحفظة',
+                'work' => 'المحفظة',
+                'about' => 'من نحن',
+                'pricing' => 'الأسعار',
+                'blog' => 'المدونة',
+                'contact' => 'تواصل',
+            ];
+        }
+
+        return self::defaultLabels();
+    }
+
     public static function isValidKey(?string $key): bool
     {
         return is_string($key) && in_array($key, self::KEYS, true);

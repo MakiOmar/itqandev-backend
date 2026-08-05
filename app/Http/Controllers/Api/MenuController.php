@@ -45,7 +45,7 @@ class MenuController extends Controller
     {
         $this->authorize('view', $menu);
 
-        $items = $menu->items()->orderBy('sort_order')->get();
+        $items = $menu->items()->with('translations')->orderBy('sort_order')->get();
 
         return response()->json([
             'success' => true,
@@ -101,6 +101,12 @@ class MenuController extends Controller
                 'static_route_key' => $item->static_route_key,
                 'reference_id' => $item->reference_id,
                 'open_in_new_tab' => $item->open_in_new_tab,
+                'translations' => $item->relationLoaded('translations')
+                    ? $item->translations->map(fn ($t) => [
+                        'locale' => $t->locale,
+                        'label' => $t->label,
+                    ])->values()->all()
+                    : [],
                 'children' => $this->nestAdminItems($all, $item->id),
             ];
         }

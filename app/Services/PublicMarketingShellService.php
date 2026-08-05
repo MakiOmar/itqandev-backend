@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Http\Controllers\Api\SettingsController;
 use App\Models\Service;
 use App\Services\Appearance\FooterBuilderService;
+use App\Services\Appearance\HeaderBuilderService;
 use App\Services\Appearance\HomepageBuilderService;
 use App\Support\FeatureModules;
 use App\Support\PublishedServicesQuery;
@@ -54,7 +55,8 @@ final class PublicMarketingShellService
      *   menu: array{slug: string, locale: string, items: list<mixed>},
      *   services: list<array<string, mixed>>,
      *   homepage_sections: list<array<string, mixed>>,
-     *   footer: array<string, mixed>
+     *   header: array{sections: list<array<string, mixed>>},
+     *   footer: array{sections: list<array<string, mixed>>}
      * }
      */
     public function build(string $locale, ?string $presentationLocale = null): array
@@ -66,9 +68,10 @@ final class PublicMarketingShellService
 
         $cacheKey = 'public:shell:'.$locale.':loc:'.$present;
 
-        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, footer: array<string, mixed>} $payload */
+        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}} $payload */
         $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present) {
             $homepage = app(HomepageBuilderService::class);
+            $header = app(HeaderBuilderService::class);
             $footer = app(FooterBuilderService::class);
 
             return [
@@ -82,6 +85,7 @@ final class PublicMarketingShellService
                     ? $this->buildServicesPayload($present)
                     : [],
                 'homepage_sections' => $homepage->presentPublic($present),
+                'header' => $header->presentPublic($present),
                 'footer' => $footer->presentPublic($present),
             ];
         });

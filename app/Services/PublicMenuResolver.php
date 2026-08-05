@@ -51,7 +51,7 @@ final class PublicMenuResolver
                 return [];
             }
 
-            $items = $menu->items()->orderBy('sort_order')->get();
+            $items = $menu->items()->with('translations')->orderBy('sort_order')->get();
             $references = self::preloadMenuReferences($items, $locale);
 
             return self::buildResolvedTree($items, null, $locale, $references);
@@ -203,7 +203,7 @@ final class PublicMenuResolver
      */
     private static function resolveItem(MenuItem $item, string $locale, array $references): ?array
     {
-        $label = is_string($item->label) && trim($item->label) !== '' ? trim($item->label) : null;
+        $label = self::resolvedLabel($item, $locale);
         $href = null;
 
         switch ($item->item_type) {
@@ -229,7 +229,7 @@ final class PublicMenuResolver
                 }
                 $path = MenuStaticRoutes::pathsByKey()[$key] ?? '/';
                 $href = self::prefixLocale($locale, $path);
-                $label ??= MenuStaticRoutes::defaultLabels()[$key] ?? $key;
+                $label ??= MenuStaticRoutes::defaultLabelsForLocale($locale)[$key] ?? $key;
 
                 break;
 
@@ -343,6 +343,23 @@ final class PublicMenuResolver
         }
 
         return $references[$type][$id] ?? null;
+    }
+
+    /**
+     * Prefer per-locale translation, then primary label, then null (caller uses content/static defaults).
+     */
+    private static function resolvedLabel(MenuItem $item, string $locale): ?string
+    {
+        $item->loadMissing('translations');
+        $row = $item->translations->firstWhere('locale', $locale);
+        if ($row !== null && is_string($row->label) && trim($row->label) !== '') {
+            return trim($row->label);
+        }
+        if (is_string($item->label) && trim($item->label) !== '') {
+            return trim($item->label);
+        }
+
+        return null;
     }
 
     private static function prefixLocale(string $locale, string $path): string

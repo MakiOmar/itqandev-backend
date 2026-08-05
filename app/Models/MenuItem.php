@@ -82,6 +82,14 @@ class MenuItem extends Model
         return $this->hasMany(MenuItem::class, 'parent_id')->orderBy('sort_order');
     }
 
+    /**
+     * @return HasMany<MenuItemTranslation, $this>
+     */
+    public function translations(): HasMany
+    {
+        return $this->hasMany(MenuItemTranslation::class);
+    }
+
     protected static function booted(): void
     {
         static::saved(function (MenuItem $item): void {
