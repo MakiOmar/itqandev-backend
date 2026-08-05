@@ -121,6 +121,7 @@ class DatabaseSeeder extends Seeder
 
         if (FeatureModules::enabled('pages')) {
             $this->call(ContactPageSeeder::class);
+            $this->call(AboutPageSeeder::class);
         }
 
         $this->call(PrimaryMenuSeeder::class);

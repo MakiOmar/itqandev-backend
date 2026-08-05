@@ -359,21 +359,24 @@ final class KitRegistry
                 'max_instances' => null,
                 'default_settings' => [
                     'title' => 'How we work',
+                    'subtitle' => '',
                     'items' => [
-                        ['title' => 'Discover', 'description' => 'Goals, constraints, and success metrics.'],
-                        ['title' => 'Design', 'description' => 'UX and UI aligned to your brand.'],
-                        ['title' => 'Build', 'description' => 'Iterative delivery with clear milestones.'],
-                        ['title' => 'Launch', 'description' => 'Ship, measure, and improve.'],
+                        ['year' => '', 'title' => 'Discover', 'description' => 'Goals, constraints, and success metrics.'],
+                        ['year' => '', 'title' => 'Design', 'description' => 'UX and UI aligned to your brand.'],
+                        ['year' => '', 'title' => 'Build', 'description' => 'Iterative delivery with clear milestones.'],
+                        ['year' => '', 'title' => 'Launch', 'description' => 'Ship, measure, and improve.'],
                     ],
                 ],
                 'settings_fields' => [
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Optional subtitle'],
                     [
                         'key' => 'items',
                         'type' => 'repeater',
                         'label' => 'Steps',
                         'translatable' => true,
                         'item_fields' => [
+                            ['key' => 'year', 'type' => 'text', 'label' => 'Year / step marker'],
                             ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
                             ['key' => 'description', 'type' => 'textarea', 'label' => 'Description'],
                         ],
