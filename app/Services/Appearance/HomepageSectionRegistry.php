@@ -151,7 +151,7 @@ final class HomepageSectionRegistry
                     'subtitle' => '',
                 ],
                 'settings_fields' => [
-                    ['key' => 'form_slug', 'type' => 'text', 'label' => 'Form slug', 'translatable' => false],
+                    ['key' => 'form_slug', 'type' => 'form', 'label' => 'Form', 'translatable' => false],
                     ['key' => 'title', 'type' => 'text', 'label' => 'Optional heading'],
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Optional intro'],
                 ],
