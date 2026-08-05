@@ -11,6 +11,7 @@ class MenuItem extends Model
 {
     public const TYPE_CUSTOM_LINK = 'custom_link';
 
+    /** @deprecated Removed from admin; kept for one-off data migrations. */
     public const TYPE_STATIC_ROUTE = 'static_route';
 
     public const TYPE_PROJECT = 'project';
@@ -28,7 +29,6 @@ class MenuItem extends Model
     /** @var list<string> */
     public const ITEM_TYPES = [
         self::TYPE_CUSTOM_LINK,
-        self::TYPE_STATIC_ROUTE,
         self::TYPE_PROJECT,
         self::TYPE_BLOG_POST,
         self::TYPE_SERVICE,

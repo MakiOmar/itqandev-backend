@@ -10,7 +10,7 @@ use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
-use App\Support\MenuStaticRoutes;
+use App\Support\CmsPublicPaths;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Database\Eloquent\Model;
@@ -222,17 +222,6 @@ final class PublicMenuResolver
 
                 break;
 
-            case MenuItem::TYPE_STATIC_ROUTE:
-                $key = (string) ($item->static_route_key ?? '');
-                if (! MenuStaticRoutes::isValidKey($key)) {
-                    return null;
-                }
-                $path = MenuStaticRoutes::pathsByKey()[$key] ?? '/';
-                $href = self::prefixLocale($locale, $path);
-                $label ??= MenuStaticRoutes::defaultLabelsForLocale($locale)[$key] ?? $key;
-
-                break;
-
             case MenuItem::TYPE_PROJECT:
                 $project = self::lookupReference($references, MenuItem::TYPE_PROJECT, $item->reference_id);
                 if (! $project instanceof Project) {
@@ -312,7 +301,7 @@ final class PublicMenuResolver
                 if ($slug === '') {
                     return null;
                 }
-                $href = self::prefixLocale($locale, '/pages/'.$slug.'/');
+                $href = self::prefixLocale($locale, CmsPublicPaths::pathForPageSlug($slug));
                 $label ??= (string) $page->title;
 
                 break;

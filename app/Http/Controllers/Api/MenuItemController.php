@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Services\ContentExport\TranslatableTranslationSync;
-use App\Support\MenuStaticRoutes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -153,7 +152,6 @@ class MenuItemController extends Controller
             'label' => ['nullable', 'string', 'max:255'],
             'item_type' => $itemTypeRule,
             'url' => ['nullable', 'string', 'max:2048'],
-            'static_route_key' => ['nullable', 'string', 'max:32'],
             'reference_id' => ['nullable', 'integer', 'min:1'],
             'open_in_new_tab' => ['sometimes', 'boolean'],
             'translations' => ['nullable', 'array'],
@@ -169,11 +167,6 @@ class MenuItemController extends Controller
         if ($type === MenuItem::TYPE_CUSTOM_LINK) {
             $urlRule = $existing === null ? ['required'] : ['sometimes', 'required'];
             $request->validate(['url' => array_merge($urlRule, ['string', 'max:2048'])]);
-        }
-
-        if ($type === MenuItem::TYPE_STATIC_ROUTE) {
-            $keyRule = $existing === null ? ['required'] : ['sometimes', 'required'];
-            $request->validate(['static_route_key' => array_merge($keyRule, ['string', Rule::in(MenuStaticRoutes::KEYS)])]);
         }
 
         if (in_array($type, [
@@ -207,7 +200,6 @@ class MenuItemController extends Controller
             : ($existing !== null ? (int) $existing->sort_order : null);
         $label = array_key_exists('label', $base) ? $base['label'] : $existing?->label;
         $url = array_key_exists('url', $base) ? $base['url'] : $existing?->url;
-        $staticKey = array_key_exists('static_route_key', $base) ? $base['static_route_key'] : $existing?->static_route_key;
         $referenceId = array_key_exists('reference_id', $base) ? $base['reference_id'] : $existing?->reference_id;
         $openInNew = array_key_exists('open_in_new_tab', $base)
             ? (bool) $base['open_in_new_tab']
@@ -219,7 +211,7 @@ class MenuItemController extends Controller
             'label' => $label,
             'item_type' => $type,
             'url' => $type === MenuItem::TYPE_CUSTOM_LINK ? $url : null,
-            'static_route_key' => $type === MenuItem::TYPE_STATIC_ROUTE ? $staticKey : null,
+            'static_route_key' => null,
             'reference_id' => in_array($type, [
                 MenuItem::TYPE_PROJECT,
                 MenuItem::TYPE_BLOG_POST,

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\MenuItem;
 use App\Models\Page;
 use App\Services\Appearance\PortfolioPageLayout;
 use App\Support\FeatureModules;
@@ -10,8 +9,8 @@ use Illuminate\Database\Seeder;
 
 /**
  * Seeds a published CMS page (slug `portfolio`) editable in Page Builder.
- * Public route `/{lang}/portfolio/` prefers this layout when the pages module is on.
- * Migrates legacy slug `work` and menu static_route_key `work` → `portfolio`.
+ * Public route `/{lang}/portfolio/` uses this layout when the pages module is on.
+ * Migrates legacy CMS slug `work` → `portfolio`.
  */
 class PortfolioPageSeeder extends Seeder
 {
@@ -21,17 +20,15 @@ class PortfolioPageSeeder extends Seeder
             return;
         }
 
-        MenuItem::query()
-            ->where('static_route_key', 'work')
-            ->update(['static_route_key' => 'portfolio']);
+        $portfolioSlug = 'portfolio';
 
-        $page = Page::query()->where('slug', 'portfolio')->first();
+        $page = Page::query()->where('slug', $portfolioSlug)->first();
 
         if ($page === null) {
             $legacy = Page::query()->where('slug', 'work')->first();
             if ($legacy !== null) {
                 $legacy->title = 'Portfolio';
-                $legacy->slug = 'portfolio';
+                $legacy->slug = $portfolioSlug;
                 $legacy->excerpt = 'Selected projects across web, mobile, and product platforms.';
                 $legacy->sections = PortfolioPageLayout::sections();
                 $legacy->save();
@@ -39,7 +36,7 @@ class PortfolioPageSeeder extends Seeder
             } else {
                 $page = Page::create([
                     'title' => 'Portfolio',
-                    'slug' => 'portfolio',
+                    'slug' => $portfolioSlug,
                     'excerpt' => 'Selected projects across web, mobile, and product platforms.',
                     'status' => Page::STATUS_PUBLISHED,
                     'published_at' => now(),
