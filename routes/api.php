@@ -163,6 +163,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('cache/clear', [\App\Http\Controllers\Api\CacheController::class, 'clear']);
 
         Route::get('system/health', [\App\Http\Controllers\Api\SystemHealthController::class, 'show']);
+        Route::get('system/backups', [\App\Http\Controllers\Api\DatabaseBackupController::class, 'index']);
+        Route::post('system/backups', [\App\Http\Controllers\Api\DatabaseBackupController::class, 'store'])->middleware('throttle:bulk');
+        Route::post('system/backups/restore', [\App\Http\Controllers\Api\DatabaseBackupController::class, 'restore'])
+            ->middleware(['large.uploads', 'throttle:bulk']);
+        Route::get('system/backups/{filename}', [\App\Http\Controllers\Api\DatabaseBackupController::class, 'download'])
+            ->where('filename', '[A-Za-z0-9][A-Za-z0-9._-]{0,180}\\.sql');
+        Route::delete('system/backups/{filename}', [\App\Http\Controllers\Api\DatabaseBackupController::class, 'destroy'])
+            ->where('filename', '[A-Za-z0-9][A-Za-z0-9._-]{0,180}\\.sql');
 
         Route::get('activity', [\App\Http\Controllers\Api\ActivityController::class, 'index']);
         Route::get('activity/export', [\App\Http\Controllers\Api\ActivityController::class, 'export'])->middleware('throttle:bulk');
