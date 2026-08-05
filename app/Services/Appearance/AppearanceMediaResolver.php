@@ -44,6 +44,37 @@ final class AppearanceMediaResolver
     }
 
     /**
+     * Expand media fields nested inside repeater rows (e.g. gallery, team avatars).
+     *
+     * @param  list<array{key?: string, type?: string, item_fields?: list<array<string, mixed>>}>  $fields
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    public static function expandRepeaterMediaFields(array $settings, array $fields, ?string $locale = null): array
+    {
+        foreach ($fields as $field) {
+            if (! is_array($field) || ($field['type'] ?? '') !== 'repeater') {
+                continue;
+            }
+            $key = (string) ($field['key'] ?? '');
+            $itemFields = is_array($field['item_fields'] ?? null) ? $field['item_fields'] : [];
+            if ($key === '' || $itemFields === [] || ! is_array($settings[$key] ?? null)) {
+                continue;
+            }
+            $rows = [];
+            foreach ($settings[$key] as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $rows[] = self::expandMediaFields($row, $itemFields, $locale);
+            }
+            $settings[$key] = $rows;
+        }
+
+        return $settings;
+    }
+
+    /**
      * @return array{url: string, alt: ?string, media_id: ?int}
      */
     public static function resolve(mixed $value, ?string $locale = null, ?string $defaultLocale = null): array

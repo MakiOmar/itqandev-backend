@@ -8,6 +8,8 @@ use App\Services\Appearance\FooterBlockRegistry;
 use App\Services\Appearance\FooterBuilderService;
 use App\Services\Appearance\HomepageBuilderService;
 use App\Services\Appearance\HomepageSectionRegistry;
+use App\Services\Appearance\KitRegistry;
+use App\Services\Appearance\WidgetRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,6 +27,10 @@ class AppearanceController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                // New catalogs
+                'widgets' => WidgetRegistry::forAdmin(),
+                'kits' => KitRegistry::forAdmin(),
+                // Alias for one release: kits as homepage_sections
                 'homepage_sections' => HomepageSectionRegistry::forAdmin(),
                 'footer_blocks' => FooterBlockRegistry::forAdmin(),
                 'form_fields' => \App\Services\Forms\FormFieldRegistry::forAdmin(),

@@ -235,13 +235,19 @@ final class PageLayoutDocument
     private static function normalizeBlock(array $block, array &$blockCounts): ?array
     {
         $type = strtolower(trim((string) ($block['type'] ?? '')));
-        if ($type === '' || $type === self::TYPE_LAYOUT || ! HomepageSectionRegistry::has($type)) {
+        if ($type === '' || $type === self::TYPE_LAYOUT) {
             return null;
         }
 
-        $blockCounts[$type] = ($blockCounts[$type] ?? 0) + 1;
-        $max = HomepageSectionRegistry::maxInstances($type);
-        if ($max !== null && $blockCounts[$type] > $max) {
+        $kind = PageLeafRegistry::inferKind($type, isset($block['kind']) ? (string) $block['kind'] : null);
+        if ($kind === null) {
+            return null;
+        }
+
+        $countKey = PageLeafRegistry::countKey($kind, $type);
+        $blockCounts[$countKey] = ($blockCounts[$countKey] ?? 0) + 1;
+        $max = PageLeafRegistry::maxInstances($kind, $type);
+        if ($max !== null && $blockCounts[$countKey] > $max) {
             return null;
         }
 
@@ -253,12 +259,13 @@ final class PageLayoutDocument
         $settings = is_array($block['settings'] ?? null) ? $block['settings'] : [];
         $settings = AppearanceLocalizedSettings::normalize(
             $settings,
-            HomepageSectionRegistry::defaultSettings($type),
-            HomepageSectionRegistry::translatableKeys($type),
+            PageLeafRegistry::defaultSettings($kind, $type),
+            PageLeafRegistry::translatableKeys($kind, $type),
         );
 
         return [
             'id' => $id,
+            'kind' => $kind,
             'type' => $type,
             'enabled' => filter_var($block['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'settings' => $settings,
@@ -273,7 +280,7 @@ final class PageLayoutDocument
     private static function normalizeLegacyFlat(array $row, array &$blockCounts): ?array
     {
         $type = strtolower(trim((string) ($row['type'] ?? '')));
-        if (! HomepageSectionRegistry::has($type)) {
+        if (PageLeafRegistry::inferKind($type) === null) {
             return null;
         }
 
@@ -457,7 +464,8 @@ final class PageLayoutDocument
     private static function presentBlock(array $block, string $locale, string $defaultLocale): ?array
     {
         $type = strtolower(trim((string) ($block['type'] ?? '')));
-        if (! HomepageSectionRegistry::has($type)) {
+        $kind = PageLeafRegistry::inferKind($type, isset($block['kind']) ? (string) $block['kind'] : null);
+        if ($kind === null) {
             return null;
         }
 
@@ -466,11 +474,14 @@ final class PageLayoutDocument
             $settings,
             $locale,
             $defaultLocale,
-            HomepageSectionRegistry::translatableKeys($type),
+            PageLeafRegistry::translatableKeys($kind, $type),
         );
-        $entry = HomepageSectionRegistry::all()[$type] ?? null;
+        $entry = $kind === PageLeafRegistry::KIND_WIDGET
+            ? (WidgetRegistry::all()[$type] ?? null)
+            : (KitRegistry::all()[$type] ?? null);
         $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
         $settings = AppearanceMediaResolver::expandMediaFields($settings, $fields, $locale);
+        $settings = AppearanceMediaResolver::expandRepeaterMediaFields($settings, $fields, $locale);
         if ($type === 'hero') {
             $enabled = filter_var($settings['floating_icons_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
             $settings['floating_icons_enabled'] = $enabled;
@@ -484,6 +495,7 @@ final class PageLayoutDocument
 
         return [
             'id' => (string) ($block['id'] ?? ''),
+            'kind' => $kind,
             'type' => $type,
             'settings' => $settings,
         ];

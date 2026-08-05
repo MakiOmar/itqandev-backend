@@ -39,7 +39,7 @@ final class AppearanceLocalizedSettings
             return (bool) $field['translatable'];
         }
 
-        return in_array((string) ($field['type'] ?? ''), ['text', 'textarea'], true);
+        return in_array((string) ($field['type'] ?? ''), ['text', 'textarea', 'richtext', 'repeater'], true);
     }
 
     /**

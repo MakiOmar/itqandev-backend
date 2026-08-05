@@ -33,12 +33,15 @@ final class ContentSectionDocument
                 continue;
             }
             $type = strtolower(trim((string) ($row['type'] ?? '')));
-            if (! HomepageSectionRegistry::has($type)) {
+            // Homepage flat list accepts kits only (widgets belong in CMS layout columns).
+            if (! KitRegistry::has($type)) {
                 continue;
             }
-            $counts[$type] = ($counts[$type] ?? 0) + 1;
-            $max = HomepageSectionRegistry::maxInstances($type);
-            if ($max !== null && $counts[$type] > $max) {
+            $kind = PageLeafRegistry::KIND_KIT;
+            $countKey = PageLeafRegistry::countKey($kind, $type);
+            $counts[$countKey] = ($counts[$countKey] ?? 0) + 1;
+            $max = KitRegistry::maxInstances($type);
+            if ($max !== null && $counts[$countKey] > $max) {
                 continue;
             }
 
@@ -55,12 +58,13 @@ final class ContentSectionDocument
             $settings = is_array($row['settings'] ?? null) ? $row['settings'] : [];
             $settings = AppearanceLocalizedSettings::normalize(
                 $settings,
-                HomepageSectionRegistry::defaultSettings($type),
-                HomepageSectionRegistry::translatableKeys($type),
+                KitRegistry::defaultSettings($type),
+                KitRegistry::translatableKeys($type),
             );
 
             $sections[] = [
                 'id' => $id,
+                'kind' => $kind,
                 'type' => $type,
                 'enabled' => filter_var($row['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'layout_width' => $layout,
@@ -91,7 +95,7 @@ final class ContentSectionDocument
                 continue;
             }
             $type = (string) ($section['type'] ?? '');
-            if (! HomepageSectionRegistry::has($type)) {
+            if (! KitRegistry::has($type)) {
                 continue;
             }
             $settings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
@@ -99,11 +103,12 @@ final class ContentSectionDocument
                 $settings,
                 $locale,
                 $defaultLocale,
-                HomepageSectionRegistry::translatableKeys($type),
+                KitRegistry::translatableKeys($type),
             );
-            $entry = HomepageSectionRegistry::all()[$type] ?? null;
+            $entry = KitRegistry::all()[$type] ?? null;
             $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
             $settings = AppearanceMediaResolver::expandMediaFields($settings, $fields, $locale);
+            $settings = AppearanceMediaResolver::expandRepeaterMediaFields($settings, $fields, $locale);
             if ($type === 'hero') {
                 $enabled = filter_var($settings['floating_icons_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
                 $settings['floating_icons_enabled'] = $enabled;
@@ -116,6 +121,7 @@ final class ContentSectionDocument
             }
             $out[] = [
                 'id' => (string) ($section['id'] ?? ''),
+                'kind' => PageLeafRegistry::KIND_KIT,
                 'type' => $type,
                 'layout_width' => (string) ($section['layout_width'] ?? 'boxed'),
                 'settings' => $settings,
