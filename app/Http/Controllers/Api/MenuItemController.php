@@ -8,6 +8,7 @@ use App\Models\MenuItem;
 use App\Services\ContentExport\TranslatableTranslationSync;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
 class MenuItemController extends Controller
@@ -55,7 +56,7 @@ class MenuItemController extends Controller
         ]);
     }
 
-    public function destroy(MenuItem $menuItem): JsonResponse
+    public function destroy(MenuItem $menuItem): Response
     {
         $this->authorize('delete', $menuItem);
         $menuItem->delete();

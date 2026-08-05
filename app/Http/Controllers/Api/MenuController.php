@@ -7,6 +7,7 @@ use App\Models\Menu;
 use App\Models\MenuItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
@@ -75,7 +76,7 @@ class MenuController extends Controller
         ]);
     }
 
-    public function destroy(Menu $menu): JsonResponse
+    public function destroy(Menu $menu): Response
     {
         $this->authorize('delete', $menu);
         $menu->delete();
