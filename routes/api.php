@@ -172,6 +172,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('system/backups/{filename}', [\App\Http\Controllers\Api\DatabaseBackupController::class, 'destroy'])
             ->where('filename', '[A-Za-z0-9][A-Za-z0-9._-]{0,180}\\.sql');
 
+        Route::get('system/search-replace/tables', [\App\Http\Controllers\Api\SearchReplaceController::class, 'tables']);
+        Route::post('system/search-replace/preview', [\App\Http\Controllers\Api\SearchReplaceController::class, 'preview'])
+            ->middleware('throttle:bulk');
+        Route::post('system/search-replace/apply', [\App\Http\Controllers\Api\SearchReplaceController::class, 'apply'])
+            ->middleware('throttle:bulk');
+
         Route::get('activity', [\App\Http\Controllers\Api\ActivityController::class, 'index']);
         Route::get('activity/export', [\App\Http\Controllers\Api\ActivityController::class, 'export'])->middleware('throttle:bulk');
         Route::get('dashboard/metrics', [\App\Http\Controllers\Api\DashboardMetricsController::class, 'index']);
