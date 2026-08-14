@@ -24,6 +24,8 @@ class BlogPost extends Model implements HasMedia
         'featured',
         'author_id',
         'published_at',
+        'header_layout_id',
+        'footer_layout_id',
     ];
 
     protected $casts = [
@@ -44,6 +46,16 @@ class BlogPost extends Model implements HasMedia
     public function translations()
     {
         return $this->hasMany(BlogPostTranslation::class);
+    }
+
+    public function headerLayout()
+    {
+        return $this->belongsTo(ChromeLayout::class, 'header_layout_id');
+    }
+
+    public function footerLayout()
+    {
+        return $this->belongsTo(ChromeLayout::class, 'footer_layout_id');
     }
 
     public function registerMediaCollections(): void

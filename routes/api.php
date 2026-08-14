@@ -97,6 +97,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('header', [\App\Http\Controllers\Api\AppearanceController::class, 'updateHeader']);
         Route::get('footer', [\App\Http\Controllers\Api\AppearanceController::class, 'showFooter']);
         Route::put('footer', [\App\Http\Controllers\Api\AppearanceController::class, 'updateFooter']);
+
+        Route::get('headers', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'indexHeaders']);
+        Route::post('headers', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'storeHeader']);
+        Route::get('headers/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showHeader']);
+        Route::put('headers/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateHeader']);
+        Route::delete('headers/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'destroyHeader']);
+        Route::post('headers/{id}/set-site-default', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'setSiteDefaultHeader']);
+
+        Route::get('footers', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'indexFooters']);
+        Route::post('footers', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'storeFooter']);
+        Route::get('footers/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showFooter']);
+        Route::put('footers/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateFooter']);
+        Route::delete('footers/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'destroyFooter']);
+        Route::post('footers/{id}/set-site-default', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'setSiteDefaultFooter']);
+
+        Route::get('chrome-type-defaults', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showTypeDefaults']);
+        Route::put('chrome-type-defaults', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateTypeDefaults']);
     });
 
     Route::prefix('v1')->name('v1.')->middleware('throttle:api')->group(function () {

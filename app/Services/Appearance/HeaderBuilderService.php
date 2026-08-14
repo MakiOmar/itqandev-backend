@@ -2,8 +2,10 @@
 
 namespace App\Services\Appearance;
 
+use App\Models\ChromeLayout;
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
+use Illuminate\Support\Facades\Schema;
 
 final class HeaderBuilderService
 {
@@ -67,6 +69,13 @@ final class HeaderBuilderService
      */
     public function loadAdminDocument(): array
     {
+        $siteDefault = $this->siteDefaultLayout();
+        if ($siteDefault !== null) {
+            $document = is_array($siteDefault->document) ? $siteDefault->document : [];
+
+            return ChromeLayoutSupport::normalizeDocument($document !== [] ? $document : $this->defaultDocument());
+        }
+
         $stored = ProjectSettingsStore::load();
         $raw = $stored[self::SETTINGS_KEY] ?? null;
         if (! is_array($raw) || ! isset($raw['sections']) || ! is_array($raw['sections']) || $raw['sections'] === []) {
@@ -77,10 +86,21 @@ final class HeaderBuilderService
     }
 
     /**
+     * Site-wide public header (homepage type defaults → site default).
+     *
      * @return array{sections: list<array<string, mixed>>}
      */
     public function presentPublic(?string $locale = null): array
     {
+        if (Schema::hasTable('chrome_layouts')) {
+            return app(ChromeLayoutResolver::class)->resolve(
+                ChromeLayout::KIND_HEADER,
+                'homepage',
+                null,
+                $locale
+            );
+        }
+
         return ChromeLayoutSupport::presentPublic($this->loadAdminDocument(), $locale);
     }
 
@@ -94,9 +114,30 @@ final class HeaderBuilderService
         if (($normalized['sections'] ?? []) === []) {
             $normalized = $this->defaultDocument();
         }
+
+        $siteDefault = $this->siteDefaultLayout();
+        if ($siteDefault !== null) {
+            app(ChromeLayoutService::class)->update($siteDefault, [
+                'sections' => $normalized['sections'],
+            ]);
+            // Keep settings key for one-release fallback.
+            ProjectSettingsStore::merge([self::SETTINGS_KEY => $normalized]);
+
+            return $normalized;
+        }
+
         ProjectSettingsStore::merge([self::SETTINGS_KEY => $normalized]);
         MarketingSettingsCache::forgetAll();
 
         return $normalized;
+    }
+
+    private function siteDefaultLayout(): ?ChromeLayout
+    {
+        if (! Schema::hasTable('chrome_layouts')) {
+            return null;
+        }
+
+        return app(ChromeLayoutService::class)->findSiteDefault(ChromeLayout::KIND_HEADER);
     }
 }

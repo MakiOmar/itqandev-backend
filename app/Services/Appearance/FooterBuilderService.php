@@ -2,8 +2,10 @@
 
 namespace App\Services\Appearance;
 
+use App\Models\ChromeLayout;
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Footer appearance builder using the CMS page-layout document shape.
@@ -69,6 +71,13 @@ final class FooterBuilderService
      */
     public function loadAdminDocument(): array
     {
+        $siteDefault = $this->siteDefaultLayout();
+        if ($siteDefault !== null) {
+            $document = is_array($siteDefault->document) ? $siteDefault->document : [];
+
+            return ChromeLayoutSupport::normalizeDocument($document !== [] ? $document : $this->defaultDocument());
+        }
+
         $stored = ProjectSettingsStore::load();
         $raw = $stored[self::SETTINGS_KEY] ?? null;
         if (! is_array($raw)) {
@@ -90,10 +99,21 @@ final class FooterBuilderService
     }
 
     /**
+     * Site-wide public footer (homepage type defaults → site default).
+     *
      * @return array{sections: list<array<string, mixed>>}
      */
     public function presentPublic(?string $locale = null): array
     {
+        if (Schema::hasTable('chrome_layouts')) {
+            return app(ChromeLayoutResolver::class)->resolve(
+                ChromeLayout::KIND_FOOTER,
+                'homepage',
+                null,
+                $locale
+            );
+        }
+
         return ChromeLayoutSupport::presentPublic($this->loadAdminDocument(), $locale);
     }
 
@@ -107,9 +127,29 @@ final class FooterBuilderService
         if (($normalized['sections'] ?? []) === []) {
             $normalized = $this->defaultDocument();
         }
+
+        $siteDefault = $this->siteDefaultLayout();
+        if ($siteDefault !== null) {
+            app(ChromeLayoutService::class)->update($siteDefault, [
+                'sections' => $normalized['sections'],
+            ]);
+            ProjectSettingsStore::merge([self::SETTINGS_KEY => $normalized]);
+
+            return $normalized;
+        }
+
         ProjectSettingsStore::merge([self::SETTINGS_KEY => $normalized]);
         MarketingSettingsCache::forgetAll();
 
         return $normalized;
+    }
+
+    private function siteDefaultLayout(): ?ChromeLayout
+    {
+        if (! Schema::hasTable('chrome_layouts')) {
+            return null;
+        }
+
+        return app(ChromeLayoutService::class)->findSiteDefault(ChromeLayout::KIND_FOOTER);
     }
 }

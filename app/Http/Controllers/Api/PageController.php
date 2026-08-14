@@ -68,10 +68,13 @@ class PageController extends Controller
             'translations.*.locale' => ['required', 'string', 'max:16'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
             'translations.*.excerpt' => ['nullable', 'string', 'max:512'],
+            'header_layout_id' => ['nullable', 'integer'],
+            'footer_layout_id' => ['nullable', 'integer'],
         ]);
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+        $data = app(\App\Services\Appearance\ChromeLayoutService::class)->applyAssignmentFields($data);
         $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
         $data['status'] = $data['status'] ?? Page::STATUS_DRAFT;
         $data['sections'] = PageLayoutDocument::normalizeSectionsForPages($data['sections'] ?? []);
@@ -113,10 +116,13 @@ class PageController extends Controller
             'translations.*.locale' => ['required', 'string', 'max:16'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
             'translations.*.excerpt' => ['nullable', 'string', 'max:512'],
+            'header_layout_id' => ['nullable', 'integer'],
+            'footer_layout_id' => ['nullable', 'integer'],
         ]);
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+        $data = app(\App\Services\Appearance\ChromeLayoutService::class)->applyAssignmentFields($data);
         if (array_key_exists('content_locale', $data)) {
             $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
         }

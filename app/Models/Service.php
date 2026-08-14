@@ -22,6 +22,8 @@ class Service extends Model
         'description',
         'process',
         'deliverables',
+        'header_layout_id',
+        'footer_layout_id',
     ];
 
     protected function casts(): array
@@ -42,5 +44,15 @@ class Service extends Model
     public function seoMetas()
     {
         return $this->morphMany(SeoMeta::class, 'seoable');
+    }
+
+    public function headerLayout()
+    {
+        return $this->belongsTo(ChromeLayout::class, 'header_layout_id');
+    }
+
+    public function footerLayout()
+    {
+        return $this->belongsTo(ChromeLayout::class, 'footer_layout_id');
     }
 }

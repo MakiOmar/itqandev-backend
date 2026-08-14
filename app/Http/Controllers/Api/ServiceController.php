@@ -95,10 +95,13 @@ class ServiceController extends Controller
             'translations.*.process.*' => ['string', 'max:500'],
             'translations.*.deliverables' => ['nullable', 'array'],
             'translations.*.deliverables.*' => ['string', 'max:500'],
+            'header_layout_id' => ['nullable', 'integer'],
+            'footer_layout_id' => ['nullable', 'integer'],
         ]);
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+        $data = app(\App\Services\Appearance\ChromeLayoutService::class)->applyAssignmentFields($data);
         $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
         if (isset($data['description'])) {
             $data['description'] = $this->sanitizer->stripAll($data['description']);
@@ -152,10 +155,13 @@ class ServiceController extends Controller
             'translations.*.process.*' => ['string', 'max:500'],
             'translations.*.deliverables' => ['nullable', 'array'],
             'translations.*.deliverables.*' => ['string', 'max:500'],
+            'header_layout_id' => ['nullable', 'integer'],
+            'footer_layout_id' => ['nullable', 'integer'],
         ]);
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+        $data = app(\App\Services\Appearance\ChromeLayoutService::class)->applyAssignmentFields($data);
         if (array_key_exists('content_locale', $data)) {
             $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
         }

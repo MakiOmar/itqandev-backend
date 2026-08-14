@@ -4,8 +4,7 @@ namespace App\Services;
 
 use App\Http\Controllers\Api\SettingsController;
 use App\Models\Service;
-use App\Services\Appearance\FooterBuilderService;
-use App\Services\Appearance\HeaderBuilderService;
+use App\Services\Appearance\ChromeLayoutResolver;
 use App\Services\Appearance\HomepageBuilderService;
 use App\Support\FeatureModules;
 use App\Support\PublishedServicesQuery;
@@ -21,9 +20,14 @@ final class PublicMarketingShellService
 {
     private const CACHE_SECONDS = 300;
 
+    private const SHELL_VERSION_KEY = 'public:shell:version';
+
     /** Bust cached shell payloads after typography or font library changes. */
     public static function forgetShellCaches(): void
     {
+        $version = (int) Cache::get(self::SHELL_VERSION_KEY, 1);
+        Cache::forever(self::SHELL_VERSION_KEY, $version + 1);
+
         $locales = array_unique(array_merge(
             [SiteLanguages::defaultCode(), 'en', 'ar'],
             array_map(
@@ -42,11 +46,17 @@ final class PublicMarketingShellService
                 if ($present === '') {
                     continue;
                 }
+                // Legacy keys (pre path-aware chrome)
                 Cache::forget('public:shell:'.$locale.':loc:'.$present);
                 Cache::forget('public:site-content:loc:'.$present);
             }
             Cache::forget('public:site-content:loc:'.$locale);
         }
+    }
+
+    private static function shellVersion(): int
+    {
+        return (int) Cache::get(self::SHELL_VERSION_KEY, 1);
     }
 
     /**
@@ -59,20 +69,22 @@ final class PublicMarketingShellService
      *   footer: array{sections: list<array<string, mixed>>}
      * }
      */
-    public function build(string $locale, ?string $presentationLocale = null): array
+    public function build(string $locale, ?string $presentationLocale = null, ?string $documentPath = null): array
     {
         $locale = $this->normalizeLocale($locale);
         $present = $presentationLocale !== null && $presentationLocale !== ''
             ? strtolower(trim($presentationLocale))
             : $locale;
 
-        $cacheKey = 'public:shell:'.$locale.':loc:'.$present;
+        $pathKey = $documentPath !== null && trim($documentPath) !== ''
+            ? sha1(strtolower(trim($documentPath)))
+            : 'site';
+        $cacheKey = 'public:shell:v'.self::shellVersion().':'.$locale.':loc:'.$present.':chrome:'.$pathKey;
 
         /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}} $payload */
-        $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present) {
+        $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present, $documentPath) {
             $homepage = app(HomepageBuilderService::class);
-            $header = app(HeaderBuilderService::class);
-            $footer = app(FooterBuilderService::class);
+            $chrome = app(ChromeLayoutResolver::class)->resolveForDocumentPath($documentPath, $present);
 
             return [
                 'site_meta' => $this->buildSiteMeta($present),
@@ -85,8 +97,8 @@ final class PublicMarketingShellService
                     ? $this->buildServicesPayload($present)
                     : [],
                 'homepage_sections' => $homepage->presentPublic($present),
-                'header' => $header->presentPublic($present),
-                'footer' => $footer->presentPublic($present),
+                'header' => $chrome['header'],
+                'footer' => $chrome['footer'],
             ];
         });
 

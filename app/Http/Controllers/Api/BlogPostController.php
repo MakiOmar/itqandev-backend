@@ -95,10 +95,13 @@ class BlogPostController extends Controller
             'translations.*.title' => ['nullable', 'string', 'max:255'],
             'translations.*.excerpt' => ['nullable', 'string', 'max:1024'],
             'translations.*.content' => ['nullable', 'string'],
+            'header_layout_id' => ['nullable', 'integer'],
+            'footer_layout_id' => ['nullable', 'integer'],
         ]);
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+        $data = app(\App\Services\Appearance\ChromeLayoutService::class)->applyAssignmentFields($data);
 
         $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);
 
@@ -149,10 +152,13 @@ class BlogPostController extends Controller
             'translations.*.title' => ['nullable', 'string', 'max:255'],
             'translations.*.excerpt' => ['nullable', 'string', 'max:1024'],
             'translations.*.content' => ['nullable', 'string'],
+            'header_layout_id' => ['nullable', 'integer'],
+            'footer_layout_id' => ['nullable', 'integer'],
         ]);
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
+        $data = app(\App\Services\Appearance\ChromeLayoutService::class)->applyAssignmentFields($data);
 
         if (array_key_exists('content_locale', $data)) {
             $data['content_locale'] = SiteLanguages::normalizeContentLocale($data['content_locale'] ?? null);

@@ -20,7 +20,11 @@ class PublicShellController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $shell->build($locale, $present),
+            'data' => $shell->build(
+                $locale,
+                $present,
+                $request->query('path') ?: $request->headers->get('X-Document-Path')
+            ),
         ]);
     }
 }
