@@ -7,9 +7,11 @@ use App\Models\ChromeLayout;
 use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
+use App\Models\ThemeTemplate;
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
 use App\Support\SiteLanguages;
+use App\Support\UniqueContentSlug;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -28,9 +30,25 @@ final class ChromeLayoutService
 
     public function defaultDocument(string $kind): array
     {
-        return $kind === ChromeLayout::KIND_FOOTER
-            ? app(FooterBuilderService::class)->defaultDocument()
-            : app(HeaderBuilderService::class)->defaultDocument();
+        if ($kind === ChromeLayout::KIND_FOOTER) {
+            return app(FooterBuilderService::class)->defaultDocument();
+        }
+        if ($kind === ChromeLayout::KIND_BODY) {
+            return [
+                'sections' => PageLayoutDocument::normalizeSectionsForPages([
+                    [
+                        'id' => 'band_body_main',
+                        'type' => PageLayoutDocument::TYPE_LAYOUT,
+                        'enabled' => true,
+                        'layout_width' => 'boxed',
+                        'settings' => [],
+                        'rows' => [],
+                    ],
+                ]),
+            ];
+        }
+
+        return app(HeaderBuilderService::class)->defaultDocument();
     }
 
     /**
@@ -66,8 +84,7 @@ final class ChromeLayoutService
             throw ValidationException::withMessages(['name' => 'Name is required.']);
         }
 
-        $slug = $this->normalizeSlug((string) ($input['slug'] ?? ''), $name);
-        $this->assertUniqueSlug($kind, $slug);
+        $slug = $this->uniqueNormalizedSlug($kind, (string) ($input['slug'] ?? ''), $name);
 
         $status = $this->normalizeStatus($input['status'] ?? ChromeLayout::STATUS_DRAFT);
         $document = $this->normalizeDocument(
@@ -108,9 +125,12 @@ final class ChromeLayoutService
         }
 
         if (array_key_exists('slug', $input)) {
-            $slug = $this->normalizeSlug((string) $input['slug'], $layout->name);
-            $this->assertUniqueSlug($layout->kind, $slug, (int) $layout->id);
-            $layout->slug = $slug;
+            $layout->slug = $this->uniqueNormalizedSlug(
+                $layout->kind,
+                (string) $input['slug'],
+                $layout->name,
+                (int) $layout->id
+            );
         }
 
         if (array_key_exists('status', $input)) {
@@ -208,6 +228,12 @@ final class ChromeLayoutService
 
     public function setSiteDefault(ChromeLayout $layout): ChromeLayout
     {
+        if ($layout->kind === ChromeLayout::KIND_BODY) {
+            throw ValidationException::withMessages([
+                'kind' => 'Body layouts cannot be set as the site default.',
+            ]);
+        }
+
         if (! $layout->isPublished()) {
             throw ValidationException::withMessages([
                 'status' => 'Only published layouts can be set as the site default.',
@@ -337,12 +363,25 @@ final class ChromeLayoutService
             $labels[] = 'site default '.$layout->kind;
         }
 
-        $typeDefaults = $this->getTypeDefaults();
-        $idKey = $layout->kind === ChromeLayout::KIND_FOOTER ? 'footer_id' : 'header_id';
-        foreach ($typeDefaults as $contentType => $pair) {
-            if (($pair[$idKey] ?? null) === (int) $layout->id) {
-                $labels[] = 'type default for '.$contentType;
+        if ($layout->kind !== ChromeLayout::KIND_BODY) {
+            $typeDefaults = $this->getTypeDefaults();
+            $idKey = $layout->kind === ChromeLayout::KIND_FOOTER ? 'footer_id' : 'header_id';
+            foreach ($typeDefaults as $contentType => $pair) {
+                if (($pair[$idKey] ?? null) === (int) $layout->id) {
+                    $labels[] = 'type default for '.$contentType;
+                }
             }
+        }
+
+        if ($layout->kind === ChromeLayout::KIND_BODY) {
+            if (Schema::hasTable('theme_templates') && Schema::hasColumn('theme_templates', 'body_layout_id')) {
+                $count = ThemeTemplate::query()->where('body_layout_id', $layout->id)->count();
+                if ($count > 0) {
+                    $labels[] = $count.' theme template'.($count === 1 ? '' : 's');
+                }
+            }
+
+            return $labels;
         }
 
         $headerCol = 'header_layout_id';
@@ -367,6 +406,13 @@ final class ChromeLayoutService
             $count = $modelClass::query()->where($col, $layout->id)->count();
             if ($count > 0) {
                 $labels[] = $count.' '.$label;
+            }
+        }
+
+        if (Schema::hasTable('theme_templates') && Schema::hasColumn('theme_templates', $col)) {
+            $count = ThemeTemplate::query()->where($col, $layout->id)->count();
+            if ($count > 0) {
+                $labels[] = $count.' theme template'.($count === 1 ? '' : 's');
             }
         }
 
@@ -399,17 +445,22 @@ final class ChromeLayoutService
         return $slug;
     }
 
-    private function assertUniqueSlug(string $kind, string $slug, ?int $ignoreId = null): void
-    {
-        $query = ChromeLayout::query()->kind($kind)->where('slug', $slug);
-        if ($ignoreId !== null) {
-            $query->where('id', '!=', $ignoreId);
-        }
-        if ($query->exists()) {
-            throw ValidationException::withMessages([
-                'slug' => 'A '.$kind.' layout with this slug already exists.',
-            ]);
-        }
+    /**
+     * Normalize then uniquify within the layout kind (WordPress-style -2, -3, …).
+     */
+    private function uniqueNormalizedSlug(
+        string $kind,
+        string $slug,
+        string $fallbackName,
+        ?int $ignoreId = null,
+    ): string {
+        $base = $this->normalizeSlug($slug, $fallbackName);
+
+        return UniqueContentSlug::suggestFromQuery(
+            ChromeLayout::query()->kind($kind),
+            $base,
+            $ignoreId
+        );
     }
 
     private function normalizeStatus(mixed $status): string

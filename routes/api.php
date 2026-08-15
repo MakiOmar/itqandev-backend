@@ -112,6 +112,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('footers/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'destroyFooter']);
         Route::post('footers/{id}/set-site-default', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'setSiteDefaultFooter']);
 
+        Route::get('bodies', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'indexBodies']);
+        Route::post('bodies', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'storeBody']);
+        Route::get('bodies/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showBody']);
+        Route::put('bodies/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateBody']);
+        Route::delete('bodies/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'destroyBody']);
+
+        Route::get('theme-templates', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'index']);
+        Route::post('theme-templates', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'store']);
+        Route::get('theme-templates/{id}', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'show']);
+        Route::put('theme-templates/{id}', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'update']);
+        Route::delete('theme-templates/{id}', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'destroy']);
+
         Route::get('chrome-type-defaults', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showTypeDefaults']);
         Route::put('chrome-type-defaults', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateTypeDefaults']);
     });

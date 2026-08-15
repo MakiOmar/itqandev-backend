@@ -12,9 +12,15 @@ class ChromeLayout extends Model
 
     public const KIND_FOOTER = 'footer';
 
+    public const KIND_BODY = 'body';
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PUBLISHED = 'published';
+
+    /** @var list<string> */
+    public const KINDS = [self::KIND_HEADER, self::KIND_FOOTER, self::KIND_BODY];
+
 
     protected $fillable = [
         'kind',

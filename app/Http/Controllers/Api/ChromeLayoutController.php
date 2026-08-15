@@ -27,6 +27,11 @@ class ChromeLayoutController extends Controller
         return $this->index($request, ChromeLayout::KIND_FOOTER);
     }
 
+    public function indexBodies(Request $request): JsonResponse
+    {
+        return $this->index($request, ChromeLayout::KIND_BODY);
+    }
+
     public function storeHeader(Request $request): JsonResponse
     {
         return $this->store($request, ChromeLayout::KIND_HEADER);
@@ -35,6 +40,11 @@ class ChromeLayoutController extends Controller
     public function storeFooter(Request $request): JsonResponse
     {
         return $this->store($request, ChromeLayout::KIND_FOOTER);
+    }
+
+    public function storeBody(Request $request): JsonResponse
+    {
+        return $this->store($request, ChromeLayout::KIND_BODY);
     }
 
     public function showHeader(int $id): JsonResponse
@@ -47,6 +57,11 @@ class ChromeLayoutController extends Controller
         return $this->show($id, ChromeLayout::KIND_FOOTER);
     }
 
+    public function showBody(int $id): JsonResponse
+    {
+        return $this->show($id, ChromeLayout::KIND_BODY);
+    }
+
     public function updateHeader(Request $request, int $id): JsonResponse
     {
         return $this->update($request, $id, ChromeLayout::KIND_HEADER);
@@ -57,6 +72,11 @@ class ChromeLayoutController extends Controller
         return $this->update($request, $id, ChromeLayout::KIND_FOOTER);
     }
 
+    public function updateBody(Request $request, int $id): JsonResponse
+    {
+        return $this->update($request, $id, ChromeLayout::KIND_BODY);
+    }
+
     public function destroyHeader(int $id): Response|JsonResponse
     {
         return $this->destroy($id, ChromeLayout::KIND_HEADER);
@@ -65,6 +85,11 @@ class ChromeLayoutController extends Controller
     public function destroyFooter(int $id): Response|JsonResponse
     {
         return $this->destroy($id, ChromeLayout::KIND_FOOTER);
+    }
+
+    public function destroyBody(int $id): Response|JsonResponse
+    {
+        return $this->destroy($id, ChromeLayout::KIND_BODY);
     }
 
     public function setSiteDefaultHeader(Request $request, int $id): JsonResponse

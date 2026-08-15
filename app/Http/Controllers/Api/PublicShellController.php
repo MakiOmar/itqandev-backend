@@ -23,7 +23,9 @@ class PublicShellController extends Controller
             'data' => $shell->build(
                 $locale,
                 $present,
-                $request->query('path') ?: $request->headers->get('X-Document-Path')
+                $request->query('path') ?: $request->headers->get('X-Document-Path'),
+                $request,
+                $request->query('theme_context') ?: $request->headers->get('X-Theme-Context')
             ),
         ]);
     }

@@ -66,11 +66,19 @@ final class PublicMarketingShellService
      *   services: list<array<string, mixed>>,
      *   homepage_sections: list<array<string, mixed>>,
      *   header: array{sections: list<array<string, mixed>>},
-     *   footer: array{sections: list<array<string, mixed>>}
+     *   footer: array{sections: list<array<string, mixed>>},
+     *   theme_body: array{sections: list<array<string, mixed>>}|null,
+     *   theme_context: string|null,
+     *   theme_template_id: int|null
      * }
      */
-    public function build(string $locale, ?string $presentationLocale = null, ?string $documentPath = null): array
-    {
+    public function build(
+        string $locale,
+        ?string $presentationLocale = null,
+        ?string $documentPath = null,
+        ?Request $request = null,
+        ?string $forcedContext = null,
+    ): array {
         $locale = $this->normalizeLocale($locale);
         $present = $presentationLocale !== null && $presentationLocale !== ''
             ? strtolower(trim($presentationLocale))
@@ -79,12 +87,23 @@ final class PublicMarketingShellService
         $pathKey = $documentPath !== null && trim($documentPath) !== ''
             ? sha1(strtolower(trim($documentPath)))
             : 'site';
-        $cacheKey = 'public:shell:v'.self::shellVersion().':'.$locale.':loc:'.$present.':chrome:'.$pathKey;
+        $ctxKey = $forcedContext !== null && trim($forcedContext) !== ''
+            ? sha1(strtolower(trim($forcedContext)))
+            : 'auto';
+        $cacheKey = 'public:shell:v'.self::shellVersion().':'.$locale.':loc:'.$present.':chrome:'.$pathKey.':ctx:'.$ctxKey;
 
-        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}} $payload */
-        $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present, $documentPath) {
+        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}, theme_body: array{sections: list<array<string, mixed>>}|null, theme_context: string|null, theme_template_id: int|null} $payload */
+        $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present, $documentPath, $request, $forcedContext) {
             $homepage = app(HomepageBuilderService::class);
-            $chrome = app(ChromeLayoutResolver::class)->resolveForDocumentPath($documentPath, $present);
+            $chrome = app(ChromeLayoutResolver::class)->resolveForDocumentPath(
+                $documentPath,
+                $present,
+                $request,
+                $forcedContext
+            );
+
+            $homepageSections = $homepage->presentPublic($present);
+            $themeBody = $chrome['theme_body'] ?? null;
 
             return [
                 'site_meta' => $this->buildSiteMeta($present),
@@ -96,9 +115,12 @@ final class PublicMarketingShellService
                 'services' => FeatureModules::enabled('services')
                     ? $this->buildServicesPayload($present)
                     : [],
-                'homepage_sections' => $homepage->presentPublic($present),
+                'homepage_sections' => $homepageSections,
                 'header' => $chrome['header'],
                 'footer' => $chrome['footer'],
+                'theme_body' => $themeBody,
+                'theme_context' => $chrome['context'] ?? null,
+                'theme_template_id' => $chrome['theme_template_id'] ?? null,
             ];
         });
 
