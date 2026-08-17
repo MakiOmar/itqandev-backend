@@ -4,10 +4,12 @@ namespace App\Services\ContentExport;
 
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
 use App\Models\Testimonial;
+use App\Support\PageHierarchy;
 use App\Support\ContentExportEnvelope;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Database\Eloquent\Builder;
@@ -46,7 +48,7 @@ final class TranslatableLocaleExportService
 
         $records = $query->get();
 
-        return $records
+        $filtered = $records
             ->map(function (Model $model) use ($entity, $locale) {
                 $this->applyPresentation($entity, $model, $locale);
 
@@ -54,6 +56,12 @@ final class TranslatableLocaleExportService
             })
             ->filter(fn (Model $model) => $this->hasContentForLocale($entity, $model, $locale))
             ->values();
+
+        if ($entity === ContentExportEnvelope::ENTITY_PAGES) {
+            return collect(PageHierarchy::flattenForAdmin($filtered));
+        }
+
+        return $filtered;
     }
 
     private function baseQuery(string $entity): Builder
@@ -78,6 +86,9 @@ final class TranslatableLocaleExportService
             ContentExportEnvelope::ENTITY_TESTIMONIALS => Testimonial::query()
                 ->with(['translations'])
                 ->orderBy('id'),
+            ContentExportEnvelope::ENTITY_PAGES => Page::query()
+                ->with(['translations', 'parent:id,slug'])
+                ->orderBy('id'),
             default => throw new \InvalidArgumentException('Unknown entity: '.$entity),
         };
     }
@@ -91,6 +102,7 @@ final class TranslatableLocaleExportService
             ContentExportEnvelope::ENTITY_SERVICES => TranslatableContentPresenter::applyService($model, $locale),
             ContentExportEnvelope::ENTITY_BLOG_POSTS => TranslatableContentPresenter::applyBlogPost($model, $locale),
             ContentExportEnvelope::ENTITY_TESTIMONIALS => TranslatableContentPresenter::applyTestimonial($model, $locale),
+            ContentExportEnvelope::ENTITY_PAGES => TranslatableContentPresenter::applyPage($model, $locale),
             default => null,
         };
     }
@@ -104,6 +116,7 @@ final class TranslatableLocaleExportService
             ContentExportEnvelope::ENTITY_SERVICES => TranslatableContentPresenter::hasServiceContentForLocale($model, $locale),
             ContentExportEnvelope::ENTITY_BLOG_POSTS => TranslatableContentPresenter::hasBlogPostContentForLocale($model, $locale),
             ContentExportEnvelope::ENTITY_TESTIMONIALS => TranslatableContentPresenter::hasTestimonialContentForLocale($model, $locale),
+            ContentExportEnvelope::ENTITY_PAGES => TranslatableContentPresenter::hasPageContentForLocale($model, $locale),
             default => false,
         };
     }
@@ -160,6 +173,21 @@ final class TranslatableLocaleExportService
                 'content' => $model->content,
                 'client_role' => $model->client_role,
                 'company' => $model->company,
+            ],
+            ContentExportEnvelope::ENTITY_PAGES => [
+                'id' => $model->id,
+                'slug' => $model->slug,
+                'title' => $model->title,
+                'excerpt' => $model->excerpt,
+                'status' => $model->status,
+                'parent_id' => $model->parent_id,
+                'parent_slug' => $model->relationLoaded('parent')
+                    ? ($model->parent?->slug)
+                    : ($model->parent_id
+                        ? Page::query()->whereKey((int) $model->parent_id)->value('slug')
+                        : null),
+                'exclude_from_search' => (bool) $model->exclude_from_search,
+                'sections' => is_array($model->sections) ? $model->sections : [],
             ],
             default => throw new \InvalidArgumentException('Unknown entity: '.$entity),
         };

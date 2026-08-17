@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
+use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Support\ContentExportEnvelope;
@@ -16,6 +17,7 @@ use Illuminate\Validation\Rule;
 class ServiceController extends Controller
 {
     use ExportsImportsTranslatableContent;
+    use PreparesUniqueContentSlug;
 
     private const LIST_CACHE_KEY = 'services:list:v3:json';
 
@@ -72,6 +74,8 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', Service::class);
+
+        $this->mergeUniqueContentSlug($request, Service::class, 'name');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -132,6 +136,8 @@ class ServiceController extends Controller
     public function update(Request $request, Service $service)
     {
         $this->authorize('update', $service);
+
+        $this->mergeUniqueContentSlug($request, Service::class, 'name', (int) $service->id, true);
 
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],

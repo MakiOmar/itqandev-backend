@@ -4,12 +4,15 @@ namespace App\Services\ContentExport;
 
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
 use App\Models\Testimonial;
+use App\Services\Appearance\PageLayoutDocument;
 use App\Services\HtmlSanitizerService;
 use App\Support\ContentExportEnvelope;
+use App\Support\PageHierarchy;
 use App\Support\SiteLanguages;
 use App\Support\UniqueContentSlug;
 use Illuminate\Database\Eloquent\Model;
@@ -41,7 +44,12 @@ final class TranslatableLocaleImportService
         $skipped = 0;
         $errors = [];
 
-        foreach ($payload['items'] as $index => $row) {
+        $items = $payload['items'];
+        if ($entity === ContentExportEnvelope::ENTITY_PAGES && is_array($items)) {
+            $items = $this->orderPageImportItems($items);
+        }
+
+        foreach ($items as $index => $row) {
             if (! is_array($row)) {
                 $errors[] = [
                     'id' => null,
@@ -77,6 +85,10 @@ final class TranslatableLocaleImportService
             TranslatableListCacheInvalidator::flushPrefix($prefix);
         }
 
+        if ($entity === ContentExportEnvelope::ENTITY_PAGES) {
+            Page::bumpPublicCacheVersion();
+        }
+
         return [
             'mode' => $mode,
             'locale' => $locale,
@@ -102,8 +114,41 @@ final class TranslatableLocaleImportService
             ContentExportEnvelope::ENTITY_SERVICES => $this->importService($row, $locale, $mode),
             ContentExportEnvelope::ENTITY_BLOG_POSTS => $this->importBlogPost($row, $locale, $mode),
             ContentExportEnvelope::ENTITY_TESTIMONIALS => $this->importTestimonial($row, $locale, $mode),
+            ContentExportEnvelope::ENTITY_PAGES => $this->importPage($row, $locale, $mode),
             default => throw new \InvalidArgumentException('Unknown entity: '.$entity),
         };
+    }
+
+    /**
+     * Parents before children so nested creates can resolve parent_slug in one pass.
+     *
+     * @param  list<mixed>  $items
+     * @return list<mixed>
+     */
+    private function orderPageImportItems(array $items): array
+    {
+        $indexed = [];
+        foreach ($items as $i => $row) {
+            if (! is_array($row)) {
+                $indexed[] = ['depth' => 0, 'i' => $i, 'row' => $row];
+
+                continue;
+            }
+            $depth = 0;
+            if (! empty($row['parent_id']) || trim((string) ($row['parent_slug'] ?? '')) !== '') {
+                $depth = 1;
+            }
+            $indexed[] = ['depth' => $depth, 'i' => $i, 'row' => $row];
+        }
+        usort($indexed, function (array $a, array $b) {
+            if ($a['depth'] !== $b['depth']) {
+                return $a['depth'] <=> $b['depth'];
+            }
+
+            return $a['i'] <=> $b['i'];
+        });
+
+        return array_map(static fn (array $x) => $x['row'], $indexed);
     }
 
     /**
@@ -347,6 +392,166 @@ final class TranslatableLocaleImportService
             ['title', 'excerpt', 'content'],
             ['content' => fn ($v) => $this->sanitizer->sanitize((string) $v)],
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function importPage(array $row, string $locale, string $mode): string
+    {
+        $slug = strtolower(trim((string) ($row['slug'] ?? '')));
+        $title = trim((string) ($row['title'] ?? ''));
+        $excerpt = trim((string) ($row['excerpt'] ?? ''));
+        $excerpt = $excerpt === '' ? null : $excerpt;
+        $this->assertHasText($title, $excerpt, 'title');
+
+        $hasSections = array_key_exists('sections', $row);
+        $sections = $hasSections
+            ? PageLayoutDocument::normalizeSectionsForPages($row['sections'] ?? [])
+            : null;
+
+        $status = strtolower(trim((string) ($row['status'] ?? '')));
+        if ($status !== Page::STATUS_PUBLISHED && $status !== Page::STATUS_DRAFT) {
+            $status = Page::STATUS_DRAFT;
+        }
+        $excludeFromSearch = (bool) ($row['exclude_from_search'] ?? false);
+
+        $hasParentField = array_key_exists('parent_id', $row) || array_key_exists('parent_slug', $row);
+        $parentId = $hasParentField ? $this->resolvePageParentId($row) : null;
+        $hasExclude = array_key_exists('exclude_from_search', $row);
+        $hasStatus = array_key_exists('status', $row);
+
+        $page = $this->resolveByIdOrSlug(Page::class, $row, $slug, $mode, true);
+
+        if ($page === null) {
+            $this->assertCanCreate($mode, $slug, 'page');
+            if ($hasParentField && $parentId !== null) {
+                PageHierarchy::assertValidParent($parentId, null);
+            }
+            // Always uniquify on create so re-importing a seed without matching id/slug
+            // (or concurrent creates) cannot collide with pages.slug unique index.
+            $page = Page::create([
+                'slug' => UniqueContentSlug::suggest(Page::class, $slug),
+                'title' => $title !== '' ? $title : $slug,
+                'excerpt' => $excerpt,
+                'status' => $status,
+                'published_at' => $status === Page::STATUS_PUBLISHED ? now() : null,
+                'parent_id' => $hasParentField ? $parentId : null,
+                'exclude_from_search' => $excludeFromSearch,
+                'sections' => $sections ?? [],
+                'content_locale' => SiteLanguages::normalizeContentLocale($locale),
+            ]);
+            $this->syncEmbeddedPageTranslations($page, $row, $locale);
+
+            return 'created';
+        }
+
+        $primary = SiteLanguages::primaryLocaleForContent($page->content_locale ?? null);
+        if ($locale === $primary) {
+            if ($hasParentField) {
+                PageHierarchy::assertValidParent($parentId, (int) $page->id);
+            }
+            $update = [
+                'title' => $title !== '' ? $title : $page->title,
+                'excerpt' => $excerpt,
+            ];
+            if ($hasStatus) {
+                $update['status'] = $status;
+                if ($status === Page::STATUS_PUBLISHED && $page->published_at === null) {
+                    $update['published_at'] = now();
+                }
+            }
+            if ($hasExclude) {
+                $update['exclude_from_search'] = $excludeFromSearch;
+            }
+            if ($hasParentField) {
+                $update['parent_id'] = $parentId;
+            }
+            if ($hasSections) {
+                $update['sections'] = $sections;
+            }
+            $page->update($update);
+            $this->syncEmbeddedPageTranslations($page, $row, $locale);
+
+            return 'updated';
+        }
+
+        // Secondary locale: title/excerpt translations; builder layout stays on the main row.
+        $this->translationSync->sync(
+            $page,
+            [['locale' => $locale, 'title' => $title, 'excerpt' => $excerpt ?? '']],
+            ['title', 'excerpt'],
+        );
+
+        if ($mode === self::MODE_UPSERT && $hasSections) {
+            $page->update(['sections' => $sections]);
+        }
+        $this->syncEmbeddedPageTranslations($page, $row, $locale);
+
+        return 'updated';
+    }
+
+    /**
+     * Optional per-row `translations: [{ locale, title?, excerpt? }, …]` for one-shot bilingual seeds.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function syncEmbeddedPageTranslations(Page $page, array $row, string $importLocale): void
+    {
+        $embedded = $row['translations'] ?? null;
+        if (! is_array($embedded) || $embedded === []) {
+            return;
+        }
+
+        $importLocale = strtolower(trim($importLocale));
+        $rows = [];
+        foreach ($embedded as $tr) {
+            if (! is_array($tr)) {
+                continue;
+            }
+            $loc = strtolower(trim((string) ($tr['locale'] ?? '')));
+            if ($loc === '' || $loc === $importLocale) {
+                continue;
+            }
+            $rows[] = [
+                'locale' => $loc,
+                'title' => trim((string) ($tr['title'] ?? '')),
+                'excerpt' => trim((string) ($tr['excerpt'] ?? '')),
+            ];
+        }
+
+        if ($rows === []) {
+            return;
+        }
+
+        $this->translationSync->sync($page, $rows, ['title', 'excerpt']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolvePageParentId(array $row): ?int
+    {
+        if (array_key_exists('parent_id', $row) && $row['parent_id'] !== null && $row['parent_id'] !== '') {
+            $parentId = (int) $row['parent_id'];
+            if ($parentId > 0 && Page::query()->whereKey($parentId)->exists()) {
+                return $parentId;
+            }
+        }
+
+        $parentSlug = strtolower(trim((string) ($row['parent_slug'] ?? '')));
+        if ($parentSlug === '') {
+            return null;
+        }
+
+        $parent = Page::query()->where('slug', $parentSlug)->first();
+        if ($parent === null) {
+            throw ValidationException::withMessages([
+                'parent_slug' => ['Parent page slug "'.$parentSlug.'" was not found.'],
+            ]);
+        }
+
+        return (int) $parent->id;
     }
 
     /**

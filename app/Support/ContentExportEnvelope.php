@@ -25,6 +25,8 @@ final class ContentExportEnvelope
 
     public const ENTITY_TESTIMONIALS = 'testimonials';
 
+    public const ENTITY_PAGES = 'pages';
+
     /** @var list<string> */
     public const ENTITIES = [
         self::ENTITY_CATEGORIES,
@@ -33,6 +35,7 @@ final class ContentExportEnvelope
         self::ENTITY_SERVICES,
         self::ENTITY_BLOG_POSTS,
         self::ENTITY_TESTIMONIALS,
+        self::ENTITY_PAGES,
     ];
 
     /**

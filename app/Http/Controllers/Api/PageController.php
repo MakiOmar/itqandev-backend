@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
+use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Services\Appearance\PageLayoutDocument;
 use App\Support\CmsPublicPaths;
+use App\Support\ContentExportEnvelope;
 use App\Support\PageHierarchy;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -15,7 +18,20 @@ use Illuminate\Validation\Rule;
 
 class PageController extends Controller
 {
+    use ExportsImportsTranslatableContent;
+    use PreparesUniqueContentSlug;
+
     private const LIST_CACHE_KEY = 'pages:list:v2:json';
+
+    protected function exportImportEntity(): string
+    {
+        return ContentExportEnvelope::ENTITY_PAGES;
+    }
+
+    protected function exportImportPolicyModel(): string
+    {
+        return Page::class;
+    }
 
     public function index(Request $request)
     {
@@ -59,6 +75,7 @@ class PageController extends Controller
         $this->authorize('create', Page::class);
 
         $this->normalizeHierarchyInput($request);
+        $this->mergeUniqueContentSlug($request, Page::class, 'title');
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -116,6 +133,7 @@ class PageController extends Controller
         $this->authorize('update', $page);
 
         $this->normalizeHierarchyInput($request);
+        $this->mergeUniqueContentSlug($request, Page::class, 'title', (int) $page->id, true);
 
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],

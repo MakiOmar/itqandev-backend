@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
+use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
@@ -18,6 +19,7 @@ use Illuminate\Validation\Rule;
 class ProjectController extends Controller
 {
     use ExportsImportsTranslatableContent;
+    use PreparesUniqueContentSlug;
 
     protected function exportImportEntity(): string
     {
@@ -122,6 +124,7 @@ class ProjectController extends Controller
             'demo_url' => $request->input('demo_url') ?: $request->input('demoUrl'),
             'published_at' => $request->input('published_at') ?: $request->input('publishedAt'),
         ]);
+        $this->mergeUniqueContentSlug($request, Project::class, 'title');
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -222,6 +225,7 @@ class ProjectController extends Controller
             'demo_url' => $request->input('demo_url') ?: $request->input('demoUrl'),
             'published_at' => $request->input('published_at') ?: $request->input('publishedAt'),
         ]);
+        $this->mergeUniqueContentSlug($request, Project::class, 'title', (int) $project->id, true);
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('projects')->ignore($project->id)],

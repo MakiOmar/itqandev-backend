@@ -4,12 +4,28 @@ namespace App\Support;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * Resolve a unique slug for a content model (WordPress-style: append -2, -3, …).
  */
 final class UniqueContentSlug
 {
+    /**
+     * Sanitize/format with Str::slug, then uniquify (-2, -3, …).
+     *
+     * @param  class-string<Model>  $modelClass
+     */
+    public static function fromSource(string $modelClass, string $source, ?int $ignoreId = null): string
+    {
+        $base = Str::slug(trim($source));
+        if ($base === '') {
+            return '';
+        }
+
+        return self::suggest($modelClass, $base, $ignoreId);
+    }
+
     /**
      * @param  class-string<Model>  $modelClass
      */

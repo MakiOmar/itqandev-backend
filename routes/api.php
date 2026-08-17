@@ -173,6 +173,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::middleware('feature.module:pages')->group(function () {
+            Route::get('pages/export', [\App\Http\Controllers\Api\PageController::class, 'export']);
+            Route::post('pages/import', [\App\Http\Controllers\Api\PageController::class, 'import'])->middleware('throttle:bulk');
             Route::post('pages/bulk-delete', [\App\Http\Controllers\Api\PageController::class, 'bulkDelete'])->middleware('throttle:bulk');
             Route::apiResource('pages', \App\Http\Controllers\Api\PageController::class);
         });

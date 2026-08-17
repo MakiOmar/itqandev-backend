@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
+use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Support\ContentExportEnvelope;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Cache;
 class BlogPostController extends Controller
 {
     use ExportsImportsTranslatableContent;
+    use PreparesUniqueContentSlug;
 
     protected function exportImportEntity(): string
     {
@@ -81,6 +83,8 @@ class BlogPostController extends Controller
     {
         $this->authorize('create', BlogPost::class);
 
+        $this->mergeUniqueContentSlug($request, BlogPost::class, 'title');
+
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:blog_posts,slug'],
@@ -137,6 +141,8 @@ class BlogPostController extends Controller
     public function update(Request $request, BlogPost $blogPost)
     {
         $this->authorize('update', $blogPost);
+
+        $this->mergeUniqueContentSlug($request, BlogPost::class, 'title', (int) $blogPost->id, true);
 
         $data = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:255'],

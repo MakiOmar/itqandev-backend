@@ -69,7 +69,7 @@ class ContentSlugSuggestionController extends Controller
             );
         } else {
             /** @var class-string<\Illuminate\Database\Eloquent\Model> $modelClass */
-            $slug = UniqueContentSlug::suggest($modelClass, $base, $ignoreId);
+            $slug = UniqueContentSlug::fromSource($modelClass, $data['source'], $ignoreId);
         }
 
         return response()->json([

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Models\Form;
 use App\Services\Forms\FormLayoutDocument;
@@ -13,6 +14,8 @@ use Illuminate\Validation\Rule;
 
 class FormController extends Controller
 {
+    use PreparesUniqueContentSlug;
+
     private const LIST_CACHE_KEY = 'forms:list:v1:json';
 
     public function index(Request $request)
@@ -55,6 +58,8 @@ class FormController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', Form::class);
+
+        $this->mergeUniqueContentSlug($request, Form::class, 'title');
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -103,6 +108,8 @@ class FormController extends Controller
     public function update(Request $request, Form $form)
     {
         $this->authorize('update', $form);
+
+        $this->mergeUniqueContentSlug($request, Form::class, 'title', (int) $form->id, true);
 
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],

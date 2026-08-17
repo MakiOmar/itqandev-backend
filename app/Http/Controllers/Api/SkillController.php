@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
+use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Models\Skill;
 use App\Support\ContentExportEnvelope;
@@ -15,6 +16,7 @@ use Illuminate\Validation\Rule;
 class SkillController extends Controller
 {
     use ExportsImportsTranslatableContent;
+    use PreparesUniqueContentSlug;
 
     private const LIST_CACHE_KEY = 'skills:list:v3:json';
 
@@ -71,6 +73,8 @@ class SkillController extends Controller
     {
         $this->authorize('create', Skill::class);
 
+        $this->mergeUniqueContentSlug($request, Skill::class, 'name');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:skills,slug'],
@@ -115,6 +119,8 @@ class SkillController extends Controller
     public function update(Request $request, Skill $skill)
     {
         $this->authorize('update', $skill);
+
+        $this->mergeUniqueContentSlug($request, Skill::class, 'name', (int) $skill->id, true);
 
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],

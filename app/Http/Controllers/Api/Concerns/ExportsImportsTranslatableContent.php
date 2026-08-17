@@ -73,6 +73,7 @@ trait ExportsImportsTranslatableContent
             ContentExportEnvelope::ENTITY_SERVICES => 'services',
             ContentExportEnvelope::ENTITY_BLOG_POSTS => 'blog_posts',
             ContentExportEnvelope::ENTITY_TESTIMONIALS => 'testimonials',
+            ContentExportEnvelope::ENTITY_PAGES => 'pages',
             default => throw new \InvalidArgumentException('Unknown entity'),
         };
     }
