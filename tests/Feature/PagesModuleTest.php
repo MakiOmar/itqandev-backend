@@ -8,6 +8,7 @@ use App\Models\Page;
 use App\Models\User;
 use App\Services\PublicMenuResolver;
 use App\Support\FeatureModules;
+use App\Support\ProjectSettingsStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -17,6 +18,18 @@ use Tests\TestCase;
 class PagesModuleTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        ProjectSettingsStore::save([
+            'default_locale' => 'en',
+            'site_languages' => [
+                ['code' => 'en', 'label' => 'English', 'native_label' => 'English', 'rtl' => false],
+                ['code' => 'ar', 'label' => 'Arabic', 'native_label' => 'العربية', 'rtl' => true],
+            ],
+        ]);
+    }
 
     private function actingEditor(): User
     {
@@ -124,6 +137,65 @@ class PagesModuleTest extends TestCase
         $this->assertCount(1, $tree);
         $this->assertSame('Pricing', $tree[0]['label']);
         $this->assertStringContainsString('/pages/pricing-page/', $tree[0]['href']);
+    }
+
+    public function test_nested_page_and_exclude_from_search(): void
+    {
+        $this->actingEditor();
+
+        $parent = $this->postJson('/api/v1/pages', [
+            'title' => 'Legal',
+            'slug' => 'legal',
+            'status' => 'published',
+            'sections' => [],
+        ]);
+        $parent->assertCreated();
+        $parentId = (int) $parent->json('id');
+
+        $child = $this->postJson('/api/v1/pages', [
+            'title' => 'Privacy',
+            'slug' => 'privacy',
+            'status' => 'published',
+            'parent_id' => $parentId,
+            'exclude_from_search' => true,
+            'sections' => [],
+        ]);
+        $child->assertCreated();
+        $this->assertSame($parentId, $child->json('parent_id'));
+        $this->assertTrue($child->json('exclude_from_search'));
+        $this->assertSame('legal/privacy', $child->json('path'));
+        $this->assertSame('/pages/legal/privacy/', $child->json('public_path'));
+
+        $cycle = $this->putJson('/api/v1/pages/'.$parentId, [
+            'parent_id' => (int) $child->json('id'),
+        ]);
+        $cycle->assertStatus(422);
+
+        $list = $this->getJson('/api/public/pages', ['X-Content-Locale' => 'en']);
+        $list->assertOk();
+        $slugs = collect($list->json())->pluck('slug')->all();
+        $this->assertContains('legal', $slugs);
+        $this->assertNotContains('privacy', $slugs);
+
+        $direct = $this->getJson('/api/public/pages/privacy', ['X-Content-Locale' => 'en']);
+        $direct->assertOk();
+        $this->assertSame('Privacy', $direct->json('title'));
+        $this->assertTrue($direct->json('exclude_from_search'));
+        $this->assertSame('legal/privacy', $direct->json('path'));
+        $this->assertSame('/pages/legal/privacy/', $direct->json('public_path'));
+
+        $menu = Menu::create(['name' => 'Nested', 'slug' => 'nested-pages-test']);
+        MenuItem::create([
+            'menu_id' => $menu->id,
+            'sort_order' => 0,
+            'label' => null,
+            'item_type' => MenuItem::TYPE_PAGE,
+            'reference_id' => (int) $child->json('id'),
+            'open_in_new_tab' => false,
+        ]);
+        $tree = PublicMenuResolver::resolvePublishedTree('nested-pages-test', 'en');
+        $this->assertCount(1, $tree);
+        $this->assertStringContainsString('/pages/legal/privacy/', $tree[0]['href']);
     }
 
     public function test_admin_list_filters_by_content_locale(): void

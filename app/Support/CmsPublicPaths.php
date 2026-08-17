@@ -38,6 +38,26 @@ final class CmsPublicPaths
     }
 
     /**
+     * Nested children always use `/pages/{parent}/{child}/`.
+     * Top-level pages keep pretty marketing routes when the slug is known.
+     *
+     * @param  array<int, \App\Models\Page>  $byId
+     */
+    public static function pathForPage(\App\Models\Page $page, array $byId = []): string
+    {
+        if ($page->parent_id) {
+            $nested = PageHierarchy::pathFor($page, $byId);
+            if ($nested === '') {
+                return '/pages/';
+            }
+
+            return '/pages/'.$nested.'/';
+        }
+
+        return self::pathForPageSlug((string) $page->slug);
+    }
+
+    /**
      * Map legacy menu static_route_key → CMS page slug (null = home → custom link `/`).
      *
      * @return array<string, string|null>

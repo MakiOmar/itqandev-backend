@@ -17,9 +17,11 @@ class Page extends Model
     public const STATUS_PUBLISHED = 'published';
 
     protected $fillable = [
+        'parent_id',
         'slug',
         'content_locale',
         'status',
+        'exclude_from_search',
         'published_at',
         'title',
         'excerpt',
@@ -45,7 +47,18 @@ class Page extends Model
         return [
             'published_at' => 'datetime',
             'sections' => 'array',
+            'exclude_from_search' => 'boolean',
         ];
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('title');
     }
 
     public function translations()

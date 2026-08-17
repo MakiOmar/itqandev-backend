@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Services\Appearance\PageLayoutDocument;
+use App\Support\CmsPublicPaths;
+use App\Support\PageHierarchy;
 use App\Support\SeoMetaPresenter;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -21,19 +23,20 @@ class PublicPageController extends Controller
         $present = TranslatableContentPresenter::requestedPresentationLocale($request)
             ?? SiteLanguages::defaultCode();
         $version = (int) Cache::get('pages:cache_version', 1);
-        $cacheKey = 'public:pages:list:v'.$version.':loc:'.$present;
+        $cacheKey = 'public:pages:list:v2:'.$version.':loc:'.$present;
 
-        $pages = Cache::remember($cacheKey, 300, function () use ($present) {
+        $payload = Cache::remember($cacheKey, 300, function () use ($present) {
             $query = Page::query()
-                ->select(['id', 'title', 'slug', 'excerpt', 'content_locale', 'status', 'published_at', 'updated_at'])
+                ->select(['id', 'title', 'slug', 'excerpt', 'content_locale', 'status', 'published_at', 'updated_at', 'parent_id', 'exclude_from_search'])
                 ->with('translations')
                 ->where('status', Page::STATUS_PUBLISHED)
+                ->where('exclude_from_search', false)
                 ->orderByDesc('published_at')
                 ->orderBy('id');
 
             TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
 
-            return $query->get()
+            $pages = $query->get()
                 ->map(function (Page $page) use ($present) {
                     TranslatableContentPresenter::applyPage($page, $present);
 
@@ -42,17 +45,26 @@ class PublicPageController extends Controller
                 ->filter(function (Page $page) use ($present) {
                     return TranslatableContentPresenter::hasPageContentForLocale($page, $present);
                 })
-                ->values()
-                ->map(fn (Page $page) => [
+                ->values();
+
+            $graph = Page::query()->select(['id', 'slug', 'parent_id'])->get();
+            $byId = PageHierarchy::indexById($graph);
+
+            return $pages->map(function (Page $page) use ($byId) {
+                return [
                     'id' => $page->id,
                     'title' => $page->title,
                     'slug' => $page->slug,
                     'excerpt' => $page->excerpt,
+                    'parent_id' => $page->parent_id,
+                    'path' => PageHierarchy::pathFor($page, $byId),
+                    'public_path' => CmsPublicPaths::pathForPage($page, $byId),
                     'published_at' => $page->published_at?->toIso8601String(),
-                ]);
+                ];
+            })->values()->all();
         });
 
-        return response()->json($pages);
+        return response()->json($payload);
     }
 
     public function show(Request $request, string $slug)
@@ -90,12 +102,19 @@ class PublicPageController extends Controller
                 $primary,
             );
 
+            $graph = Page::query()->select(['id', 'slug', 'parent_id'])->get();
+            $byId = PageHierarchy::indexById($graph);
+
             return [
                 'id' => $page->id,
                 'title' => $page->title,
                 'slug' => $page->slug,
                 'excerpt' => $page->excerpt,
                 'content_locale' => $page->content_locale,
+                'parent_id' => $page->parent_id,
+                'path' => PageHierarchy::pathFor($page, $byId),
+                'public_path' => CmsPublicPaths::pathForPage($page, $byId),
+                'exclude_from_search' => (bool) $page->exclude_from_search,
                 'published_at' => $page->published_at?->toIso8601String(),
                 'sections' => $sections,
                 'seo_meta' => SeoMetaPresenter::toPublicSnippet($picked),

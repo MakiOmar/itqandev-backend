@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Services\Appearance\PageLayoutDocument;
+use App\Support\CmsPublicPaths;
+use App\Support\PageHierarchy;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
@@ -13,7 +15,7 @@ use Illuminate\Validation\Rule;
 
 class PageController extends Controller
 {
-    private const LIST_CACHE_KEY = 'pages:list:v1:json';
+    private const LIST_CACHE_KEY = 'pages:list:v2:json';
 
     public function index(Request $request)
     {
@@ -47,7 +49,7 @@ class PageController extends Controller
                         ->values();
                 }
 
-                return $pages;
+                return $this->withHierarchyFields($pages);
             })
         );
     }
@@ -55,6 +57,8 @@ class PageController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', Page::class);
+
+        $this->normalizeHierarchyInput($request);
 
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -70,7 +74,14 @@ class PageController extends Controller
             'translations.*.excerpt' => ['nullable', 'string', 'max:512'],
             'header_layout_id' => ['nullable', 'integer'],
             'footer_layout_id' => ['nullable', 'integer'],
+            'parent_id' => ['nullable', 'integer', 'exists:pages,id'],
+            'exclude_from_search' => ['sometimes', 'boolean'],
         ]);
+
+        PageHierarchy::assertValidParent(
+            array_key_exists('parent_id', $data) ? ($data['parent_id'] !== null ? (int) $data['parent_id'] : null) : null,
+            null,
+        );
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
@@ -89,7 +100,7 @@ class PageController extends Controller
         $page->load(['translations', 'seoMetas']);
         $this->bumpPageCaches();
 
-        return response()->json($page, 201);
+        return response()->json($this->withHierarchyFields([$page])[0] ?? $page, 201);
     }
 
     public function show(Page $page)
@@ -97,12 +108,14 @@ class PageController extends Controller
         $this->authorize('view', $page);
         $page->load(['translations', 'seoMetas']);
 
-        return response()->json($page);
+        return response()->json($this->withHierarchyFields([$page])[0] ?? $page);
     }
 
     public function update(Request $request, Page $page)
     {
         $this->authorize('update', $page);
+
+        $this->normalizeHierarchyInput($request);
 
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
@@ -118,7 +131,16 @@ class PageController extends Controller
             'translations.*.excerpt' => ['nullable', 'string', 'max:512'],
             'header_layout_id' => ['nullable', 'integer'],
             'footer_layout_id' => ['nullable', 'integer'],
+            'parent_id' => ['nullable', 'integer', 'exists:pages,id'],
+            'exclude_from_search' => ['sometimes', 'boolean'],
         ]);
+
+        if (array_key_exists('parent_id', $data)) {
+            PageHierarchy::assertValidParent(
+                $data['parent_id'] !== null ? (int) $data['parent_id'] : null,
+                (int) $page->id,
+            );
+        }
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
@@ -142,7 +164,7 @@ class PageController extends Controller
         $page->load(['translations', 'seoMetas']);
         $this->bumpPageCaches();
 
-        return response()->json($page);
+        return response()->json($this->withHierarchyFields([$page])[0] ?? $page);
     }
 
     public function destroy(Page $page)
@@ -208,6 +230,35 @@ class PageController extends Controller
         $page->translations()
             ->whereNotIn('locale', $keep)
             ->delete();
+    }
+
+    /**
+     * Empty string from native selects means “no parent”.
+     */
+    private function normalizeHierarchyInput(Request $request): void
+    {
+        if ($request->exists('parent_id') && $request->input('parent_id') === '') {
+            $request->merge(['parent_id' => null]);
+        }
+    }
+
+    /**
+     * Attach nested path, public URL, and tree depth for admin/public JSON.
+     *
+     * @param  iterable<int, Page>  $pages
+     * @return list<Page>
+     */
+    private function withHierarchyFields(iterable $pages): array
+    {
+        $graph = Page::query()->select(['id', 'slug', 'parent_id'])->get();
+        $byId = PageHierarchy::indexById($graph);
+        $flat = PageHierarchy::flattenForAdmin($pages);
+        foreach ($flat as $page) {
+            $page->setAttribute('path', PageHierarchy::pathFor($page, $byId));
+            $page->setAttribute('public_path', CmsPublicPaths::pathForPage($page, $byId));
+        }
+
+        return $flat;
     }
 
     private function bumpPageCaches(): void

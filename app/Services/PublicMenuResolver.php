@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
 use App\Support\CmsPublicPaths;
+use App\Support\PageHierarchy;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Database\Eloquent\Model;
@@ -53,8 +54,11 @@ final class PublicMenuResolver
 
             $items = $menu->items()->with('translations')->orderBy('sort_order')->get();
             $references = self::preloadMenuReferences($items, $locale);
+            $pageGraph = PageHierarchy::indexById(
+                Page::query()->select(['id', 'slug', 'parent_id'])->get()
+            );
 
-            return self::buildResolvedTree($items, null, $locale, $references);
+            return self::buildResolvedTree($items, null, $locale, $references, $pageGraph);
         });
 
         return $tree;
@@ -147,7 +151,7 @@ final class PublicMenuResolver
         if ($idsByType[MenuItem::TYPE_PAGE] !== []) {
             $out[MenuItem::TYPE_PAGE] = self::indexById(
                 Page::query()
-                    ->select(['id', 'title', 'slug', 'content_locale', 'status'])
+                    ->select(['id', 'title', 'slug', 'content_locale', 'status', 'parent_id'])
                     ->with('translations')
                     ->where('status', Page::STATUS_PUBLISHED)
                     ->whereIn('id', array_unique($idsByType[MenuItem::TYPE_PAGE]))
@@ -180,17 +184,18 @@ final class PublicMenuResolver
     /**
      * @param  Collection<int, MenuItem>  $all
      * @param  array<string, array<int, Model>>  $references
+     * @param  array<int, Page>  $pageGraph
      * @return list<array{label: string, href: string, open_in_new_tab: bool, children: list<mixed>}>
      */
-    private static function buildResolvedTree(Collection $all, ?int $parentId, string $locale, array $references): array
+    private static function buildResolvedTree(Collection $all, ?int $parentId, string $locale, array $references, array $pageGraph): array
     {
         $out = [];
         foreach ($all->where('parent_id', $parentId)->sortBy('sort_order') as $item) {
-            $resolved = self::resolveItem($item, $locale, $references);
+            $resolved = self::resolveItem($item, $locale, $references, $pageGraph);
             if ($resolved === null) {
                 continue;
             }
-            $resolved['children'] = self::buildResolvedTree($all, $item->id, $locale, $references);
+            $resolved['children'] = self::buildResolvedTree($all, $item->id, $locale, $references, $pageGraph);
             $out[] = $resolved;
         }
 
@@ -199,9 +204,10 @@ final class PublicMenuResolver
 
     /**
      * @param  array<string, array<int, Model>>  $references
+     * @param  array<int, Page>  $pageGraph
      * @return array{label: string, href: string, open_in_new_tab: bool, children: array}|null
      */
-    private static function resolveItem(MenuItem $item, string $locale, array $references): ?array
+    private static function resolveItem(MenuItem $item, string $locale, array $references, array $pageGraph): ?array
     {
         $label = self::resolvedLabel($item, $locale);
         $href = null;
@@ -301,7 +307,7 @@ final class PublicMenuResolver
                 if ($slug === '') {
                     return null;
                 }
-                $href = self::prefixLocale($locale, CmsPublicPaths::pathForPageSlug($slug));
+                $href = self::prefixLocale($locale, CmsPublicPaths::pathForPage($page, $pageGraph));
                 $label ??= (string) $page->title;
 
                 break;
