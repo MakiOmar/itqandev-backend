@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class SettingsAuthorizationTest extends TestCase
@@ -16,8 +15,7 @@ class SettingsAuthorizationTest extends TestCase
     {
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
-        Storage::fake('local');
-        Storage::disk('local')->put('project-settings.json', json_encode(['site_name' => 'Test']));
+        \App\Support\ProjectSettingsStore::save(['site_name' => 'Test']);
     }
 
     /**

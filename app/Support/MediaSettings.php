@@ -2,14 +2,11 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\Storage;
-
 /**
- * Media pipeline options stored in project-settings.json (same file as SettingsController).
+ * Media pipeline options stored in project settings (same payload as SettingsController).
  */
 final class MediaSettings
 {
-    private const SETTINGS_FILE_PATH = 'project-settings.json';
 
     public static function convertToWebpEnabled(): bool
     {
@@ -36,14 +33,7 @@ final class MediaSettings
      */
     private static function loadRaw(): array
     {
-        if (! Storage::disk('local')->exists(self::SETTINGS_FILE_PATH)) {
-            return [];
-        }
-
-        $content = Storage::disk('local')->get(self::SETTINGS_FILE_PATH);
-        $decoded = json_decode($content, true);
-
-        return is_array($decoded) ? $decoded : [];
+        return ProjectSettingsStore::load();
     }
 
     private static function toBool(mixed $value): bool

@@ -7,6 +7,7 @@ use App\Models\Font;
 use App\Services\ActivityLogService;
 use App\Support\FeatureModules;
 use App\Support\MarketingSettingsCache;
+use App\Support\ProjectSettingsStore;
 use App\Support\SiteLanguages;
 use App\Support\SiteSettingsPresenter;
 use App\Support\TranslatableContentPresenter;
@@ -15,11 +16,9 @@ use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 
 class SettingsController extends Controller
 {
-    private const SETTINGS_FILE_PATH = 'project-settings.json';
 
     private function settingsCacheTtlSeconds(): int
     {
@@ -108,34 +107,19 @@ class SettingsController extends Controller
     }
 
     /**
-     * Load settings from local storage file.
-     *
      * @return array<string, mixed>
      */
     private function loadStoredSettings(): array
     {
-        if (!Storage::disk('local')->exists(self::SETTINGS_FILE_PATH)) {
-            return [];
-        }
-
-        $content = Storage::disk('local')->get(self::SETTINGS_FILE_PATH);
-        $decoded = json_decode($content, true);
-
-        return is_array($decoded) ? $decoded : [];
+        return ProjectSettingsStore::load();
     }
 
     /**
-     * Persist settings to local storage file.
-     *
-     * @param array<string, mixed> $settings
-     * @return void
+     * @param  array<string, mixed>  $settings
      */
     private function saveStoredSettings(array $settings): void
     {
-        Storage::disk('local')->put(
-            self::SETTINGS_FILE_PATH,
-            json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-        );
+        ProjectSettingsStore::save($settings);
     }
 
     /**

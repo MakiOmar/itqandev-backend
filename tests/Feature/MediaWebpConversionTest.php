@@ -37,9 +37,9 @@ class MediaWebpConversionTest extends TestCase
         }
 
         Config::set('media.convert_to_webp', true);
-        Storage::disk('local')->put('project-settings.json', json_encode([
+        \App\Support\ProjectSettingsStore::save([
             'media_convert_to_webp' => true,
-        ]));
+        ]);
 
         $admin = User::query()->where('email', 'admin@credocode.test')->first();
         $this->assertNotNull($admin);
@@ -60,9 +60,9 @@ class MediaWebpConversionTest extends TestCase
     public function test_png_upload_stays_png_when_conversion_disabled(): void
     {
         Config::set('media.convert_to_webp', false);
-        Storage::disk('local')->put('project-settings.json', json_encode([
+        \App\Support\ProjectSettingsStore::save([
             'media_convert_to_webp' => false,
-        ]));
+        ]);
 
         $admin = User::query()->where('email', 'admin@credocode.test')->first();
         $this->assertNotNull($admin);

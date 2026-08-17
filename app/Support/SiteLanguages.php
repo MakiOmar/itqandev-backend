@@ -2,14 +2,11 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\Storage;
-
 /**
- * Reads site language configuration from the same JSON file as SettingsController.
+ * Reads site language configuration from project settings (database).
  */
 final class SiteLanguages
 {
-    private const SETTINGS_FILE_PATH = 'project-settings.json';
 
     /**
      * @return array<int, array{code: string, label: string, native_label: string, rtl: bool}>
@@ -186,12 +183,6 @@ final class SiteLanguages
      */
     private static function loadRaw(): array
     {
-        if (! Storage::disk('local')->exists(self::SETTINGS_FILE_PATH)) {
-            return [];
-        }
-        $content = Storage::disk('local')->get(self::SETTINGS_FILE_PATH);
-        $decoded = json_decode($content, true);
-
-        return is_array($decoded) ? $decoded : [];
+        return ProjectSettingsStore::load();
     }
 }

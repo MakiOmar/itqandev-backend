@@ -26,15 +26,14 @@ class MultilingualMediaAppearanceTest extends TestCase
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
         Storage::fake('public');
-        Storage::fake('local');
-        Storage::disk('local')->put('project-settings.json', json_encode([
+        \App\Support\ProjectSettingsStore::save([
             'site_name' => 'Test',
             'default_locale' => 'en',
             'site_languages' => [
                 ['code' => 'en', 'label' => 'English', 'enabled' => true],
                 ['code' => 'ar', 'label' => 'Arabic', 'enabled' => true, 'rtl' => true],
             ],
-        ]));
+        ]);
         Cache::forget('project-settings');
     }
 

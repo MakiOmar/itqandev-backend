@@ -13,7 +13,6 @@ use App\Services\PublicMarketingShellService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ThemeTemplateApiTest extends TestCase
@@ -24,8 +23,7 @@ class ThemeTemplateApiTest extends TestCase
     {
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
-        Storage::fake('local');
-        Storage::disk('local')->put('project-settings.json', json_encode(['site_name' => 'Test']));
+        \App\Support\ProjectSettingsStore::save(['site_name' => 'Test']);
         Cache::forget('project-settings');
         PublicMarketingShellService::forgetShellCaches();
     }

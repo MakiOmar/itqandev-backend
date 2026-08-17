@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\PublicMarketingShellService;
+use App\Support\ProjectSettingsStore;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class SiteSettingsLocalizationTest extends TestCase
@@ -49,7 +49,7 @@ class SiteSettingsLocalizationTest extends TestCase
             $payload['marketing_site_content'] = $overrides['marketing_site_content'];
         }
 
-        Storage::disk('local')->put('project-settings.json', json_encode($payload));
+        ProjectSettingsStore::save($payload);
         Cache::forget('project-settings');
         PublicMarketingShellService::forgetShellCaches();
     }
@@ -64,7 +64,6 @@ class SiteSettingsLocalizationTest extends TestCase
 
     public function test_public_meta_returns_localized_site_name_for_arabic(): void
     {
-        Storage::fake('local');
         $this->seedSettingsFile();
 
         $this->getJson('/api/public/site-meta?locale=ar')
@@ -76,7 +75,6 @@ class SiteSettingsLocalizationTest extends TestCase
 
     public function test_public_meta_falls_back_to_primary_when_translation_missing(): void
     {
-        Storage::fake('local');
         $this->seedSettingsFile([
             'settings_translations' => [
                 'ar' => ['site_name' => 'كريدوكود'],
@@ -90,7 +88,6 @@ class SiteSettingsLocalizationTest extends TestCase
 
     public function test_public_meta_default_locale_returns_primary_fields(): void
     {
-        Storage::fake('local');
         $this->seedSettingsFile();
 
         $this->getJson('/api/public/site-meta?locale=en')
@@ -100,7 +97,6 @@ class SiteSettingsLocalizationTest extends TestCase
 
     public function test_shell_site_meta_differs_per_cached_locale(): void
     {
-        Storage::fake('local');
         $this->seedSettingsFile();
 
         $en = $this->getJson('/api/public/shell?locale=en')->json('data.site_meta.site_name');
@@ -112,7 +108,6 @@ class SiteSettingsLocalizationTest extends TestCase
 
     public function test_public_site_content_is_not_exposed_with_raw_settings_translations(): void
     {
-        Storage::fake('local');
         $this->seedSettingsFile();
 
         $response = $this->getJson('/api/public/site-meta?locale=ar');
@@ -122,7 +117,6 @@ class SiteSettingsLocalizationTest extends TestCase
 
     public function test_put_settings_persists_settings_translations(): void
     {
-        Storage::fake('local');
         $this->seed(DatabaseSeeder::class);
         $this->seedSettingsFile(['settings_translations' => []]);
 
@@ -138,14 +132,12 @@ class SiteSettingsLocalizationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true);
 
-        $stored = json_decode((string) Storage::disk('local')->get('project-settings.json'), true);
-        $this->assertIsArray($stored);
+        $stored = ProjectSettingsStore::load();
         $this->assertSame('اسم محدث', $stored['settings_translations']['ar']['site_name'] ?? null);
     }
 
     public function test_put_settings_merges_partial_settings_translations_without_wiping_other_locales(): void
     {
-        Storage::fake('local');
         $this->seed(DatabaseSeeder::class);
         $this->seedSettingsFile();
 
@@ -160,7 +152,7 @@ class SiteSettingsLocalizationTest extends TestCase
             ])
             ->assertOk();
 
-        $stored = json_decode((string) Storage::disk('local')->get('project-settings.json'), true);
+        $stored = ProjectSettingsStore::load();
         $this->assertSame('كريدوكود', $stored['settings_translations']['ar']['site_name'] ?? null);
         $this->assertSame('عنوان جديد', $stored['settings_translations']['ar']['site_address'] ?? null);
     }

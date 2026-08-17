@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Font;
 use App\Rules\ValidatesStoragePath;
 use App\Support\MarketingSettingsCache;
+use App\Support\ProjectSettingsStore;
 use App\Support\TypographyResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +16,6 @@ use Illuminate\Validation\Rule;
 
 class FontController extends Controller
 {
-    private const SETTINGS_FILE_PATH = 'project-settings.json';
-
     /** @var list<string> */
     private const FONT_EXTENSIONS = ['woff', 'woff2', 'ttf', 'eot', 'svg'];
 
@@ -45,14 +44,7 @@ class FontController extends Controller
      */
     private function loadStoredSettings(): array
     {
-        if (! Storage::disk('local')->exists(self::SETTINGS_FILE_PATH)) {
-            return [];
-        }
-
-        $content = Storage::disk('local')->get(self::SETTINGS_FILE_PATH);
-        $decoded = json_decode($content, true);
-
-        return is_array($decoded) ? $decoded : [];
+        return ProjectSettingsStore::load();
     }
 
     private function flushPublicCaches(): void
