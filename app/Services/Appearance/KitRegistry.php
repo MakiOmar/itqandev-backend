@@ -588,6 +588,7 @@ final class KitRegistry
             'image_text' => [
                 'label' => 'Image + text',
                 'category' => 'Content',
+                // Presentation (object-fit, radius, hover, …) lives on sibling `styles`, not settings.
                 'max_instances' => null,
                 'default_settings' => [
                     'eyebrow' => '',
