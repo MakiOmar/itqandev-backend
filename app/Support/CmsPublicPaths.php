@@ -32,6 +32,10 @@ final class CmsPublicPaths
             return '/pages/';
         }
 
+        if (StaticHomepage::isFrontPageSlug($slug)) {
+            return '/';
+        }
+
         $map = self::prettyPathsBySlug();
 
         return $map[$slug] ?? '/pages/'.$slug.'/';

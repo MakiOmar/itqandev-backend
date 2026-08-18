@@ -4,18 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Font;
+use App\Models\Page;
 use App\Services\ActivityLogService;
 use App\Support\FeatureModules;
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
 use App\Support\SiteLanguages;
 use App\Support\SiteSettingsPresenter;
+use App\Support\StaticHomepage;
 use App\Support\TranslatableContentPresenter;
 use App\Support\TypographyResolver;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 class SettingsController extends Controller
 {
@@ -94,6 +97,10 @@ class SettingsController extends Controller
 
             // SEO — when false, public site sends noindex and robots.txt disallows all URLs
             'search_engine_indexing' => true,
+
+            // WordPress-style front page: Appearance homepage, or a published CMS page at `/`
+            'show_on_front' => StaticHomepage::SHOW_BUILDER,
+            'page_on_front' => null,
 
             // Multilingual site content (admin + API)
             'site_languages' => SiteLanguages::defaults(),
@@ -239,6 +246,20 @@ class SettingsController extends Controller
                 $settings['search_engine_indexing'],
                 FILTER_VALIDATE_BOOL
             );
+        }
+
+        $showOnFront = StaticHomepage::normalizeShowOnFront(
+            $this->resolveFirst($input, ['show_on_front'], $settings['show_on_front'] ?? StaticHomepage::SHOW_BUILDER)
+        );
+        $pageOnFront = StaticHomepage::normalizePageOnFrontId(
+            $this->resolveFirst($input, ['page_on_front'], $settings['page_on_front'] ?? null)
+        );
+        $settings['show_on_front'] = $showOnFront;
+        $settings['page_on_front'] = $pageOnFront;
+        if ($pageOnFront !== null && Schema::hasTable('pages')) {
+            if (! Page::query()->whereKey($pageOnFront)->exists()) {
+                $settings['page_on_front'] = null;
+            }
         }
 
         $fontMode = TypographyResolver::normalizeMode(
@@ -402,6 +423,7 @@ class SettingsController extends Controller
     public function buildPublicMetaData(?string $locale = null): array
     {
         $settings = $this->localizedSettings($locale);
+        $front = StaticHomepage::publicMeta($settings);
 
         return [
             'site_name' => $settings['site_name'] ?? null,
@@ -429,6 +451,9 @@ class SettingsController extends Controller
                 $settings['search_engine_indexing'] ?? true,
                 FILTER_VALIDATE_BOOL
             ),
+            'show_on_front' => $front['show_on_front'],
+            'page_on_front' => $front['page_on_front'],
+            'front_page_slug' => $front['slug'],
         ];
     }
 
@@ -519,6 +544,8 @@ class SettingsController extends Controller
             'upload_max_size' => 'sometimes|nullable|integer|min:1|max:1000',
             'media_convert_to_webp' => 'sometimes|boolean',
             'search_engine_indexing' => 'sometimes|boolean',
+            'show_on_front' => ['sometimes', 'string', Rule::in([StaticHomepage::SHOW_BUILDER, StaticHomepage::SHOW_PAGE])],
+            'page_on_front' => ['sometimes', 'nullable'],
             'site_languages' => 'sometimes|array',
             'site_languages.*.code' => 'required_with:site_languages|string|max:16',
             'site_languages.*.label' => 'nullable|string|max:120',
@@ -563,6 +590,7 @@ class SettingsController extends Controller
         // Invalidate and refresh cache to keep GET /settings fast and consistent.
         MarketingSettingsCache::forgetAll();
         Cache::put(MarketingSettingsCache::SETTINGS_CACHE_KEY, $normalizedSettings, $this->settingsCacheTtlSeconds());
+        Page::bumpPublicCacheVersion();
 
         ActivityLogService::record('settings.updated', null, [], $request);
 

@@ -124,6 +124,7 @@ class DatabaseSeeder extends Seeder
         }
 
         if (FeatureModules::enabled('pages')) {
+            $this->call(HomePageSeeder::class);
             $this->call(ContactPageSeeder::class);
             $this->call(AboutPageSeeder::class);
             $this->call(PortfolioPageSeeder::class);
