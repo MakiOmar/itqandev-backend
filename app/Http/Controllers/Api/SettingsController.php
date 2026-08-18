@@ -92,6 +92,9 @@ class SettingsController extends Controller
             'upload_max_size' => null,
             'media_convert_to_webp' => true,
 
+            // SEO — when false, public site sends noindex and robots.txt disallows all URLs
+            'search_engine_indexing' => true,
+
             // Multilingual site content (admin + API)
             'site_languages' => SiteLanguages::defaults(),
             'default_locale' => 'en',
@@ -220,6 +223,20 @@ class SettingsController extends Controller
         } else {
             $settings['media_convert_to_webp'] = filter_var(
                 $settings['media_convert_to_webp'],
+                FILTER_VALIDATE_BOOL
+            );
+        }
+
+        if (array_key_exists('search_engine_indexing', $input)) {
+            $settings['search_engine_indexing'] = filter_var(
+                $input['search_engine_indexing'],
+                FILTER_VALIDATE_BOOL
+            );
+        } elseif (! array_key_exists('search_engine_indexing', $settings)) {
+            $settings['search_engine_indexing'] = true;
+        } else {
+            $settings['search_engine_indexing'] = filter_var(
+                $settings['search_engine_indexing'],
                 FILTER_VALIDATE_BOOL
             );
         }
@@ -408,6 +425,10 @@ class SettingsController extends Controller
             'default_locale' => $settings['default_locale'] ?? 'en',
             'features' => FeatureModules::all(),
             'typography' => TypographyResolver::resolveFromSettings($settings),
+            'search_engine_indexing' => filter_var(
+                $settings['search_engine_indexing'] ?? true,
+                FILTER_VALIDATE_BOOL
+            ),
         ];
     }
 
@@ -497,6 +518,7 @@ class SettingsController extends Controller
             'social_instagram' => 'sometimes|nullable|url|max:255',
             'upload_max_size' => 'sometimes|nullable|integer|min:1|max:1000',
             'media_convert_to_webp' => 'sometimes|boolean',
+            'search_engine_indexing' => 'sometimes|boolean',
             'site_languages' => 'sometimes|array',
             'site_languages.*.code' => 'required_with:site_languages|string|max:16',
             'site_languages.*.label' => 'nullable|string|max:120',

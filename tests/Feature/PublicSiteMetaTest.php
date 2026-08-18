@@ -19,6 +19,7 @@ class PublicSiteMetaTest extends TestCase
                 'name',
                 'site_languages',
                 'default_locale',
+                'search_engine_indexing',
                 'typography' => [
                     'mode',
                     'ltr',
@@ -26,5 +27,6 @@ class PublicSiteMetaTest extends TestCase
                 ],
             ],
         ]);
+        $response->assertJsonPath('data.search_engine_indexing', true);
     }
 }
