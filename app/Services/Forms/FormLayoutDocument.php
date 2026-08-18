@@ -3,6 +3,8 @@
 namespace App\Services\Forms;
 
 use App\Services\Appearance\AppearanceLocalizedSettings;
+use App\Services\Appearance\BuilderStyleDocument;
+use App\Services\Appearance\LayoutHideOn;
 use Illuminate\Support\Str;
 
 /**
@@ -51,20 +53,23 @@ final class FormLayoutDocument
                 $settings = is_array($field['settings'] ?? null)
                     ? $field['settings']
                     : FormFieldRegistry::defaultSettings($type);
-                $fields[] = [
+                $fieldRow = [
                     'id' => self::id($field['id'] ?? null),
                     'type' => $type,
                     'span' => self::normalizeSpan($field['span'] ?? null),
                     'settings' => $settings,
                 ];
+                $fieldRow = LayoutHideOn::appendTo($fieldRow, $field['hide_on'] ?? null);
+                $fields[] = BuilderStyleDocument::appendTo($fieldRow, $field['styles'] ?? null);
             }
             if ($fields === []) {
                 continue;
             }
-            $rows[] = [
+            $rowOut = [
                 'id' => self::id($row['id'] ?? null),
                 'fields' => $fields,
             ];
+            $rows[] = LayoutHideOn::appendTo($rowOut, $row['hide_on'] ?? null);
         }
 
         if ($rows === []) {
@@ -224,17 +229,20 @@ final class FormLayoutDocument
                     $primaryLocale,
                     FormFieldRegistry::translatableKeys($type)
                 );
-                $fields[] = [
+                $fieldOut = [
                     'id' => $field['id'],
                     'type' => $type,
                     'span' => $field['span'],
                     'settings' => $resolved,
                 ];
+                $fieldOut = LayoutHideOn::appendTo($fieldOut, $field['hide_on'] ?? null);
+                $fields[] = BuilderStyleDocument::appendTo($fieldOut, $field['styles'] ?? null);
             }
-            $rows[] = [
+            $rowOut = [
                 'id' => $row['id'],
                 'fields' => $fields,
             ];
+            $rows[] = LayoutHideOn::appendTo($rowOut, $row['hide_on'] ?? null);
         }
 
         $settingKeys = ['submit_label', 'success_message', 'error_message'];

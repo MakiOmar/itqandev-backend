@@ -136,7 +136,7 @@ final class PageLayoutDocument
             $rows[] = self::defaultEmptyRow();
         }
 
-        return [
+        $band = [
             'id' => $id,
             'type' => self::TYPE_LAYOUT,
             'enabled' => filter_var($row['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
@@ -144,6 +144,8 @@ final class PageLayoutDocument
             'settings' => $settings,
             'rows' => $rows,
         ];
+
+        return LayoutHideOn::appendTo($band, $row['hide_on'] ?? null);
     }
 
     /**
@@ -187,12 +189,14 @@ final class PageLayoutDocument
             $columns[] = self::defaultEmptyColumn();
         }
 
-        return [
+        $normalized = [
             'id' => $id,
             'stack_below' => $stackBelow,
             'gap' => $gap,
             'columns' => $columns,
         ];
+
+        return LayoutHideOn::appendTo($normalized, $row['hide_on'] ?? null);
     }
 
     /**
@@ -220,11 +224,13 @@ final class PageLayoutDocument
             }
         }
 
-        return [
+        $normalized = [
             'id' => $id,
             'span' => $span,
             'blocks' => $blocks,
         ];
+
+        return LayoutHideOn::appendTo($normalized, $col['hide_on'] ?? null);
     }
 
     /**
@@ -263,13 +269,16 @@ final class PageLayoutDocument
             PageLeafRegistry::translatableKeys($kind, $type),
         );
 
-        return [
+        $normalized = [
             'id' => $id,
             'kind' => $kind,
             'type' => $type,
             'enabled' => filter_var($block['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'settings' => $settings,
         ];
+        $normalized = LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
+
+        return BuilderStyleDocument::appendTo($normalized, $block['styles'] ?? null);
     }
 
     /**
@@ -289,6 +298,8 @@ final class PageLayoutDocument
             'type' => $type,
             'enabled' => $row['enabled'] ?? true,
             'settings' => is_array($row['settings'] ?? null) ? $row['settings'] : [],
+            'hide_on' => $row['hide_on'] ?? null,
+            'styles' => $row['styles'] ?? null,
         ], $blockCounts);
 
         if ($block === null) {
@@ -423,11 +434,12 @@ final class PageLayoutDocument
                         $blocksOut[] = $presented;
                     }
                 }
-                $columnsOut[] = [
+                $column = [
                     'id' => (string) ($rawCol['id'] ?? ''),
                     'span' => self::normalizeSpans($rawCol['span'] ?? null),
                     'blocks' => $blocksOut,
                 ];
+                $columnsOut[] = LayoutHideOn::appendTo($column, $rawCol['hide_on'] ?? null);
             }
 
             $stackBelow = strtolower(trim((string) ($rawRow['stack_below'] ?? 'none')));
@@ -435,12 +447,13 @@ final class PageLayoutDocument
                 $stackBelow = 'none';
             }
 
-            $rowsOut[] = [
+            $rowOut = [
                 'id' => (string) ($rawRow['id'] ?? ''),
                 'stack_below' => $stackBelow,
                 'gap' => (int) ($rawRow['gap'] ?? 4),
                 'columns' => $columnsOut,
             ];
+            $rowsOut[] = LayoutHideOn::appendTo($rowOut, $rawRow['hide_on'] ?? null);
         }
 
         $layout = strtolower(trim((string) ($band['layout_width'] ?? 'boxed')));
@@ -448,13 +461,15 @@ final class PageLayoutDocument
             $layout = 'boxed';
         }
 
-        return [
+        $presented = [
             'id' => (string) ($band['id'] ?? ''),
             'type' => self::TYPE_LAYOUT,
             'layout_width' => $layout,
             'settings' => is_array($band['settings'] ?? null) ? $band['settings'] : [],
             'rows' => $rowsOut,
         ];
+
+        return LayoutHideOn::appendTo($presented, $band['hide_on'] ?? null);
     }
 
     /**
@@ -493,12 +508,15 @@ final class PageLayoutDocument
                 : [];
         }
 
-        return [
+        $presented = [
             'id' => (string) ($block['id'] ?? ''),
             'kind' => $kind,
             'type' => $type,
             'settings' => $settings,
         ];
+        $presented = LayoutHideOn::appendTo($presented, $block['hide_on'] ?? null);
+
+        return BuilderStyleDocument::appendTo($presented, $block['styles'] ?? null);
     }
 
     /**

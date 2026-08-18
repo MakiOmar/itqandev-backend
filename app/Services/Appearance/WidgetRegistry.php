@@ -177,36 +177,12 @@ final class WidgetRegistry
                     'alt' => '',
                     'caption' => '',
                     'link_url' => '',
-                    'object_fit' => 'cover',
-                    'radius' => 'lg',
                 ],
                 'settings_fields' => [
                     ['key' => 'image', 'type' => 'media', 'label' => 'Image', 'accept' => 'image/*', 'translatable' => true],
                     ['key' => 'alt', 'type' => 'text', 'label' => 'Alt text'],
                     ['key' => 'caption', 'type' => 'text', 'label' => 'Caption'],
                     ['key' => 'link_url', 'type' => 'url', 'label' => 'Link URL', 'translatable' => false],
-                    [
-                        'key' => 'object_fit',
-                        'type' => 'select',
-                        'label' => 'Object fit',
-                        'translatable' => false,
-                        'options' => [
-                            ['value' => 'cover', 'label' => 'Cover'],
-                            ['value' => 'contain', 'label' => 'Contain'],
-                        ],
-                    ],
-                    [
-                        'key' => 'radius',
-                        'type' => 'select',
-                        'label' => 'Radius',
-                        'translatable' => false,
-                        'options' => [
-                            ['value' => 'none', 'label' => 'None'],
-                            ['value' => 'md', 'label' => 'Medium'],
-                            ['value' => 'lg', 'label' => 'Large'],
-                            ['value' => 'full', 'label' => 'Pill'],
-                        ],
-                    ],
                 ],
             ],
             'gallery' => [

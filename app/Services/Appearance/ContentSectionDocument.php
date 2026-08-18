@@ -62,14 +62,17 @@ final class ContentSectionDocument
                 KitRegistry::translatableKeys($type),
             );
 
-            $sections[] = [
-                'id' => $id,
-                'kind' => $kind,
-                'type' => $type,
-                'enabled' => filter_var($row['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                'layout_width' => $layout,
-                'settings' => $settings,
-            ];
+            $sections[] = LayoutHideOn::appendTo(
+                BuilderStyleDocument::appendTo([
+                    'id' => $id,
+                    'kind' => $kind,
+                    'type' => $type,
+                    'enabled' => filter_var($row['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                    'layout_width' => $layout,
+                    'settings' => $settings,
+                ], $row['styles'] ?? null),
+                $row['hide_on'] ?? null,
+            );
         }
 
         if ($sections === [] && $fallbackToHomepageDefaults) {
@@ -119,13 +122,16 @@ final class ContentSectionDocument
                     )
                     : [];
             }
-            $out[] = [
-                'id' => (string) ($section['id'] ?? ''),
-                'kind' => PageLeafRegistry::KIND_KIT,
-                'type' => $type,
-                'layout_width' => (string) ($section['layout_width'] ?? 'boxed'),
-                'settings' => $settings,
-            ];
+            $out[] = LayoutHideOn::appendTo(
+                BuilderStyleDocument::appendTo([
+                    'id' => (string) ($section['id'] ?? ''),
+                    'kind' => PageLeafRegistry::KIND_KIT,
+                    'type' => $type,
+                    'layout_width' => (string) ($section['layout_width'] ?? 'boxed'),
+                    'settings' => $settings,
+                ], $section['styles'] ?? null),
+                $section['hide_on'] ?? null,
+            );
         }
 
         return $out;
