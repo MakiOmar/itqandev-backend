@@ -49,13 +49,14 @@ final class StaticHomepage
 
     /**
      * Published CMS page used as `/`, or null when Appearance homepage should render.
+     *
+     * A published `page_on_front` wins even if `show_on_front` was left as `builder`
+     * (operators often assign the home CMS page in Page Builder without flipping the flag).
+     * Intentional Appearance-homepage sites keep `page_on_front` null.
      */
     public static function page(?array $settings = null): ?Page
     {
         if (! FeatureModules::enabled('pages') || ! Schema::hasTable('pages')) {
-            return null;
-        }
-        if (self::showOnFront($settings) !== self::SHOW_PAGE) {
             return null;
         }
         $id = self::pageOnFrontId($settings);

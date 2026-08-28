@@ -34,9 +34,15 @@ class PublicProjectCardResource extends JsonResource
         }
 
         $tags = [];
+        $categories = [];
         if ($this->relationLoaded('categories')) {
             foreach ($this->categories as $c) {
                 $tags[] = $c->name;
+                $categories[] = [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'slug' => $c->slug,
+                ];
             }
         }
         if ($this->relationLoaded('skills')) {
@@ -57,6 +63,7 @@ class PublicProjectCardResource extends JsonResource
             'image' => $url,
             'image_alt' => $hero ? ($hero->name ?: $this->title) : null,
             'tags' => array_values(array_unique(array_filter($tags))),
+            'categories' => $categories,
             'seo_meta' => $this->whenLoaded('seoMetas', function () use ($request) {
                 $present = TranslatableContentPresenter::requestedPresentationLocale($request);
                 $primary = SiteLanguages::primaryLocaleForContent($this->resource->content_locale);

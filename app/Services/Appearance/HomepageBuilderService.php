@@ -11,7 +11,7 @@ final class HomepageBuilderService
     public const SETTINGS_KEY = 'homepage_builder';
 
     /**
-     * Default seven sections matching the current hardcoded homepage order.
+     * Default sections for Appearance homepage builder (works/portfolio uses CMS page builder).
      *
      * @return array{sections: list<array<string, mixed>>}
      */
@@ -20,7 +20,6 @@ final class HomepageBuilderService
         $order = [
             'hero',
             'services_teaser',
-            'case_studies',
             'testimonials',
             'tech_stack',
             'blog_preview',

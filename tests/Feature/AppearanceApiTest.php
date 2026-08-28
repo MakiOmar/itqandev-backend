@@ -62,7 +62,7 @@ class AppearanceApiTest extends TestCase
             ->getJson('/api/appearance/homepage')
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonCount(7, 'data.sections');
+            ->assertJsonCount(6, 'data.sections');
 
         $payload = [
             'sections' => [

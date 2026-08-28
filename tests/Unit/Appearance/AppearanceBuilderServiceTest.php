@@ -16,13 +16,13 @@ class AppearanceBuilderServiceTest extends TestCase
         Storage::fake('local');
     }
 
-    public function test_homepage_defaults_include_seven_sections(): void
+    public function test_homepage_defaults_include_six_sections(): void
     {
         $doc = (new HomepageBuilderService)->defaultDocument();
-        $this->assertCount(7, $doc['sections']);
+        $this->assertCount(6, $doc['sections']);
         $types = array_column($doc['sections'], 'type');
         $this->assertSame(
-            ['hero', 'services_teaser', 'case_studies', 'testimonials', 'tech_stack', 'blog_preview', 'cta'],
+            ['hero', 'services_teaser', 'testimonials', 'tech_stack', 'blog_preview', 'cta'],
             $types
         );
     }

@@ -323,12 +323,30 @@ final class KitRegistry
                 'default_settings' => [
                     'title' => 'Selected portfolio',
                     'subtitle' => 'Recent projects we are proud of.',
-                    'limit' => 3,
+                    'limit' => 6,
+                    'category_ids' => [],
+                    'columns' => [
+                        'mobile' => 1,
+                        'tablet' => 2,
+                        'desktop' => 2,
+                    ],
                 ],
                 'settings_fields' => [
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
-                    ['key' => 'limit', 'type' => 'number', 'label' => 'Limit', 'min' => 1, 'max' => 24],
+                    [
+                        'key' => 'category_ids',
+                        'type' => 'category_multi',
+                        'label' => 'Categories in filter',
+                        'translatable' => false,
+                    ],
+                    ['key' => 'limit', 'type' => 'number', 'label' => 'Limit per tab', 'min' => 1, 'max' => 24],
+                    [
+                        'key' => 'columns',
+                        'type' => 'responsive_columns',
+                        'label' => 'Grid columns',
+                        'translatable' => false,
+                    ],
                 ],
             ],
             'testimonials' => [
@@ -410,12 +428,19 @@ final class KitRegistry
                 'max_instances' => 1,
                 'default_settings' => [
                     'show_filters' => true,
+                    'category_ids' => [],
                 ],
                 'settings_fields' => [
                     [
                         'key' => 'show_filters',
                         'type' => 'boolean',
                         'label' => 'Show category side filters',
+                        'translatable' => false,
+                    ],
+                    [
+                        'key' => 'category_ids',
+                        'type' => 'category_multi',
+                        'label' => 'Categories in filter',
                         'translatable' => false,
                     ],
                 ],
