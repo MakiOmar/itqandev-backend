@@ -119,7 +119,7 @@ final class PageLayoutDocument
             $layout = 'boxed';
         }
 
-        $settings = is_array($row['settings'] ?? null) ? $row['settings'] : [];
+        $settings = BuilderBackgroundDocument::normalizeLayoutSettings($row['settings'] ?? null);
         $rawRows = is_array($row['rows'] ?? null) ? $row['rows'] : [];
         $rows = [];
         foreach ($rawRows as $rawRow) {
@@ -145,7 +145,9 @@ final class PageLayoutDocument
             'rows' => $rows,
         ];
 
-        return LayoutHideOn::appendTo($band, $row['hide_on'] ?? null);
+        $band = LayoutHideOn::appendTo($band, $row['hide_on'] ?? null);
+
+        return BuilderStyleDocument::appendTo($band, $row['styles'] ?? null);
     }
 
     /**
@@ -193,10 +195,13 @@ final class PageLayoutDocument
             'id' => $id,
             'stack_below' => $stackBelow,
             'gap' => $gap,
+            'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($row['settings'] ?? null),
             'columns' => $columns,
         ];
 
-        return LayoutHideOn::appendTo($normalized, $row['hide_on'] ?? null);
+        $normalized = LayoutHideOn::appendTo($normalized, $row['hide_on'] ?? null);
+
+        return BuilderStyleDocument::appendTo($normalized, $row['styles'] ?? null);
     }
 
     /**
@@ -227,10 +232,13 @@ final class PageLayoutDocument
         $normalized = [
             'id' => $id,
             'span' => $span,
+            'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($col['settings'] ?? null),
             'blocks' => $blocks,
         ];
 
-        return LayoutHideOn::appendTo($normalized, $col['hide_on'] ?? null);
+        $normalized = LayoutHideOn::appendTo($normalized, $col['hide_on'] ?? null);
+
+        return BuilderStyleDocument::appendTo($normalized, $col['styles'] ?? null);
     }
 
     /**
@@ -268,6 +276,16 @@ final class PageLayoutDocument
             PageLeafRegistry::defaultSettings($kind, $type),
             PageLeafRegistry::translatableKeys($kind, $type),
         );
+        // Layout/widget Style → Background lives on settings.background (not kit fields).
+        $incomingBg = is_array($block['settings'] ?? null)
+            ? ($block['settings']['background'] ?? null)
+            : null;
+        if ($incomingBg !== null) {
+            $bg = BuilderBackgroundDocument::normalize($incomingBg);
+            if ($bg !== null) {
+                $settings['background'] = $bg;
+            }
+        }
 
         $normalized = [
             'id' => $id,
@@ -437,9 +455,11 @@ final class PageLayoutDocument
                 $column = [
                     'id' => (string) ($rawCol['id'] ?? ''),
                     'span' => self::normalizeSpans($rawCol['span'] ?? null),
+                    'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($rawCol['settings'] ?? null),
                     'blocks' => $blocksOut,
                 ];
-                $columnsOut[] = LayoutHideOn::appendTo($column, $rawCol['hide_on'] ?? null);
+                $column = LayoutHideOn::appendTo($column, $rawCol['hide_on'] ?? null);
+                $columnsOut[] = BuilderStyleDocument::appendTo($column, $rawCol['styles'] ?? null);
             }
 
             $stackBelow = strtolower(trim((string) ($rawRow['stack_below'] ?? 'none')));
@@ -451,9 +471,11 @@ final class PageLayoutDocument
                 'id' => (string) ($rawRow['id'] ?? ''),
                 'stack_below' => $stackBelow,
                 'gap' => (int) ($rawRow['gap'] ?? 4),
+                'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($rawRow['settings'] ?? null),
                 'columns' => $columnsOut,
             ];
-            $rowsOut[] = LayoutHideOn::appendTo($rowOut, $rawRow['hide_on'] ?? null);
+            $rowOut = LayoutHideOn::appendTo($rowOut, $rawRow['hide_on'] ?? null);
+            $rowsOut[] = BuilderStyleDocument::appendTo($rowOut, $rawRow['styles'] ?? null);
         }
 
         $layout = strtolower(trim((string) ($band['layout_width'] ?? 'boxed')));
@@ -465,11 +487,12 @@ final class PageLayoutDocument
             'id' => (string) ($band['id'] ?? ''),
             'type' => self::TYPE_LAYOUT,
             'layout_width' => $layout,
-            'settings' => is_array($band['settings'] ?? null) ? $band['settings'] : [],
+            'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($band['settings'] ?? null),
             'rows' => $rowsOut,
         ];
+        $presented = LayoutHideOn::appendTo($presented, $band['hide_on'] ?? null);
 
-        return LayoutHideOn::appendTo($presented, $band['hide_on'] ?? null);
+        return BuilderStyleDocument::appendTo($presented, $band['styles'] ?? null);
     }
 
     /**

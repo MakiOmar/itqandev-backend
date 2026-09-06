@@ -97,6 +97,77 @@ class PageLayoutDocumentTest extends TestCase
         $this->assertArrayHasKey('settings', $blocks[0]);
     }
 
+    public function test_persists_row_and_column_background_and_styles(): void
+    {
+        $out = PageLayoutDocument::normalizeSectionsForPages([
+            [
+                'type' => 'layout',
+                'settings' => [
+                    'background' => ['type' => 'color', 'color' => '#112233'],
+                ],
+                'styles' => [
+                    'desktop' => ['padding' => ['top' => 8, 'right' => 8, 'bottom' => 8, 'left' => 8, 'unit' => 'px']],
+                ],
+                'rows' => [
+                    [
+                        'settings' => [
+                            'background' => ['type' => 'gradient', 'gradient_from' => '#0389a1', 'gradient_to' => '#0ea5e9'],
+                        ],
+                        'styles' => [
+                            'desktop' => ['margin' => ['top' => 4, 'right' => 0, 'bottom' => 4, 'left' => 0, 'unit' => 'px']],
+                        ],
+                        'columns' => [
+                            [
+                                'span' => 12,
+                                'settings' => [
+                                    'background' => ['type' => 'particles', 'particles_density' => 40],
+                                ],
+                                'styles' => [
+                                    'desktop' => ['border_style' => 'solid', 'border_width' => ['value' => 1, 'unit' => 'px']],
+                                ],
+                                'blocks' => [
+                                    [
+                                        'type' => 'services_teaser',
+                                        'settings' => [
+                                            'title' => 'Services',
+                                            'background' => ['type' => 'color', 'color' => '#abcdef'],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $band = $out[0];
+        $this->assertSame('color', $band['settings']['background']['type']);
+        $this->assertSame('#112233', $band['settings']['background']['color']);
+        $this->assertSame(8.0, $band['styles']['desktop']['padding']['top']);
+
+        $row = $band['rows'][0];
+        $this->assertSame('gradient', $row['settings']['background']['type']);
+        $this->assertSame(4.0, $row['styles']['desktop']['margin']['top']);
+
+        $col = $row['columns'][0];
+        $this->assertSame('particles', $col['settings']['background']['type']);
+        $this->assertSame(40, $col['settings']['background']['particles_density']);
+        $this->assertSame('solid', $col['styles']['desktop']['border_style']);
+
+        $block = $col['blocks'][0];
+        $this->assertSame('color', $block['settings']['background']['type']);
+        $this->assertSame('#abcdef', $block['settings']['background']['color']);
+
+        $public = PageLayoutDocument::presentPublicForPages($out, 'en');
+        $this->assertSame('gradient', $public[0]['rows'][0]['settings']['background']['type']);
+        $this->assertSame('particles', $public[0]['rows'][0]['columns'][0]['settings']['background']['type']);
+        $this->assertSame(
+            'color',
+            $public[0]['rows'][0]['columns'][0]['blocks'][0]['settings']['background']['type'],
+        );
+    }
+
     public function test_enforces_max_instances_across_tree(): void
     {
         $out = PageLayoutDocument::normalizeSectionsForPages([
