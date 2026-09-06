@@ -9,6 +9,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class FontManagementTest extends TestCase
@@ -232,6 +233,41 @@ class FontManagementTest extends TestCase
             ->assertJsonPath('data.typography.ltr.css_family', 'Custom LTR')
             ->assertJsonPath('data.typography.ltr.fallback_stack', "'Custom LTR', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif")
             ->assertJsonPath('data.typography.rtl.css_family', 'Custom RTL')
-            ->assertJsonPath('data.typography.ltr.sources.woff2', '/storage/fonts/custom-ltr.woff2');
+            ->assertJsonPath('data.typography.ltr.sources.woff2', url('/storage/fonts/custom-ltr.woff2'))
+            ->assertJsonPath('data.typography.rtl.sources.woff2', url('/storage/fonts/custom-rtl.woff2'));
+    }
+
+    public function test_custom_typography_font_sources_are_absolute_against_app_url(): void
+    {
+        config(['app.url' => 'https://base.itqandev.com']);
+        URL::forceRootUrl('https://base.itqandev.com');
+        URL::forceScheme('https');
+
+        $admin = User::query()->where('email', 'admin@credocode.test')->first();
+        $this->assertNotNull($admin);
+
+        $ltr = Font::query()->create([
+            'name' => 'Monadi',
+            'css_family' => 'Monadi',
+            'file_woff2' => '/storage/fonts/monadi.woff2',
+            'file_woff' => '/storage/fonts/monadi.woff',
+        ]);
+
+        $this->withHeaders($this->bearerHeaders($admin))
+            ->putJson('/api/settings', [
+                'font_mode' => TypographyResolver::MODE_CUSTOM,
+                'font_ltr_id' => $ltr->id,
+            ])
+            ->assertOk();
+
+        $expectedWoff2 = url('/storage/fonts/monadi.woff2');
+        $expectedWoff = url('/storage/fonts/monadi.woff');
+
+        $this->assertSame('https://base.itqandev.com/storage/fonts/monadi.woff2', $expectedWoff2);
+
+        $this->getJson('/api/public/site-meta')
+            ->assertOk()
+            ->assertJsonPath('data.typography.ltr.sources.woff2', $expectedWoff2)
+            ->assertJsonPath('data.typography.ltr.sources.woff', $expectedWoff);
     }
 }

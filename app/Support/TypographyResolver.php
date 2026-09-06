@@ -100,7 +100,7 @@ final class TypographyResolver
         $sources = [];
         foreach ($font->sourceMap() as $format => $url) {
             if (is_string($url) && trim($url) !== '') {
-                $sources[$format] = $url;
+                $sources[$format] = self::absolutizeFontSourceUrl($url);
             }
         }
 
@@ -110,6 +110,24 @@ final class TypographyResolver
             'google_css_href' => null,
             'sources' => (object) $sources,
         ];
+    }
+
+    /**
+     * Font files are stored as relative /storage/... paths; clients on a separate
+     * marketing origin need absolute URLs against APP_URL (e.g. base.itqandev.com).
+     */
+    private static function absolutizeFontSourceUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return $url;
+        }
+
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            return $url;
+        }
+
+        return url($url);
     }
 
     private static function stackWithFamily(string $cssFamily, string $baseStack): string
