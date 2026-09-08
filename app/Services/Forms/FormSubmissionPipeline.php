@@ -11,6 +11,7 @@ use App\Services\Forms\Actions\FormActionHandler;
 use App\Services\Forms\Actions\RedirectAction;
 use App\Services\Forms\Actions\StoreSubmissionAction;
 use App\Services\Forms\Actions\WebhookAction;
+use App\Support\Honeypot;
 use App\Support\SiteLanguages;
 use App\Support\WesternDigits;
 use Illuminate\Http\Request;
@@ -31,12 +32,7 @@ final class FormSubmissionPipeline
         $fields = FormLayoutDocument::flattenFields($layout);
 
         if (! empty($settings['honeypot'])) {
-            $hp = (string) $request->input('_gotcha', $request->input('website_url', ''));
-            if (trim($hp) !== '') {
-                throw ValidationException::withMessages([
-                    'form' => ['Unable to submit this form.'],
-                ]);
-            }
+            Honeypot::rejectIfFilled($request);
         }
 
         $captcha = (string) ($settings['captcha'] ?? 'none');

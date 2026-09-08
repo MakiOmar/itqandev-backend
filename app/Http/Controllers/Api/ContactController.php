@@ -9,6 +9,7 @@ use App\Notifications\ContactSubmissionReceived;
 use App\Services\ActivityLogService;
 use App\Services\Forms\FormSubmissionPipeline;
 use App\Support\FeatureModules;
+use App\Support\Honeypot;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
@@ -29,6 +30,8 @@ class ContactController extends Controller
                 return response()->json($result);
             }
         }
+
+        Honeypot::rejectIfFilled($request);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],

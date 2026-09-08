@@ -32,6 +32,9 @@ class SetSecurityHeaders
             "img-src 'self' data: https:; " .
             "font-src 'self' data:; " .
             "connect-src {$connectSrc}; " .
+            "object-src 'none'; " .
+            "base-uri 'self'; " .
+            "form-action 'self'; " .
             "frame-ancestors 'self';";
         $response->headers->set('Content-Security-Policy', $csp);
 

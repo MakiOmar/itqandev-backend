@@ -6,6 +6,7 @@ use App\Models\BlogPost;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 class PublicBlogAndContactTest extends TestCase
@@ -57,6 +58,8 @@ class PublicBlogAndContactTest extends TestCase
 
     public function test_contact_form_accepts_submission(): void
     {
+        Config::set('features.modules.forms', false);
+
         $this->postJson('/api/contact', [
             'name' => 'Jane Doe',
             'email' => 'jane@example.com',
@@ -65,6 +68,19 @@ class PublicBlogAndContactTest extends TestCase
         ])
             ->assertOk()
             ->assertJsonPath('success', true);
+    }
+
+    public function test_contact_fallback_rejects_filled_honeypot(): void
+    {
+        Config::set('features.modules.forms', false);
+
+        $this->postJson('/api/contact', [
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'subject' => 'Hello',
+            'message' => 'Test message body',
+            '_gotcha' => 'https://spam.example',
+        ])->assertUnprocessable();
     }
 
     public function test_public_site_content_returns_payload(): void

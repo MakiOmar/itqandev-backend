@@ -143,5 +143,18 @@ return [
     |
     */
     'max_files_per_upload' => env('MEDIA_MAX_FILES_PER_UPLOAD', 10),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue image processing
+    |--------------------------------------------------------------------------
+    |
+    | When true, WebP conversion and thumbnails run on the queue after upload.
+    | QUEUE_CONNECTION=sync (tests, or local without a worker) still finishes
+    | before the HTTP response. Set false to always process inline.
+    | Production database queues need: php artisan queue:work
+    |
+    */
+    'queue_image_processing' => filter_var(env('MEDIA_QUEUE_IMAGE_PROCESSING', true), FILTER_VALIDATE_BOOL),
 ];
 

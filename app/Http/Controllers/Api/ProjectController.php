@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
-use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProjectRequest;
+use App\Http\Requests\UpdateProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
 use App\Support\ContentExportEnvelope;
@@ -14,12 +15,10 @@ use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
 {
     use ExportsImportsTranslatableContent;
-    use PreparesUniqueContentSlug;
 
     protected function exportImportEntity(): string
     {
@@ -113,43 +112,9 @@ class ProjectController extends Controller
         return ProjectResource::collection($paginator);
     }
 
-    public function store(Request $request)
+    public function store(StoreProjectRequest $request)
     {
-        $this->authorize('create', Project::class);
-
-        // Handle camelCase inputs from frontend
-        $request->merge([
-            'link_url' => $request->input('link_url') ?: $request->input('linkUrl'),
-            'repo_url' => $request->input('repo_url') ?: $request->input('repoUrl'),
-            'demo_url' => $request->input('demo_url') ?: $request->input('demoUrl'),
-            'published_at' => $request->input('published_at') ?: $request->input('publishedAt'),
-        ]);
-        $this->mergeUniqueContentSlug($request, Project::class, 'title');
-
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:projects,slug'],
-            'summary' => ['nullable', 'string', 'max:1024'],
-            'description' => ['nullable', 'string'],
-            'status' => ['required', 'string', 'max:40'],
-            'link_url' => ['nullable', $this->urlOrHashRule()],
-            'repo_url' => ['nullable', $this->urlOrHashRule()],
-            'demo_url' => ['nullable', $this->urlOrHashRule()],
-            'featured' => ['boolean'],
-            'published_at' => ['nullable', 'date'],
-            'content_locale' => ['nullable', 'string', 'max:16'],
-            'category_ids' => ['array'],
-            'category_ids.*' => ['integer', 'exists:categories,id'],
-            'skill_ids' => ['array'],
-            'skill_ids.*' => ['integer', 'exists:skills,id'],
-            'translations' => ['nullable', 'array'],
-            'translations.*.locale' => ['required', 'string', 'max:16'],
-            'translations.*.title' => ['nullable', 'string', 'max:255'],
-            'translations.*.summary' => ['nullable', 'string', 'max:1024'],
-            'translations.*.description' => ['nullable', 'string'],
-            'header_layout_id' => ['nullable', 'integer'],
-            'footer_layout_id' => ['nullable', 'integer'],
-        ]);
+        $data = $request->validated();
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
@@ -209,47 +174,13 @@ class ProjectController extends Controller
         return new ProjectResource($project);
     }
 
-    public function update(Request $request, Project $project)
+    public function update(UpdateProjectRequest $request, Project $project)
     {
-        // Fallback: If route model binding fails, load manually
         if (! $project->exists) {
             $project = Project::findOrFail($request->route('project'));
         }
 
-        $this->authorize('update', $project);
-
-        // Handle camelCase inputs from frontend
-        $request->merge([
-            'link_url' => $request->input('link_url') ?: $request->input('linkUrl'),
-            'repo_url' => $request->input('repo_url') ?: $request->input('repoUrl'),
-            'demo_url' => $request->input('demo_url') ?: $request->input('demoUrl'),
-            'published_at' => $request->input('published_at') ?: $request->input('publishedAt'),
-        ]);
-        $this->mergeUniqueContentSlug($request, Project::class, 'title', (int) $project->id, true);
-        $data = $request->validate([
-            'title' => ['sometimes', 'string', 'max:255'],
-            'slug' => ['sometimes', 'string', 'max:255', Rule::unique('projects')->ignore($project->id)],
-            'summary' => ['nullable', 'string', 'max:1024'],
-            'description' => ['nullable', 'string'],
-            'status' => ['sometimes', 'string', 'max:40'],
-            'link_url' => ['nullable', $this->urlOrHashRule()],
-            'repo_url' => ['nullable', $this->urlOrHashRule()],
-            'demo_url' => ['nullable', $this->urlOrHashRule()],
-            'featured' => ['boolean'],
-            'published_at' => ['nullable', 'date'],
-            'content_locale' => ['nullable', 'string', 'max:16'],
-            'category_ids' => ['array'],
-            'category_ids.*' => ['integer', 'exists:categories,id'],
-            'skill_ids' => ['array'],
-            'skill_ids.*' => ['integer', 'exists:skills,id'],
-            'translations' => ['nullable', 'array'],
-            'translations.*.locale' => ['required', 'string', 'max:16'],
-            'translations.*.title' => ['nullable', 'string', 'max:255'],
-            'translations.*.summary' => ['nullable', 'string', 'max:1024'],
-            'translations.*.description' => ['nullable', 'string'],
-            'header_layout_id' => ['nullable', 'integer'],
-            'footer_layout_id' => ['nullable', 'integer'],
-        ]);
+        $data = $request->validated();
 
         $translations = $data['translations'] ?? null;
         unset($data['translations']);
@@ -359,22 +290,4 @@ class ProjectController extends Controller
         }
     }
 
-    private function urlOrHashRule(): \Closure
-    {
-        return static function (string $attribute, mixed $value, \Closure $fail): void {
-            if ($value === null || $value === '') {
-                return;
-            }
-
-            if ($value === '#') {
-                return;
-            }
-
-            if (filter_var($value, FILTER_VALIDATE_URL) !== false) {
-                return;
-            }
-
-            $fail("The {$attribute} field must be a valid URL.");
-        };
-    }
 }

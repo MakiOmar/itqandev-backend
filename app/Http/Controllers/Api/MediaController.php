@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\AuthorizesResolvedModel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListQueryRequest;
+use App\Http\Requests\UploadMediaRequest;
 use App\Http\Resources\MediaResource;
 use App\Models\BlogPost;
 use App\Models\Category;
@@ -136,72 +137,18 @@ class MediaController extends Controller
     /**
      * Upload media to the general media library (WordPress-style).
      */
-    public function upload(Request $request)
+    public function upload(UploadMediaRequest $request)
     {
-        try {
-            $this->authorize('upload', Media::class);
-        } catch (\Exception $authError) {
-            throw $authError;
-        }
-
-        $maxKb = (int) (config('media.max_file_size', 104857600) / 1024);
-
-        try {
-            $data = $request->validate([
-            'file' => [
-                'required',
-                'file',
-                "max:{$maxKb}",
-                'mimes:jpeg,jpg,png,webp,avif,gif,svg,mp4,webm,mov,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,mp3,wav,ogg,m4a,aac',
-                function ($attribute, $value, $fail) {
-                    if (!$value instanceof \Illuminate\Http\UploadedFile) {
-                        $fail('Invalid file upload.');
-                        return;
-                    }
-                    
-                    // Additional MIME type verification will be done in MediaService
-                    $allowedMimes = [
-                        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif',
-                        'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
-                        'application/pdf',
-                        'application/msword',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'application/vnd.ms-excel',
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        'application/vnd.ms-powerpoint',
-                        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac',
-                        'text/plain', 'text/csv',
-                    ];
-                    
-                    $mimeType = $value->getMimeType();
-                    if (!in_array($mimeType, $allowedMimes, true)) {
-                        $fail('File type ' . $mimeType . ' is not allowed.');
-                    }
-                },
-            ],
-            'folder_id' => ['nullable', 'integer', 'exists:media_folders,id'],
-            'tags' => ['nullable', 'array'],
-            'tags.*' => ['string', 'max:255'],
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $validationError) {
-            throw $validationError;
-        }
+        $data = $request->validated();
 
         /** @var UploadedFile $file */
         $file = $data['file'];
         $folderId = $data['folder_id'] ?? null;
         $tags = $data['tags'] ?? null;
 
-        // Store file temporarily in request for MediaService
-        $request->merge(['file' => $file]);
+        $media = $this->mediaService->processUpload($file, $folderId, $tags);
 
-        try {
-            $media = $this->mediaService->processUpload($file, $folderId, $tags);
-            return (new MediaResource($media))->response()->setStatusCode(201);
-        } catch (\Exception $processError) {
-            throw $processError;
-        }
+        return (new MediaResource($media))->response()->setStatusCode(201);
     }
 
     /**
@@ -232,11 +179,13 @@ class MediaController extends Controller
         /** @var UploadedFile $file */
         $file = $data['file'];
 
+        $this->mediaService->prepareUploadedFile($file);
+
         $media = $model
             ->addMedia($file)
             ->toMediaCollection($collection);
 
-        $media = $this->mediaService->finalizeUploadedMedia($media);
+        $media = $this->mediaService->queueOrFinalize($media);
 
         // Track usage
         $this->mediaService->trackUsage($media, $model, $collection);

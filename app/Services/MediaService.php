@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use App\Jobs\FinalizeUploadedMediaJob;
 use App\Models\AppMedia as Media;
 
 class MediaService
@@ -21,6 +22,7 @@ class MediaService
 
     public function __construct(
         protected MediaImageProcessor $mediaImageProcessor,
+        protected SvgSanitizerService $svgSanitizer,
     ) {
         $this->imageManager = new ImageManager(new Driver());
     }
@@ -44,12 +46,7 @@ class MediaService
      */
     public function processUpload(UploadedFile $file, ?int $folderId = null, ?array $tags = null): Media
     {
-        try {
-            // Verify MIME type matches file extension
-            $this->verifyMimeType($file);
-        } catch (\Exception $mimeError) {
-            throw $mimeError;
-        }
+        $this->prepareUploadedFile($file);
         
         $mediaLibrary = \App\Models\MediaLibrary::instance();
         
@@ -74,7 +71,33 @@ class MediaService
             $this->attachTags($media, $tags);
         }
 
-        return $this->finalizeUploadedMedia($media);
+        return $this->queueOrFinalize($media);
+    }
+
+    /**
+     * MIME checks plus SVG sanitization. Call before Spatie stores the file.
+     */
+    public function prepareUploadedFile(UploadedFile $file): void
+    {
+        $this->verifyMimeType($file);
+
+        if ($this->svgSanitizer->isSvg($file)) {
+            $this->svgSanitizer->sanitizeUploadedFile($file);
+        }
+    }
+
+    /**
+     * Run WebP/thumbnails inline or on the queue. Sync queues finish before return.
+     */
+    public function queueOrFinalize(Media $media): Media
+    {
+        if (! config('media.queue_image_processing', true)) {
+            return $this->finalizeUploadedMedia($media);
+        }
+
+        FinalizeUploadedMediaJob::dispatch($media->id);
+
+        return $media->fresh() ?? $media;
     }
 
     /**

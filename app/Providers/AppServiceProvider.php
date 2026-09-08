@@ -109,8 +109,8 @@ class AppServiceProvider extends ServiceProvider
 
             $user = $request->user();
             $perMinute = $user
-                ? max(1, min((int) env('API_RATE_LIMIT_AUTHENTICATED_PER_MINUTE', 300), 5000))
-                : max(1, min((int) env('API_RATE_LIMIT_GUEST_PER_MINUTE', 120), 1000));
+                ? (int) config('http-rate-limits.authenticated_per_minute', 300)
+                : (int) config('http-rate-limits.guest_per_minute', 120);
 
             $key = $user ? 'user:'.$user->getAuthIdentifier() : 'ip:'.$request->ip();
 
@@ -132,7 +132,7 @@ class AppServiceProvider extends ServiceProvider
             if (app()->environment('local')) {
                 return Limit::none();
             }
-            $n = max(1, min((int) env('UPLOAD_RATE_LIMIT_PER_MINUTE', 30), 200));
+            $n = (int) config('http-rate-limits.upload_per_minute', 30);
 
             return Limit::perMinute($n)->by(optional($request->user())->id ?: $request->ip());
         });
@@ -141,7 +141,7 @@ class AppServiceProvider extends ServiceProvider
             if (app()->environment('local')) {
                 return Limit::none();
             }
-            $n = max(1, min((int) env('BULK_RATE_LIMIT_PER_MINUTE', 10), 120));
+            $n = (int) config('http-rate-limits.bulk_per_minute', 10);
 
             return Limit::perMinute($n)->by(optional($request->user())->id ?: $request->ip());
         });
@@ -150,7 +150,7 @@ class AppServiceProvider extends ServiceProvider
             if (app()->environment('local')) {
                 return Limit::none();
             }
-            $n = max(1, min((int) env('HEALTH_CHECK_RATE_LIMIT_PER_MINUTE', 200), 2000));
+            $n = (int) config('http-rate-limits.health_per_minute', 200);
 
             return Limit::perMinute($n)->by($request->ip());
         });
@@ -159,7 +159,7 @@ class AppServiceProvider extends ServiceProvider
             if (app()->environment('local')) {
                 return Limit::none();
             }
-            $n = max(1, min((int) env('FORM_SUBMIT_RATE_LIMIT_PER_MINUTE', 8), 60));
+            $n = (int) config('http-rate-limits.form_submit_per_minute', 8);
             $slug = (string) $request->route('slug');
 
             return Limit::perMinute($n)->by($request->ip().'|form:'.$slug);
