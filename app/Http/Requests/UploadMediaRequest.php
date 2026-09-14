@@ -25,7 +25,7 @@ class UploadMediaRequest extends FormRequest
                 'required',
                 'file',
                 "max:{$maxKb}",
-                'mimes:jpeg,jpg,png,webp,avif,gif,svg,mp4,webm,mov,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,mp3,wav,ogg,m4a,aac',
+                'mimes:jpeg,jpg,png,webp,avif,gif,svg,mp4,webm,mov,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,mp3,wav,ogg,m4a,aac,json',
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     unset($attribute);
                     if (! $value instanceof UploadedFile) {
@@ -46,6 +46,7 @@ class UploadMediaRequest extends FormRequest
                         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                         'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac',
                         'text/plain', 'text/csv',
+                        'application/json', 'text/json',
                     ];
 
                     $mimeType = $value->getMimeType();

@@ -155,6 +155,7 @@ class MediaService
             'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac',
             // Text
             'text/plain', 'text/csv',
+            'application/json', 'text/json',
         ];
 
         $detectedMime = $file->getMimeType();
@@ -180,6 +181,16 @@ class MediaService
                 );
             }
         }
+
+        $ext = strtolower((string) $file->getClientOriginalExtension());
+        if ($ext === 'json' || in_array((string) $detectedMime, ['application/json', 'text/json'], true)) {
+            $raw = (string) file_get_contents($file->getRealPath());
+            if (! \App\Services\Appearance\LottieDocument::isValidJson($raw)) {
+                throw new \Illuminate\Validation\ValidationException(
+                    validator([], [])->errors()->add('file', 'JSON must be a valid Lottie animation (no scripts).')
+                );
+            }
+        }
     }
 
     /**
@@ -198,6 +209,9 @@ class MediaService
 
         // JPEG variations
         if (in_array($mime1, ['image/jpeg', 'image/jpg']) && in_array($mime2, ['image/jpeg', 'image/jpg'])) {
+            return true;
+        }
+        if (in_array($mime1, ['application/json', 'text/json', 'text/plain']) && in_array($mime2, ['application/json', 'text/json', 'text/plain'])) {
             return true;
         }
 

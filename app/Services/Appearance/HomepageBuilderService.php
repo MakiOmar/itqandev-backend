@@ -63,7 +63,7 @@ final class HomepageBuilderService
     {
         $doc = $this->loadAdminDocument();
 
-        return ContentSectionDocument::presentPublic($doc['sections'], $locale);
+        return PageLayoutDocument::presentPublicForPages($doc['sections'], $locale);
     }
 
     /**
@@ -86,7 +86,8 @@ final class HomepageBuilderService
     public function normalizeDocument(array $input): array
     {
         return [
-            'sections' => ContentSectionDocument::normalizeSections($input, true),
+            'document_version' => PageLayoutDocument::DOCUMENT_VERSION,
+            'sections' => PageLayoutDocument::normalizeSectionsForPages($input['sections'] ?? $input),
         ];
     }
 }

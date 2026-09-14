@@ -13,8 +13,21 @@ final class PageLayoutDocument
 {
     public const TYPE_LAYOUT = 'layout';
 
+    public const TYPE_INNER_BAND = 'inner_band';
+
+    public const DOCUMENT_VERSION = 2;
+
     /** @var list<string> */
     private const STACK_BELOW = ['none', 'tablet', 'desktop'];
+
+    /** @var list<string> */
+    private const FLEX_DIRECTION = ['row', 'column'];
+
+    /** @var list<string> */
+    private const FLEX_JUSTIFY = ['start', 'center', 'end', 'between'];
+
+    /** @var list<string> */
+    private const FLEX_ALIGN = ['start', 'center', 'end', 'stretch'];
 
     /**
      * @param  array<string, mixed>|list<mixed>|null  $input
@@ -61,15 +74,30 @@ final class PageLayoutDocument
     }
 
     /**
+     * Public wrapper so global widgets can reuse leaf normalization.
+     *
+     * @param  array<string, mixed>  $block
+     * @param  array<string, int>  $blockCounts
+     * @return array<string, mixed>|null
+     */
+    public static function normalizeLeafForGlobal(array $block, array &$blockCounts): ?array
+    {
+        return self::normalizeBlock($block, $blockCounts, false);
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $sections
+     * @param  array<string, mixed>|null  $tagContext
      * @return list<array<string, mixed>>
      */
-    public static function presentPublicForPages(array $sections, ?string $locale = null): array
+    public static function presentPublicForPages(array $sections, ?string $locale = null, ?array $tagContext = null): array
     {
         $defaultLocale = SiteLanguages::defaultCode();
         $locale = $locale !== null && $locale !== ''
             ? strtolower(trim($locale))
             : $defaultLocale;
+
+        $sections = GlobalWidgetService::resolveSections($sections);
 
         $out = [];
         foreach ($sections as $section) {
@@ -82,7 +110,7 @@ final class PageLayoutDocument
 
             $type = strtolower(trim((string) ($section['type'] ?? '')));
             if ($type === self::TYPE_LAYOUT || isset($section['rows'])) {
-                $presented = self::presentBand($section, $locale, $defaultLocale);
+                $presented = self::presentBand($section, $locale, $defaultLocale, $tagContext);
                 if ($presented !== null) {
                     $out[] = $presented;
                 }
@@ -126,7 +154,7 @@ final class PageLayoutDocument
             if (! is_array($rawRow)) {
                 continue;
             }
-            $normalizedRow = self::normalizeRow($rawRow, $blockCounts);
+            $normalizedRow = self::normalizeRow($rawRow, $blockCounts, true);
             if ($normalizedRow !== null) {
                 $rows[] = $normalizedRow;
             }
@@ -155,7 +183,12 @@ final class PageLayoutDocument
      * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    private static function normalizeRow(array $row, array &$blockCounts): ?array
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array<string, int>  $blockCounts
+     * @return array<string, mixed>|null
+     */
+    private static function normalizeRow(array $row, array &$blockCounts, bool $allowInnerBand): ?array
     {
         $id = trim((string) ($row['id'] ?? ''));
         if ($id === '') {
@@ -175,13 +208,27 @@ final class PageLayoutDocument
             $gap = 16;
         }
 
+        $direction = strtolower(trim((string) ($row['direction'] ?? 'row')));
+        if (! in_array($direction, self::FLEX_DIRECTION, true)) {
+            $direction = 'row';
+        }
+        $justify = strtolower(trim((string) ($row['justify'] ?? 'start')));
+        if (! in_array($justify, self::FLEX_JUSTIFY, true)) {
+            $justify = 'start';
+        }
+        $align = strtolower(trim((string) ($row['align'] ?? 'stretch')));
+        if (! in_array($align, self::FLEX_ALIGN, true)) {
+            $align = 'stretch';
+        }
+        $wrap = filter_var($row['wrap'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
         $rawCols = is_array($row['columns'] ?? null) ? $row['columns'] : [];
         $columns = [];
         foreach ($rawCols as $rawCol) {
             if (! is_array($rawCol)) {
                 continue;
             }
-            $col = self::normalizeColumn($rawCol, $blockCounts);
+            $col = self::normalizeColumn($rawCol, $blockCounts, $allowInnerBand);
             if ($col !== null) {
                 $columns[] = $col;
             }
@@ -195,6 +242,10 @@ final class PageLayoutDocument
             'id' => $id,
             'stack_below' => $stackBelow,
             'gap' => $gap,
+            'direction' => $direction,
+            'justify' => $justify,
+            'align' => $align,
+            'wrap' => $wrap,
             'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($row['settings'] ?? null),
             'columns' => $columns,
         ];
@@ -209,7 +260,12 @@ final class PageLayoutDocument
      * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    private static function normalizeColumn(array $col, array &$blockCounts): ?array
+    /**
+     * @param  array<string, mixed>  $col
+     * @param  array<string, int>  $blockCounts
+     * @return array<string, mixed>|null
+     */
+    private static function normalizeColumn(array $col, array &$blockCounts, bool $allowInnerBand): ?array
     {
         $id = trim((string) ($col['id'] ?? ''));
         if ($id === '') {
@@ -223,7 +279,7 @@ final class PageLayoutDocument
             if (! is_array($rawBlock)) {
                 continue;
             }
-            $block = self::normalizeBlock($rawBlock, $blockCounts);
+            $block = self::normalizeBlock($rawBlock, $blockCounts, $allowInnerBand);
             if ($block !== null) {
                 $blocks[] = $block;
             }
@@ -246,9 +302,39 @@ final class PageLayoutDocument
      * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    private static function normalizeBlock(array $block, array &$blockCounts): ?array
+    private static function normalizeBlock(array $block, array &$blockCounts, bool $allowInnerBand = true): ?array
     {
+        $kindHint = strtolower(trim((string) ($block['kind'] ?? '')));
+        if ($kindHint === PageLeafRegistry::KIND_GLOBAL) {
+            $gid = (int) ($block['global_id'] ?? 0);
+            if ($gid < 1) {
+                return null;
+            }
+            $id = trim((string) ($block['id'] ?? ''));
+            if ($id === '') {
+                $id = 'glb_'.Str::lower(Str::random(10));
+            }
+            $normalized = [
+                'id' => $id,
+                'kind' => PageLeafRegistry::KIND_GLOBAL,
+                'type' => 'global',
+                'global_id' => $gid,
+                'enabled' => filter_var($block['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'settings' => [],
+            ];
+            $normalized = LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
+
+            return BuilderStyleDocument::appendTo($normalized, $block['styles'] ?? null);
+        }
+
         $type = strtolower(trim((string) ($block['type'] ?? '')));
+        if ($type === self::TYPE_INNER_BAND) {
+            if (! $allowInnerBand) {
+                return null;
+            }
+
+            return self::normalizeInnerBand($block, $blockCounts);
+        }
         if ($type === '' || $type === self::TYPE_LAYOUT) {
             return null;
         }
@@ -276,6 +362,11 @@ final class PageLayoutDocument
             PageLeafRegistry::defaultSettings($kind, $type),
             PageLeafRegistry::translatableKeys($kind, $type),
         );
+        $entry = $kind === PageLeafRegistry::KIND_WIDGET
+            ? (WidgetRegistry::all()[$type] ?? null)
+            : (KitRegistry::all()[$type] ?? null);
+        $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
+        $settings = ControlNormalizer::normalizeSettings($settings, $fields);
         // Layout/widget Style → Background lives on settings.background (not kit fields).
         $incomingBg = is_array($block['settings'] ?? null)
             ? ($block['settings']['background'] ?? null)
@@ -293,6 +384,44 @@ final class PageLayoutDocument
             'type' => $type,
             'enabled' => filter_var($block['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
             'settings' => $settings,
+        ];
+        $normalized = LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
+
+        return BuilderStyleDocument::appendTo($normalized, $block['styles'] ?? null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $block
+     * @param  array<string, int>  $blockCounts
+     * @return array<string, mixed>|null
+     */
+    private static function normalizeInnerBand(array $block, array &$blockCounts): ?array
+    {
+        $id = trim((string) ($block['id'] ?? ''));
+        if ($id === '') {
+            $id = 'inner_'.Str::lower(Str::random(10));
+        }
+        $rawRows = is_array($block['rows'] ?? null) ? $block['rows'] : [];
+        $rows = [];
+        foreach ($rawRows as $rawRow) {
+            if (! is_array($rawRow)) {
+                continue;
+            }
+            $row = self::normalizeRow($rawRow, $blockCounts, false);
+            if ($row !== null) {
+                $rows[] = $row;
+            }
+        }
+        if ($rows === []) {
+            $rows[] = self::defaultEmptyRow();
+        }
+        $normalized = [
+            'id' => $id,
+            'kind' => PageLeafRegistry::KIND_INNER,
+            'type' => self::TYPE_INNER_BAND,
+            'enabled' => filter_var($block['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($block['settings'] ?? null),
+            'rows' => $rows,
         ];
         $normalized = LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
 
@@ -422,9 +551,10 @@ final class PageLayoutDocument
 
     /**
      * @param  array<string, mixed>  $band
+     * @param  array<string, mixed>|null  $tagContext
      * @return array<string, mixed>|null
      */
-    private static function presentBand(array $band, string $locale, string $defaultLocale): ?array
+    private static function presentBand(array $band, string $locale, string $defaultLocale, ?array $tagContext = null): ?array
     {
         $rowsOut = [];
         $rawRows = is_array($band['rows'] ?? null) ? $band['rows'] : [];
@@ -447,7 +577,7 @@ final class PageLayoutDocument
                     if (! ($rawBlock['enabled'] ?? true)) {
                         continue;
                     }
-                    $presented = self::presentBlock($rawBlock, $locale, $defaultLocale);
+                    $presented = self::presentBlock($rawBlock, $locale, $defaultLocale, $tagContext);
                     if ($presented !== null) {
                         $blocksOut[] = $presented;
                     }
@@ -466,11 +596,27 @@ final class PageLayoutDocument
             if (! in_array($stackBelow, self::STACK_BELOW, true)) {
                 $stackBelow = 'none';
             }
+            $direction = strtolower(trim((string) ($rawRow['direction'] ?? 'row')));
+            if (! in_array($direction, self::FLEX_DIRECTION, true)) {
+                $direction = 'row';
+            }
+            $justify = strtolower(trim((string) ($rawRow['justify'] ?? 'start')));
+            if (! in_array($justify, self::FLEX_JUSTIFY, true)) {
+                $justify = 'start';
+            }
+            $align = strtolower(trim((string) ($rawRow['align'] ?? 'stretch')));
+            if (! in_array($align, self::FLEX_ALIGN, true)) {
+                $align = 'stretch';
+            }
 
             $rowOut = [
                 'id' => (string) ($rawRow['id'] ?? ''),
                 'stack_below' => $stackBelow,
                 'gap' => (int) ($rawRow['gap'] ?? 4),
+                'direction' => $direction,
+                'justify' => $justify,
+                'align' => $align,
+                'wrap' => filter_var($rawRow['wrap'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($rawRow['settings'] ?? null),
                 'columns' => $columnsOut,
             ];
@@ -497,11 +643,31 @@ final class PageLayoutDocument
 
     /**
      * @param  array<string, mixed>  $block
+     * @param  array<string, mixed>|null  $tagContext
      * @return array<string, mixed>|null
      */
-    private static function presentBlock(array $block, string $locale, string $defaultLocale): ?array
+    private static function presentBlock(array $block, string $locale, string $defaultLocale, ?array $tagContext = null): ?array
     {
         $type = strtolower(trim((string) ($block['type'] ?? '')));
+        if ($type === self::TYPE_INNER_BAND) {
+            $inner = self::presentBand([
+                'id' => (string) ($block['id'] ?? ''),
+                'type' => self::TYPE_LAYOUT,
+                'layout_width' => 'boxed',
+                'settings' => $block['settings'] ?? [],
+                'rows' => is_array($block['rows'] ?? null) ? $block['rows'] : [],
+                'hide_on' => $block['hide_on'] ?? null,
+                'styles' => $block['styles'] ?? null,
+            ], $locale, $defaultLocale, $tagContext);
+            if ($inner === null) {
+                return null;
+            }
+            $inner['type'] = self::TYPE_INNER_BAND;
+            $inner['kind'] = PageLeafRegistry::KIND_INNER;
+
+            return $inner;
+        }
+
         $kind = PageLeafRegistry::inferKind($type, isset($block['kind']) ? (string) $block['kind'] : null);
         if ($kind === null) {
             return null;
@@ -529,6 +695,12 @@ final class PageLayoutDocument
                     $locale,
                 )
                 : [];
+        }
+        if ($tagContext !== null) {
+            $settings = DynamicTagResolver::apply($settings, $tagContext, $locale);
+        }
+        if ($type === 'loop_grid') {
+            $settings['items'] = LoopQueryService::items($settings, $locale);
         }
 
         $presented = [

@@ -45,18 +45,28 @@ final class FormSubmissionPipeline
             }
         }
 
+        $rawAll = $request->all();
         $rules = [];
         $attributes = [];
         $digitNormalizeMerge = [];
+        $visibleIds = [];
         foreach ($fields as $field) {
             $id = (string) $field['id'];
             $type = (string) $field['type'];
+            if ($type === 'html') {
+                continue;
+            }
             $resolved = AppearanceLocalizedSettings::resolveForLocale(
                 is_array($field['settings'] ?? null) ? $field['settings'] : [],
                 $locale,
                 $primary,
                 FormFieldRegistry::translatableKeys($type)
             );
+            $conditions = FormConditionDocument::normalize($resolved['conditions'] ?? null);
+            if (! FormConditionDocument::isVisible($conditions, $rawAll)) {
+                continue;
+            }
+            $visibleIds[$id] = true;
             $required = ! empty($resolved['required']);
             $attributes[$id] = (string) ($resolved['label'] ?? $type);
             $rules[$id] = $this->rulesForField($type, $required, $resolved);
@@ -79,6 +89,9 @@ final class FormSubmissionPipeline
         foreach ($fields as $field) {
             $id = (string) $field['id'];
             $type = (string) $field['type'];
+            if ($type === 'html' || ! isset($visibleIds[$id])) {
+                continue;
+            }
             $resolved = AppearanceLocalizedSettings::resolveForLocale(
                 is_array($field['settings'] ?? null) ? $field['settings'] : [],
                 $locale,
@@ -87,7 +100,20 @@ final class FormSubmissionPipeline
             );
             $label = (string) ($resolved['label'] ?? $type);
             if ($type === 'file' && $request->hasFile($id)) {
-                $path = $request->file($id)->store('form-uploads/'.$form->id, 'public');
+                $uploaded = $request->file($id);
+                if (is_array($uploaded)) {
+                    $urls = [];
+                    foreach ($uploaded as $file) {
+                        if ($file) {
+                            $path = $file->store('form-uploads/'.$form->id, 'public');
+                            $urls[] = Storage::disk('public')->url($path);
+                        }
+                    }
+                    $values[$id] = $urls;
+                    $labeled[$label] = implode(', ', $urls);
+                    continue;
+                }
+                $path = $uploaded->store('form-uploads/'.$form->id, 'public');
                 $values[$id] = Storage::disk('public')->url($path);
                 $labeled[$label] = $values[$id];
                 continue;
@@ -132,6 +158,12 @@ final class FormSubmissionPipeline
         );
 
         $actions = FormLayoutDocument::normalizeActions($form->actions ?? []);
+        if (! empty($settings['do_not_store'])) {
+            $actions = array_values(array_filter(
+                $actions,
+                static fn ($a) => is_array($a) && ($a['type'] ?? '') !== 'store_submission'
+            ));
+        }
         $extras = [];
         $submission = null;
         foreach ($actions as $action) {
@@ -182,13 +214,19 @@ final class FormSubmissionPipeline
             'number' => array_merge($base, ['numeric']),
             'textarea', 'text', 'hidden' => array_merge($base, ['string', 'max:10000']),
             'date' => array_merge($base, ['date']),
-            'select', 'radio' => array_merge($base, ['string', 'max:512']),
+            'time' => array_merge($base, ['date_format:H:i']),
+            'select' => ! empty($settings['multiple'])
+                ? array_merge($base, ['array'])
+                : array_merge($base, ['string', 'max:512']),
+            'radio' => array_merge($base, ['string', 'max:512']),
             'checkbox' => array_merge($base, ['array']),
             'consent' => array_merge($required ? ['accepted'] : ['nullable', 'boolean'], []),
-            'file' => array_merge($base, [
-                'file',
-                'max:'.max(64, min(20480, (int) ($settings['max_kb'] ?? 5120))),
-            ]),
+            'file' => ! empty($settings['multiple'])
+                ? array_merge($base, ['array'])
+                : array_merge($base, [
+                    'file',
+                    'max:'.max(64, min(20480, (int) ($settings['max_kb'] ?? 5120))),
+                ]),
             default => array_merge($base, ['string', 'max:2000']),
         };
     }

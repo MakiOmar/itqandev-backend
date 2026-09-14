@@ -116,7 +116,7 @@ return [
         'image' => ['jpeg', 'jpg', 'png', 'gif', 'webp', 'avif', 'svg'],
         'video' => ['mp4', 'webm', 'ogg', 'avi', 'mov', 'wmv'],
         'audio' => ['mp3', 'wav', 'ogg', 'm4a', 'aac'],
-        'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'],
+        'document' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'json'],
     ],
 
     /*

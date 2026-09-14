@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AppMedia;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Menu;
@@ -324,6 +325,8 @@ final class PublicMenuResolver
             'label' => $label,
             'href' => $href,
             'open_in_new_tab' => (bool) $item->open_in_new_tab,
+            'description' => $item->description ? (string) $item->description : null,
+            'image_url' => self::menuItemImageUrl($item),
             'children' => [],
         ];
     }
@@ -355,6 +358,24 @@ final class PublicMenuResolver
         }
 
         return null;
+    }
+
+    private static function menuItemImageUrl(\App\Models\MenuItem $item): ?string
+    {
+        $id = (int) ($item->image_id ?? 0);
+        if ($id < 1) {
+            return null;
+        }
+        $media = AppMedia::query()->find($id);
+        if ($media === null) {
+            return null;
+        }
+        $url = $media->getUrl();
+        if ($url && ! filter_var($url, FILTER_VALIDATE_URL)) {
+            $url = url($url);
+        }
+
+        return $url !== '' ? $url : null;
     }
 
     private static function prefixLocale(string $locale, string $path): string

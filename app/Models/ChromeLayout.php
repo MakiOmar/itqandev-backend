@@ -14,12 +14,28 @@ class ChromeLayout extends Model
 
     public const KIND_BODY = 'body';
 
+    public const KIND_SINGLE = 'single';
+
+    public const KIND_ARCHIVE = 'archive';
+
+    public const KIND_LOOP_ITEM = 'loop_item';
+
+    public const KIND_OVERLAY = 'overlay';
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PUBLISHED = 'published';
 
     /** @var list<string> */
-    public const KINDS = [self::KIND_HEADER, self::KIND_FOOTER, self::KIND_BODY];
+    public const KINDS = [
+        self::KIND_HEADER,
+        self::KIND_FOOTER,
+        self::KIND_BODY,
+        self::KIND_SINGLE,
+        self::KIND_ARCHIVE,
+        self::KIND_LOOP_ITEM,
+        self::KIND_OVERLAY,
+    ];
 
 
     protected $fillable = [

@@ -37,49 +37,57 @@ final class ChromeLayoutResolver
         $kind = match ($kind) {
             ChromeLayout::KIND_FOOTER => ChromeLayout::KIND_FOOTER,
             ChromeLayout::KIND_BODY => ChromeLayout::KIND_BODY,
+            ChromeLayout::KIND_SINGLE => ChromeLayout::KIND_SINGLE,
+            ChromeLayout::KIND_ARCHIVE => ChromeLayout::KIND_ARCHIVE,
+            ChromeLayout::KIND_LOOP_ITEM => ChromeLayout::KIND_LOOP_ITEM,
+            ChromeLayout::KIND_OVERLAY => ChromeLayout::KIND_OVERLAY,
             default => ChromeLayout::KIND_HEADER,
         };
         $locale = $locale !== null && $locale !== ''
             ? strtolower(trim($locale))
             : SiteLanguages::defaultCode();
+        $tagContext = DynamicTagResolver::payloadFromModel($record, $contentType, $locale);
 
         if ($kind !== ChromeLayout::KIND_BODY) {
             $fromRecord = $this->resolveFromRecord($kind, $record);
             if ($fromRecord !== null) {
-                return $this->layouts->presentById($fromRecord, $locale);
+                return $this->layouts->presentById($fromRecord, $locale, $tagContext);
             }
         }
 
         if ($matched !== null) {
             $slotId = match ($kind) {
                 ChromeLayout::KIND_FOOTER => $matched->footer_layout_id,
-                ChromeLayout::KIND_BODY => $matched->body_layout_id,
+                ChromeLayout::KIND_BODY,
+                ChromeLayout::KIND_SINGLE,
+                ChromeLayout::KIND_ARCHIVE,
+                ChromeLayout::KIND_LOOP_ITEM => $matched->body_layout_id,
                 default => $matched->header_layout_id,
             };
             if ($slotId !== null && (int) $slotId > 0) {
-                $usable = $this->usableLayoutId((int) $slotId, $kind);
+                $usable = $this->usableLayoutId((int) $slotId, $kind === ChromeLayout::KIND_SINGLE || $kind === ChromeLayout::KIND_ARCHIVE || $kind === ChromeLayout::KIND_LOOP_ITEM ? ChromeLayout::KIND_BODY : $kind);
                 if ($usable !== null) {
-                    return $this->layouts->presentById($usable, $locale);
+                    return $this->layouts->presentById($usable, $locale, $tagContext);
                 }
             }
         }
 
-        if ($kind !== ChromeLayout::KIND_BODY) {
+        if ($kind !== ChromeLayout::KIND_BODY && ! in_array($kind, [ChromeLayout::KIND_SINGLE, ChromeLayout::KIND_ARCHIVE, ChromeLayout::KIND_LOOP_ITEM, ChromeLayout::KIND_OVERLAY], true)) {
             $fromType = $this->resolveFromTypeDefaults($kind, $contentType);
             if ($fromType !== null) {
-                return $this->layouts->presentById($fromType, $locale);
+                return $this->layouts->presentById($fromType, $locale, $tagContext);
             }
 
             $siteDefault = $this->layouts->findSiteDefault($kind);
             if ($siteDefault !== null) {
-                return $this->layouts->presentById((int) $siteDefault->id, $locale);
+                return $this->layouts->presentById((int) $siteDefault->id, $locale, $tagContext);
             }
 
             $fallback = $kind === ChromeLayout::KIND_FOOTER
                 ? app(FooterBuilderService::class)->defaultDocument()
                 : app(HeaderBuilderService::class)->defaultDocument();
 
-            return ChromeLayoutSupport::presentPublic($fallback, $locale);
+            return ChromeLayoutSupport::presentPublic($fallback, $locale, $tagContext);
         }
 
         return ['sections' => []];
@@ -302,7 +310,10 @@ final class ChromeLayoutResolver
         if ($layout === null) {
             return null;
         }
-        if ($layout->kind !== $kind) {
+        $allowed = $kind === ChromeLayout::KIND_BODY
+            ? [ChromeLayout::KIND_BODY, ChromeLayout::KIND_SINGLE, ChromeLayout::KIND_ARCHIVE, ChromeLayout::KIND_LOOP_ITEM]
+            : [$kind];
+        if (! in_array($layout->kind, $allowed, true)) {
             return null;
         }
         if (! $layout->isPublished()) {

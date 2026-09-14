@@ -91,6 +91,7 @@ final class FormFieldRegistry
                     'required' => false,
                     'accept' => 'image/*,.pdf',
                     'max_kb' => 5120,
+                    'multiple' => false,
                     'help' => '',
                     'name' => '',
                 ],
@@ -100,7 +101,24 @@ final class FormFieldRegistry
                     ['key' => 'required', 'type' => 'boolean', 'label' => 'Required', 'translatable' => false],
                     ['key' => 'accept', 'type' => 'text', 'label' => 'Accept', 'translatable' => false],
                     ['key' => 'max_kb', 'type' => 'number', 'label' => 'Max size (KB)', 'min' => 64, 'max' => 20480, 'translatable' => false],
+                    ['key' => 'multiple', 'type' => 'boolean', 'label' => 'Allow multiple', 'translatable' => false],
                     ['key' => 'help', 'type' => 'text', 'label' => 'Help text'],
+                ],
+            ],
+            'time' => self::inputField('Time', ['required' => false]),
+            'html' => [
+                'label' => 'HTML block',
+                'max_instances' => 8,
+                'palette' => true,
+                'default_settings' => [
+                    'label' => 'HTML',
+                    'html' => '',
+                    'name' => '',
+                    'required' => false,
+                ],
+                'settings_fields' => [
+                    ['key' => 'label', 'type' => 'text', 'label' => 'Admin label'],
+                    ['key' => 'html', 'type' => 'richtext', 'label' => 'HTML'],
                 ],
             ],
             'honeypot' => [
@@ -142,6 +160,7 @@ final class FormFieldRegistry
                 ['key' => 'help', 'type' => 'text', 'label' => 'Help text'],
                 ['key' => 'visible_when_field', 'type' => 'text', 'label' => 'Show when field name/id (optional)', 'translatable' => false],
                 ['key' => 'visible_when_value', 'type' => 'text', 'label' => 'Show when value equals (optional)', 'translatable' => false],
+                ['key' => 'conditions', 'type' => 'json', 'label' => 'Visibility groups (JSON AND/OR)', 'translatable' => false],
             ], $extraFields),
         ];
     }
@@ -162,6 +181,7 @@ final class FormFieldRegistry
                 'help' => '',
                 'name' => '',
                 'placeholder' => '',
+                'multiple' => false,
             ],
             'settings_fields' => [
                 ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
@@ -170,6 +190,8 @@ final class FormFieldRegistry
                 ['key' => 'options', 'type' => 'json', 'label' => 'Options (JSON array of strings)', 'translatable' => true],
                 ['key' => 'placeholder', 'type' => 'text', 'label' => 'Placeholder'],
                 ['key' => 'help', 'type' => 'text', 'label' => 'Help text'],
+                ['key' => 'multiple', 'type' => 'boolean', 'label' => 'Allow multiple', 'translatable' => false],
+                ['key' => 'conditions', 'type' => 'json', 'label' => 'Visibility groups (JSON AND/OR)', 'translatable' => false],
             ],
         ];
     }

@@ -21,6 +21,8 @@ final class WidgetRegistry
             self::actions(),
             self::layout(),
             self::misc(),
+            self::theme(),
+            self::extras(),
         );
     }
 
@@ -177,12 +179,16 @@ final class WidgetRegistry
                     'alt' => '',
                     'caption' => '',
                     'link_url' => '',
+                    'open_in_new_tab' => false,
+                    'lightbox' => false,
                 ],
                 'settings_fields' => [
                     ['key' => 'image', 'type' => 'media', 'label' => 'Image', 'accept' => 'image/*', 'translatable' => true],
                     ['key' => 'alt', 'type' => 'text', 'label' => 'Alt text'],
                     ['key' => 'caption', 'type' => 'text', 'label' => 'Caption'],
                     ['key' => 'link_url', 'type' => 'url', 'label' => 'Link URL', 'translatable' => false],
+                    ['key' => 'open_in_new_tab', 'type' => 'boolean', 'label' => 'Open in new tab', 'translatable' => false],
+                    ['key' => 'lightbox', 'type' => 'boolean', 'label' => 'Open in lightbox', 'translatable' => false],
                 ],
             ],
             'gallery' => [
@@ -269,10 +275,16 @@ final class WidgetRegistry
                     'label' => 'Learn more',
                     'url' => '',
                     'style' => 'primary',
+                    'open_in_new_tab' => false,
+                    'rel' => '',
+                    'overlay_id' => null,
                 ],
                 'settings_fields' => [
                     ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
                     ['key' => 'url', 'type' => 'url', 'label' => 'URL', 'translatable' => false],
+                    ['key' => 'open_in_new_tab', 'type' => 'boolean', 'label' => 'Open in new tab', 'translatable' => false],
+                    ['key' => 'rel', 'type' => 'text', 'label' => 'Rel (noopener noreferrer)', 'translatable' => false],
+                    ['key' => 'overlay_id', 'type' => 'number', 'label' => 'Open overlay id (optional)', 'translatable' => false],
                     [
                         'key' => 'style',
                         'type' => 'select',
@@ -381,14 +393,16 @@ final class WidgetRegistry
                 'max_instances' => null,
                 'default_settings' => [
                     'home_label' => 'Home',
+                    'auto' => true,
                     'items' => [],
                 ],
                 'settings_fields' => [
                     ['key' => 'home_label', 'type' => 'text', 'label' => 'Home label'],
+                    ['key' => 'auto', 'type' => 'boolean', 'label' => 'Use route crumbs', 'translatable' => false],
                     [
                         'key' => 'items',
                         'type' => 'repeater',
-                        'label' => 'Crumbs',
+                        'label' => 'Override crumbs',
                         'translatable' => true,
                         'item_fields' => [
                             ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
@@ -438,8 +452,170 @@ final class WidgetRegistry
                         'item_fields' => [
                             ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
                             ['key' => 'url', 'type' => 'url', 'label' => 'URL'],
+                            ['key' => 'open_in_new_tab', 'type' => 'boolean', 'label' => 'Open in new tab', 'translatable' => false],
                         ],
                     ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, WidgetDef>
+     */
+    private static function theme(): array
+    {
+        $text = static fn (string $label, string $tag): array => [
+            'label' => $label,
+            'category' => 'Theme',
+            'max_instances' => null,
+            'default_settings' => ['fallback' => ''],
+            'settings_fields' => [
+                ['key' => 'fallback', 'type' => 'text', 'label' => 'Fallback text'],
+            ],
+        ];
+
+        return [
+            'post_title' => $text('Post title', 'post.title'),
+            'post_excerpt' => $text('Post excerpt', 'post.excerpt'),
+            'post_content' => [
+                'label' => 'Post content',
+                'category' => 'Theme',
+                'max_instances' => 1,
+                'default_settings' => [],
+                'settings_fields' => [],
+            ],
+            'post_featured_image' => [
+                'label' => 'Featured image',
+                'category' => 'Theme',
+                'max_instances' => 1,
+                'default_settings' => ['lightbox' => false],
+                'settings_fields' => [
+                    ['key' => 'lightbox', 'type' => 'boolean', 'label' => 'Open in lightbox', 'translatable' => false],
+                ],
+            ],
+            'post_info' => [
+                'label' => 'Post info',
+                'category' => 'Theme',
+                'max_instances' => 1,
+                'default_settings' => ['show_date' => true, 'show_terms' => true],
+                'settings_fields' => [
+                    ['key' => 'show_date', 'type' => 'boolean', 'label' => 'Show date', 'translatable' => false],
+                    ['key' => 'show_terms', 'type' => 'boolean', 'label' => 'Show terms', 'translatable' => false],
+                ],
+            ],
+            'archive_title' => $text('Archive title', 'archive.title'),
+            'loop_grid' => [
+                'label' => 'Loop grid',
+                'category' => 'Theme',
+                'max_instances' => null,
+                'default_settings' => [
+                    'source' => 'blog',
+                    'count' => 6,
+                    'order' => 'latest',
+                    'pagination' => 'numbers',
+                    'mode' => 'grid',
+                    'columns' => ['mobile' => 1, 'tablet' => 2, 'desktop' => 3],
+                ],
+                'settings_fields' => [
+                    [
+                        'key' => 'source',
+                        'type' => 'select',
+                        'label' => 'Source',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'blog', 'label' => 'Blog'],
+                            ['value' => 'projects', 'label' => 'Projects'],
+                            ['value' => 'services', 'label' => 'Services'],
+                        ],
+                    ],
+                    ['key' => 'count', 'type' => 'number', 'label' => 'Count', 'min' => 1, 'max' => 24, 'translatable' => false],
+                    [
+                        'key' => 'order',
+                        'type' => 'select',
+                        'label' => 'Order',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'latest', 'label' => 'Latest'],
+                            ['value' => 'oldest', 'label' => 'Oldest'],
+                            ['value' => 'title', 'label' => 'Title'],
+                        ],
+                    ],
+                    [
+                        'key' => 'pagination',
+                        'type' => 'select',
+                        'label' => 'Pagination',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'none', 'label' => 'None'],
+                            ['value' => 'numbers', 'label' => 'Numbers'],
+                            ['value' => 'load_more', 'label' => 'Load more'],
+                        ],
+                    ],
+                    [
+                        'key' => 'mode',
+                        'type' => 'select',
+                        'label' => 'Mode',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'grid', 'label' => 'Grid'],
+                            ['value' => 'carousel', 'label' => 'Carousel'],
+                        ],
+                    ],
+                    ['key' => 'columns', 'type' => 'responsive_columns', 'label' => 'Columns', 'translatable' => false],
+                    ['key' => 'category_ids', 'type' => 'category_multi', 'label' => 'Categories', 'translatable' => false],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, WidgetDef>
+     */
+    private static function extras(): array
+    {
+        return [
+            'lottie' => [
+                'label' => 'Lottie',
+                'category' => 'Media',
+                'max_instances' => null,
+                'default_settings' => [
+                    'media_id' => null,
+                    'loop' => true,
+                    'autoplay' => true,
+                    'speed' => 1,
+                    'play_in_view' => true,
+                ],
+                'settings_fields' => [
+                    ['key' => 'media_id', 'type' => 'media', 'label' => 'Lottie JSON', 'accept' => 'application/json', 'translatable' => false],
+                    ['key' => 'loop', 'type' => 'boolean', 'label' => 'Loop', 'translatable' => false],
+                    ['key' => 'autoplay', 'type' => 'boolean', 'label' => 'Autoplay', 'translatable' => false],
+                    ['key' => 'speed', 'type' => 'number', 'label' => 'Speed', 'min' => 1, 'max' => 3, 'translatable' => false],
+                    ['key' => 'play_in_view', 'type' => 'boolean', 'label' => 'Play when in view', 'translatable' => false],
+                ],
+            ],
+            'flip_box' => [
+                'label' => 'Flip box',
+                'category' => 'Media',
+                'max_instances' => null,
+                'default_settings' => [
+                    'front_heading' => 'Front',
+                    'front_text' => '',
+                    'front_icon' => 'star',
+                    'back_heading' => 'Back',
+                    'back_text' => '',
+                    'back_label' => 'Learn more',
+                    'back_url' => '',
+                ],
+                'settings_fields' => [
+                    ['key' => 'front_heading', 'type' => 'text', 'label' => 'Front heading'],
+                    ['key' => 'front_text', 'type' => 'textarea', 'label' => 'Front text'],
+                    ['key' => 'front_icon', 'type' => 'icon', 'label' => 'Front icon', 'translatable' => false],
+                    ['key' => 'front_image', 'type' => 'media', 'label' => 'Front image', 'accept' => 'image/*', 'translatable' => false],
+                    ['key' => 'back_heading', 'type' => 'text', 'label' => 'Back heading'],
+                    ['key' => 'back_text', 'type' => 'textarea', 'label' => 'Back text'],
+                    ['key' => 'back_label', 'type' => 'text', 'label' => 'Button label'],
+                    ['key' => 'back_url', 'type' => 'url', 'label' => 'Button URL', 'translatable' => false],
                 ],
             ],
         ];

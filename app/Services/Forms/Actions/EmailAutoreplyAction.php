@@ -5,6 +5,7 @@ namespace App\Services\Forms\Actions;
 use App\Mail\FormAutoreplyMail;
 use App\Models\Form;
 use App\Models\FormSubmission;
+use App\Services\Forms\FormMergeTags;
 use App\Services\Forms\FormSubmissionContext;
 use Illuminate\Support\Facades\Mail;
 
@@ -25,8 +26,8 @@ final class EmailAutoreplyAction implements FormActionHandler
             return [];
         }
 
-        $subject = (string) ($settings['subject'] ?? 'We received your message');
-        $body = (string) ($settings['body'] ?? 'Thank you for contacting us.');
+        $subject = FormMergeTags::apply((string) ($settings['subject'] ?? 'We received your message'), $form, $context->values);
+        $body = FormMergeTags::apply((string) ($settings['body'] ?? 'Thank you for contacting us.'), $form, $context->values);
 
         try {
             Mail::to($to)->queue(new FormAutoreplyMail($form, $subject, $body));

@@ -14,6 +14,7 @@ class ThemeTemplate extends Model
 
     protected $fillable = [
         'name',
+        'document_type',
         'status',
         'conditions',
         'header_layout_id',

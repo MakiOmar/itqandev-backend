@@ -3,9 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlogPost;
 use App\Models\ChromeLayout;
+use App\Models\Page;
+use App\Models\Project;
+use App\Models\Service;
 use App\Services\ActivityLogService;
+use App\Services\Appearance\ChromeLayoutSupport;
 use App\Services\Appearance\ChromeLayoutService;
+use App\Services\Appearance\DynamicTagResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -90,6 +96,106 @@ class ChromeLayoutController extends Controller
     public function destroyBody(int $id): Response|JsonResponse
     {
         return $this->destroy($id, ChromeLayout::KIND_BODY);
+    }
+
+    public function indexSingles(Request $request): JsonResponse
+    {
+        return $this->index($request, ChromeLayout::KIND_SINGLE);
+    }
+
+    public function storeSingle(Request $request): JsonResponse
+    {
+        return $this->store($request, ChromeLayout::KIND_SINGLE);
+    }
+
+    public function showSingle(int $id): JsonResponse
+    {
+        return $this->show($id, ChromeLayout::KIND_SINGLE);
+    }
+
+    public function updateSingle(Request $request, int $id): JsonResponse
+    {
+        return $this->update($request, $id, ChromeLayout::KIND_SINGLE);
+    }
+
+    public function destroySingle(int $id): Response|JsonResponse
+    {
+        return $this->destroy($id, ChromeLayout::KIND_SINGLE);
+    }
+
+    public function indexArchives(Request $request): JsonResponse
+    {
+        return $this->index($request, ChromeLayout::KIND_ARCHIVE);
+    }
+
+    public function storeArchive(Request $request): JsonResponse
+    {
+        return $this->store($request, ChromeLayout::KIND_ARCHIVE);
+    }
+
+    public function showArchive(int $id): JsonResponse
+    {
+        return $this->show($id, ChromeLayout::KIND_ARCHIVE);
+    }
+
+    public function updateArchive(Request $request, int $id): JsonResponse
+    {
+        return $this->update($request, $id, ChromeLayout::KIND_ARCHIVE);
+    }
+
+    public function destroyArchive(int $id): Response|JsonResponse
+    {
+        return $this->destroy($id, ChromeLayout::KIND_ARCHIVE);
+    }
+
+    public function indexLoopItems(Request $request): JsonResponse
+    {
+        return $this->index($request, ChromeLayout::KIND_LOOP_ITEM);
+    }
+
+    public function storeLoopItem(Request $request): JsonResponse
+    {
+        return $this->store($request, ChromeLayout::KIND_LOOP_ITEM);
+    }
+
+    public function showLoopItem(int $id): JsonResponse
+    {
+        return $this->show($id, ChromeLayout::KIND_LOOP_ITEM);
+    }
+
+    public function updateLoopItem(Request $request, int $id): JsonResponse
+    {
+        return $this->update($request, $id, ChromeLayout::KIND_LOOP_ITEM);
+    }
+
+    public function destroyLoopItem(int $id): Response|JsonResponse
+    {
+        return $this->destroy($id, ChromeLayout::KIND_LOOP_ITEM);
+    }
+
+    public function indexOverlays(Request $request): JsonResponse
+    {
+        return $this->index($request, ChromeLayout::KIND_OVERLAY);
+    }
+
+    public function storeOverlay(Request $request): JsonResponse
+    {
+        return $this->store($request, ChromeLayout::KIND_OVERLAY);
+    }
+
+    public function showOverlay(int $id): JsonResponse
+    {
+        return $this->show($id, ChromeLayout::KIND_OVERLAY);
+    }
+
+    public function updateOverlay(Request $request, int $id): JsonResponse
+    {
+        return $this->update($request, $id, ChromeLayout::KIND_OVERLAY);
+    }
+
+    public function destroyOverlay(int $id): Response|JsonResponse
+    {
+        return $this->destroy($id, ChromeLayout::KIND_OVERLAY);
     }
 
     public function setSiteDefaultHeader(Request $request, int $id): JsonResponse
@@ -204,6 +310,10 @@ class ChromeLayoutController extends Controller
             'slug' => ['sometimes', 'nullable', 'string', 'max:120', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'status' => ['sometimes', 'string', Rule::in([ChromeLayout::STATUS_DRAFT, ChromeLayout::STATUS_PUBLISHED])],
             'sections' => ['sometimes', 'array'],
+            'overlay' => ['sometimes', 'nullable', 'array'],
+            'overlay.delay_ms' => ['sometimes', 'integer', 'min:0', 'max:120000'],
+            'overlay.once' => ['sometimes', 'boolean'],
+            'overlay.sitewide' => ['sometimes', 'boolean'],
         ]);
 
         $layout = $this->layouts->update($layout, $validated);
@@ -259,6 +369,61 @@ class ChromeLayoutController extends Controller
         return $layout;
     }
 
+    public function previewAs(Request $request, string $kind, int $id): JsonResponse
+    {
+        $this->authorize('manageSettings');
+        $kind = $this->kindFromSlug($kind);
+        $layout = $this->findForKind($id, $kind);
+        $contentType = strtolower(trim((string) $request->query('content_type', 'blog_post')));
+        $recordId = (int) $request->query('record_id', 0);
+        $record = $this->previewRecord($contentType, $recordId);
+        $locale = strtolower(trim((string) ($request->header('X-Content-Locale') ?? '')));
+        $payload = DynamicTagResolver::payloadFromModel($record, $contentType, $locale !== '' ? $locale : null);
+        $presented = ChromeLayoutSupport::presentPublic(
+            is_array($layout->document) ? $layout->document : ['sections' => []],
+            $locale !== '' ? $locale : null,
+            $payload
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $presented,
+        ]);
+    }
+
+    private function kindFromSlug(string $kind): string
+    {
+        if (in_array($kind, ChromeLayout::KINDS, true)) {
+            return $kind;
+        }
+
+        return match ($kind) {
+            'headers' => ChromeLayout::KIND_HEADER,
+            'footers' => ChromeLayout::KIND_FOOTER,
+            'bodies' => ChromeLayout::KIND_BODY,
+            'singles' => ChromeLayout::KIND_SINGLE,
+            'archives' => ChromeLayout::KIND_ARCHIVE,
+            'loop-items' => ChromeLayout::KIND_LOOP_ITEM,
+            'overlays' => ChromeLayout::KIND_OVERLAY,
+            default => $kind,
+        };
+    }
+
+    private function previewRecord(string $contentType, int $id): ?\Illuminate\Database\Eloquent\Model
+    {
+        if ($id < 1) {
+            return null;
+        }
+
+        return match ($contentType) {
+            'blog_post' => BlogPost::query()->find($id),
+            'project' => Project::query()->find($id),
+            'service' => Service::query()->find($id),
+            'page' => Page::query()->find($id),
+            default => null,
+        };
+    }
+
     private function wantsDocument(Request $request): bool
     {
         $include = strtolower(trim((string) $request->query('include', '')));
@@ -281,11 +446,14 @@ class ChromeLayoutController extends Controller
             'created_at' => $layout->created_at?->toIso8601String(),
             'updated_at' => $layout->updated_at?->toIso8601String(),
         ];
+        $document = is_array($layout->document) ? $layout->document : [];
+        $data['overlay'] = ChromeLayoutSupport::normalizeOverlayMeta($document['overlay'] ?? null);
 
         if ($includeDocument) {
             $document = $this->layouts->adminDocumentPayload($layout);
             $data['document'] = $document;
             $data['sections'] = $document['sections'];
+            $data['overlay'] = $document['overlay'] ?? $data['overlay'];
         }
 
         return $data;

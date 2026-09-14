@@ -293,4 +293,32 @@ class ThemeTemplateApiTest extends TestCase
         );
         $this->assertSame('not_found', $shell['theme_context']);
     }
+
+    public function test_equal_specificity_templates_are_conflicts(): void
+    {
+        $header = $this->publishedHeader('H1');
+        ThemeTemplate::query()->create([
+            'name' => 'Home A',
+            'status' => 'published',
+            'conditions' => ThemeTemplateConditions::normalize([
+                'rules' => [['include' => true, 'group' => 'singular', 'key' => 'homepage']],
+            ]),
+            'header_layout_id' => $header->id,
+        ]);
+        ThemeTemplate::query()->create([
+            'name' => 'Home B',
+            'status' => 'published',
+            'conditions' => ThemeTemplateConditions::normalize([
+                'rules' => [['include' => true, 'group' => 'singular', 'key' => 'homepage']],
+            ]),
+            'header_layout_id' => $header->id,
+        ]);
+
+        $ctx = ThemeTemplateConditions::contextFromResolver('homepage', null, 'homepage');
+        $conflicts = app(\App\Services\Appearance\ThemeTemplateService::class)->findConflicts($ctx);
+        $this->assertCount(1, $conflicts);
+        $best = app(\App\Services\Appearance\ThemeTemplateService::class)->findBestMatch($ctx);
+        $this->assertNotNull($best);
+        $this->assertNotSame($best->id, $conflicts[0]->id);
+    }
 }

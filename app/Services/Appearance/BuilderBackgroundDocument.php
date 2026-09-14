@@ -114,15 +114,27 @@ final class BuilderBackgroundDocument
         }
 
         $out = $raw;
-        if (! array_key_exists('background', $out)) {
-            return $out;
+        if (array_key_exists('background', $out)) {
+            $bg = self::normalize($out['background']);
+            if ($bg === null) {
+                unset($out['background']);
+            } else {
+                $out['background'] = $bg;
+            }
         }
-
-        $bg = self::normalize($out['background']);
-        if ($bg === null) {
-            unset($out['background']);
-        } else {
-            $out['background'] = $bg;
+        if (array_key_exists('sticky', $out)) {
+            $out['sticky'] = filter_var($out['sticky'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (array_key_exists('sticky_offset', $out)) {
+            $out['sticky_offset'] = max(0, min(240, (int) $out['sticky_offset']));
+        }
+        if (array_key_exists('shape_dividers', $out)) {
+            $dividers = ShapeDividerDocument::normalize($out['shape_dividers']);
+            if ($dividers === null) {
+                unset($out['shape_dividers']);
+            } else {
+                $out['shape_dividers'] = $dividers;
+            }
         }
 
         return $out;

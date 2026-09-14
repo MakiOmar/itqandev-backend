@@ -26,6 +26,7 @@ final class FeatureModules
             'media',
             'users',
             'seo',
+            'overlays',
         ];
     }
 

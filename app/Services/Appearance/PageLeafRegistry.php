@@ -11,6 +11,10 @@ final class PageLeafRegistry
 
     public const KIND_KIT = 'kit';
 
+    public const KIND_GLOBAL = 'global';
+
+    public const KIND_INNER = 'inner';
+
     /**
      * Infer kind for legacy leaves that omit `kind`.
      */

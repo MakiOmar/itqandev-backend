@@ -44,6 +44,7 @@ class ThemeTemplateController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
+            'document_type' => ['sometimes', 'string', 'in:chrome,single,archive,loop_item,overlay'],
             'status' => ['sometimes', 'string', Rule::in([ThemeTemplate::STATUS_DRAFT, ThemeTemplate::STATUS_PUBLISHED])],
             'conditions' => ['sometimes'],
             'header_layout_id' => ['nullable', 'integer'],
@@ -82,6 +83,7 @@ class ThemeTemplateController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:120'],
+            'document_type' => ['sometimes', 'string', 'in:chrome,single,archive,loop_item,overlay'],
             'status' => ['sometimes', 'string', Rule::in([ThemeTemplate::STATUS_DRAFT, ThemeTemplate::STATUS_PUBLISHED])],
             'conditions' => ['sometimes'],
             'header_layout_id' => ['nullable', 'integer'],
@@ -115,6 +117,32 @@ class ThemeTemplateController extends Controller
         return response()->noContent();
     }
 
+    public function match(Request $request): JsonResponse
+    {
+        $this->authorize('manageSettings');
+        $ctx = [
+            'context' => strtolower(trim((string) $request->query('context', 'homepage'))),
+            'content_type' => strtolower(trim((string) $request->query('content_type', 'homepage'))),
+            'record_id' => $request->query('record_id') !== null ? (int) $request->query('record_id') : null,
+            'query' => [],
+            'device' => $request->query('device'),
+            'role' => $request->query('role'),
+            'authenticated' => filter_var($request->query('authenticated', false), FILTER_VALIDATE_BOOLEAN),
+        ];
+        $rows = $this->templates->findMatching($ctx);
+        $best = $rows[0]['template'] ?? null;
+        $conflicts = $this->templates->findConflicts($ctx);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'best' => $best ? $this->serialize($best) : null,
+                'conflicts' => array_map(fn (ThemeTemplate $t) => $this->serialize($t), $conflicts),
+                'matches' => array_map(fn (array $row) => $this->serialize($row['template']) + ['score' => $row['score']], $rows),
+            ],
+        ]);
+    }
+
     private function find(int $id): ThemeTemplate
     {
         $template = ThemeTemplate::query()->find($id);
@@ -135,6 +163,7 @@ class ThemeTemplateController extends Controller
         return [
             'id' => $template->id,
             'name' => $template->name,
+            'document_type' => $template->document_type ?? 'chrome',
             'status' => $template->status,
             'conditions' => $conditions,
             'header_layout_id' => $template->header_layout_id,

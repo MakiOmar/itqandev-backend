@@ -42,6 +42,8 @@ class MenuItem extends Model
         'parent_id',
         'sort_order',
         'label',
+        'description',
+        'image_id',
         'item_type',
         'url',
         'static_route_key',

@@ -123,11 +123,21 @@ final class TypographyResolver
             return $url;
         }
 
-        if (filter_var($url, FILTER_VALIDATE_URL)) {
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
+            $url = url($url);
+        }
+
+        // Bust browser caches of earlier 200s that lacked CORS headers.
+        return self::withFontCacheBust($url);
+    }
+
+    private static function withFontCacheBust(string $url): string
+    {
+        if (! str_contains($url, '/storage/fonts/') || str_contains($url, 'cors=')) {
             return $url;
         }
 
-        return url($url);
+        return $url.(str_contains($url, '?') ? '&' : '?').'cors=1';
     }
 
     private static function stackWithFamily(string $cssFamily, string $baseStack): string

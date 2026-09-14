@@ -53,6 +53,22 @@ final class FormLayoutDocument
                 $settings = is_array($field['settings'] ?? null)
                     ? $field['settings']
                     : FormFieldRegistry::defaultSettings($type);
+                if ($type === 'html' && isset($settings['html'])) {
+                    $settings['html'] = app(\App\Services\HtmlSanitizerService::class)->sanitize((string) $settings['html']);
+                }
+                $conditions = FormConditionDocument::normalize($settings['conditions'] ?? null);
+                if ($conditions !== null) {
+                    $settings['conditions'] = $conditions;
+                } elseif (! empty($settings['visible_when_field'])) {
+                    $settings['conditions'] = FormConditionDocument::normalize([
+                        'relation' => 'and',
+                        'rules' => [[
+                            'field' => $settings['visible_when_field'],
+                            'op' => 'equals',
+                            'value' => (string) ($settings['visible_when_value'] ?? ''),
+                        ]],
+                    ]);
+                }
                 $fieldRow = [
                     'id' => self::id($field['id'] ?? null),
                     'type' => $type,
@@ -181,12 +197,15 @@ final class FormLayoutDocument
             'submit_label' => (string) ($in['submit_label'] ?? 'Submit'),
             'success_message' => (string) ($in['success_message'] ?? 'Thank you. We received your submission.'),
             'error_message' => (string) ($in['error_message'] ?? 'Something went wrong. Please try again.'),
-            'success_mode' => in_array($mode, ['message', 'redirect'], true) ? $mode : 'message',
+            'success_mode' => in_array($mode, ['message', 'redirect', 'overlay'], true) ? $mode : 'message',
+            'overlay_id' => isset($in['overlay_id']) ? (int) $in['overlay_id'] : null,
             'honeypot' => array_key_exists('honeypot', $in) ? (bool) $in['honeypot'] : true,
             'captcha' => in_array($captcha, ['none', 'turnstile', 'recaptcha_v2', 'recaptcha_v3'], true)
                 ? $captcha
                 : 'none',
             'store_ip' => array_key_exists('store_ip', $in) ? (bool) $in['store_ip'] : true,
+            'do_not_store' => array_key_exists('do_not_store', $in) ? (bool) $in['do_not_store'] : false,
+            'retention_days' => max(0, min(3650, (int) ($in['retention_days'] ?? 0))),
             'translations' => is_array($in['translations'] ?? null) ? $in['translations'] : [],
         ];
     }

@@ -69,7 +69,8 @@ final class PublicMarketingShellService
      *   footer: array{sections: list<array<string, mixed>>},
      *   theme_body: array{sections: list<array<string, mixed>>}|null,
      *   theme_context: string|null,
-     *   theme_template_id: int|null
+     *   theme_template_id: int|null,
+     *   overlays: list<array{id: int, delay_ms: int, once: bool, sitewide: bool}>
      * }
      */
     public function build(
@@ -121,6 +122,7 @@ final class PublicMarketingShellService
                 'theme_body' => $themeBody,
                 'theme_context' => $chrome['context'] ?? null,
                 'theme_template_id' => $chrome['theme_template_id'] ?? null,
+                'overlays' => \App\Services\Appearance\ChromeLayoutSupport::delayedPublicOverlays(),
             ];
         });
 

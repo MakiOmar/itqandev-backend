@@ -48,6 +48,9 @@ final class BuilderStyleDocument
         'caption_transform', 'caption_font_style', 'caption_decoration',
         'caption_line_height', 'caption_letter_spacing', 'caption_spacing',
         'custom_css',
+        'font_family', 'font_size', 'font_weight', 'line_height', 'letter_spacing',
+        'text_color', 'text_transform', 'font_style', 'text_decoration',
+        'type_role',
     ];
 
     /**
@@ -128,7 +131,14 @@ final class BuilderStyleDocument
             'opacity', 'hover_opacity' => self::ratio($value),
             'z_index' => self::intInRange($value, -9999, 9999),
             'hover_transition' => self::intInRange($value, 0, 5000),
-            'border_color', 'caption_color' => self::color($value),
+            'border_color', 'caption_color', 'text_color' => self::color($value),
+            'font_family' => self::fontFamily($value),
+            'font_size', 'line_height', 'letter_spacing' => self::length($value),
+            'font_weight' => self::enum((string) $value, self::FONT_WEIGHT),
+            'text_transform' => self::enum($value, self::TEXT_TRANSFORM),
+            'font_style' => self::enum($value, self::FONT_STYLE),
+            'text_decoration' => self::enum($value, self::TEXT_DECORATION),
+            'type_role' => self::enum($value, ['heading', 'body', 'accent']),
             'filters', 'hover_filters' => self::filters($value),
             'box_shadow', 'hover_box_shadow' => self::shadow($value),
             'custom_css' => self::customCss($value),
@@ -291,6 +301,19 @@ final class BuilderStyleDocument
             'spread' => self::finiteFloat($value['spread'] ?? 0) ?? 0.0,
             'inset' => filter_var($value['inset'] ?? false, FILTER_VALIDATE_BOOLEAN),
         ];
+    }
+
+    private static function fontFamily(mixed $value): ?string
+    {
+        $s = trim((string) $value);
+        if ($s === '' || mb_strlen($s) > 80) {
+            return null;
+        }
+        if (preg_match('/^[a-zA-Z0-9][a-zA-Z0-9 _-]*$/', $s) !== 1) {
+            return null;
+        }
+
+        return $s;
     }
 
     private static function customCss(mixed $value): ?string

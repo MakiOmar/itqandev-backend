@@ -33,6 +33,7 @@ class AppearanceController extends Controller
                 'homepage_sections' => HomepageSectionRegistry::forAdmin(),
                 'form_fields' => \App\Services\Forms\FormFieldRegistry::forAdmin(),
                 'form_actions' => \App\Services\Forms\FormActionRegistry::forAdmin(),
+                'dynamic_tags' => \App\Services\Appearance\DynamicTagRegistry::all(),
             ],
         ]);
     }

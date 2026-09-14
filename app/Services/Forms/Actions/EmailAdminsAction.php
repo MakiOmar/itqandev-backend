@@ -7,6 +7,7 @@ use App\Models\FormSubmission;
 use App\Models\User;
 use App\Mail\FormSubmissionAdminMail;
 use App\Notifications\FormSubmissionReceived;
+use App\Services\Forms\FormMergeTags;
 use App\Services\Forms\FormSubmissionContext;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -21,7 +22,7 @@ final class EmailAdminsAction implements FormActionHandler
     public function handle(Form $form, FormSubmissionContext $context, array $settings, ?FormSubmission $submission): array
     {
         $subjectTpl = (string) ($settings['subject'] ?? 'New form submission: {{form_title}}');
-        $subject = str_replace('{{form_title}}', $form->title, $subjectTpl);
+        $subject = FormMergeTags::apply($subjectTpl, $form, $context->values);
         $recipientsRaw = trim((string) ($settings['recipients'] ?? ''));
         $emails = array_values(array_filter(array_map('trim', $recipientsRaw === '' ? [] : explode(',', $recipientsRaw))));
 

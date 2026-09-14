@@ -59,6 +59,7 @@ final class ThemeTemplateService
 
         $template = ThemeTemplate::query()->create([
             'name' => $name,
+            'document_type' => self::normalizeDocumentType($input['document_type'] ?? 'chrome'),
             'status' => $status,
             'conditions' => $conditions,
             'header_layout_id' => $headerId,
@@ -82,6 +83,10 @@ final class ThemeTemplateService
                 throw ValidationException::withMessages(['name' => 'Name is required.']);
             }
             $template->name = $name;
+        }
+
+        if (array_key_exists('document_type', $input)) {
+            $template->document_type = self::normalizeDocumentType($input['document_type']);
         }
 
         if (array_key_exists('status', $input)) {
@@ -135,7 +140,7 @@ final class ThemeTemplateService
     }
 
     /**
-     * Pick the best matching published theme template for a matcher context.
+     * Published templates that match, highest specificity first (then higher id).
      *
      * @param  array{
      *   context: string,
@@ -146,40 +151,89 @@ final class ThemeTemplateService
      *   role: string|null,
      *   authenticated: bool
      * }  $ctx
+     * @return list<array{template: ThemeTemplate, score: int}>
      */
-    public function findBestMatch(array $ctx): ?ThemeTemplate
+    public function findMatching(array $ctx): array
     {
         if (! Schema::hasTable('theme_templates')) {
-            return null;
+            return [];
         }
 
-        $best = null;
-        $bestScore = -1;
-
-        $templates = ThemeTemplate::query()->published()->orderBy('id')->get();
-        foreach ($templates as $template) {
+        $rows = [];
+        foreach (ThemeTemplate::query()->published()->orderBy('id')->get() as $template) {
             if (! ThemeTemplateConditions::matches($template, $ctx)) {
                 continue;
             }
-            $score = ThemeTemplateConditions::specificity($template, $ctx);
-            if ($score > $bestScore || ($score === $bestScore && $best !== null && (int) $template->id > (int) $best->id)) {
-                $best = $template;
-                $bestScore = $score;
-            } elseif ($best === null) {
-                $best = $template;
-                $bestScore = $score;
-            }
+            $rows[] = [
+                'template' => $template,
+                'score' => ThemeTemplateConditions::specificity($template, $ctx),
+            ];
         }
+        usort($rows, function (array $a, array $b): int {
+            $score = $b['score'] <=> $a['score'];
+            if ($score !== 0) {
+                return $score;
+            }
 
-        return $best;
+            return (int) $b['template']->id <=> (int) $a['template']->id;
+        });
+
+        return $rows;
+    }
+
+    public function findBestMatch(array $ctx): ?ThemeTemplate
+    {
+        $rows = $this->findMatching($ctx);
+
+        return $rows[0]['template'] ?? null;
     }
 
     /**
-     * Whether body slot applies for this route context (homepage / 404 only in v1).
+     * Other published templates with the same specificity as the winner.
+     *
+     * @return list<ThemeTemplate>
+     */
+    public function findConflicts(array $ctx): array
+    {
+        $rows = $this->findMatching($ctx);
+        if (count($rows) < 2) {
+            return [];
+        }
+        $best = $rows[0]['score'];
+        $conflicts = [];
+        foreach (array_slice($rows, 1) as $row) {
+            if ($row['score'] === $best) {
+                $conflicts[] = $row['template'];
+            }
+        }
+
+        return $conflicts;
+    }
+
+    /**
+     * Whether body slot applies for this route context.
      */
     public static function bodyAppliesForContext(string $context): bool
     {
-        return in_array($context, ['homepage', 'not_found'], true);
+        return in_array($context, [
+            'homepage',
+            'not_found',
+            'page',
+            'blog_post',
+            'project',
+            'service',
+            'blog_index',
+            'portfolio_index',
+            'services_index',
+        ], true);
+    }
+
+    private function normalizeDocumentType(mixed $type): string
+    {
+        $type = strtolower(trim((string) $type));
+        $allowed = ['chrome', 'single', 'archive', 'loop_item', 'overlay'];
+
+        return in_array($type, $allowed, true) ? $type : 'chrome';
     }
 
     private function normalizeStatus(mixed $status): string

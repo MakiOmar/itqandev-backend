@@ -55,6 +55,10 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     Route::get('site-meta', [\App\Http\Controllers\Api\SettingsController::class, 'publicMeta']);
     /** Layout shell: site-meta + primary menu + services (one round-trip for SSR). */
     Route::get('shell', [\App\Http\Controllers\Api\PublicShellController::class, 'show']);
+    Route::middleware('feature.module:overlays')->group(function () {
+        Route::get('overlays/{id}', [\App\Http\Controllers\Api\PublicOverlayController::class, 'show'])
+            ->whereNumber('id');
+    });
     /** Resolved nav tree for marketing header (locale query matches UI locale). */
     Route::get('menus/{slug}', [\App\Http\Controllers\Api\PublicMenuController::class, 'show'])
         ->where('slug', '[a-z0-9_-]+');
@@ -120,12 +124,57 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('theme-templates', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'index']);
         Route::post('theme-templates', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'store']);
+        Route::get('theme-templates/match', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'match']);
         Route::get('theme-templates/{id}', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'show']);
         Route::put('theme-templates/{id}', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'update']);
         Route::delete('theme-templates/{id}', [\App\Http\Controllers\Api\ThemeTemplateController::class, 'destroy']);
 
         Route::get('chrome-type-defaults', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showTypeDefaults']);
         Route::put('chrome-type-defaults', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateTypeDefaults']);
+
+        Route::get('singles', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'indexSingles']);
+        Route::post('singles', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'storeSingle']);
+        Route::get('singles/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showSingle']);
+        Route::put('singles/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateSingle']);
+        Route::delete('singles/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'destroySingle']);
+
+        Route::get('archives', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'indexArchives']);
+        Route::post('archives', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'storeArchive']);
+        Route::get('archives/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showArchive']);
+        Route::put('archives/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateArchive']);
+        Route::delete('archives/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'destroyArchive']);
+
+        Route::get('loop-items', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'indexLoopItems']);
+        Route::post('loop-items', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'storeLoopItem']);
+        Route::get('loop-items/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showLoopItem']);
+        Route::put('loop-items/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateLoopItem']);
+        Route::delete('loop-items/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'destroyLoopItem']);
+
+        Route::middleware('feature.module:overlays')->group(function () {
+            Route::get('overlays', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'indexOverlays']);
+            Route::post('overlays', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'storeOverlay']);
+            Route::get('overlays/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showOverlay']);
+            Route::put('overlays/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'updateOverlay']);
+            Route::delete('overlays/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'destroyOverlay']);
+        });
+
+        Route::get('globals', [\App\Http\Controllers\Api\BuilderGlobalController::class, 'index']);
+        Route::post('globals', [\App\Http\Controllers\Api\BuilderGlobalController::class, 'store']);
+        Route::get('globals/{id}', [\App\Http\Controllers\Api\BuilderGlobalController::class, 'show']);
+        Route::put('globals/{id}', [\App\Http\Controllers\Api\BuilderGlobalController::class, 'update']);
+        Route::delete('globals/{id}', [\App\Http\Controllers\Api\BuilderGlobalController::class, 'destroy']);
+
+        Route::get('design-kit', [\App\Http\Controllers\Api\DesignKitController::class, 'show']);
+        Route::put('design-kit', [\App\Http\Controllers\Api\DesignKitController::class, 'update']);
+
+        Route::get('{kind}/{id}/preview-as', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'previewAs'])
+            ->where('kind', 'headers|footers|bodies|singles|archives|loop-items|overlays');
+        Route::get('{kind}/{id}/revisions', [\App\Http\Controllers\Api\BuilderRevisionController::class, 'indexChrome'])
+            ->where('kind', 'headers|footers|bodies|singles|archives|loop-items|overlays');
+        Route::post('{kind}/{id}/revisions/{revisionId}/restore', [\App\Http\Controllers\Api\BuilderRevisionController::class, 'restoreChrome'])
+            ->where('kind', 'headers|footers|bodies|singles|archives|loop-items|overlays');
+        Route::get('globals/{id}/revisions', [\App\Http\Controllers\Api\BuilderRevisionController::class, 'indexGlobal']);
+        Route::post('globals/{id}/revisions/{revisionId}/restore', [\App\Http\Controllers\Api\BuilderRevisionController::class, 'restoreGlobal']);
     });
 
     Route::prefix('v1')->name('v1.')->middleware('throttle:api')->group(function () {
@@ -187,6 +236,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('forms/{form}/submissions/{submission}', [\App\Http\Controllers\Api\FormSubmissionController::class, 'show']);
             Route::patch('forms/{form}/submissions/{submission}', [\App\Http\Controllers\Api\FormSubmissionController::class, 'update']);
             Route::delete('forms/{form}/submissions/{submission}', [\App\Http\Controllers\Api\FormSubmissionController::class, 'destroy']);
+            Route::get('forms/{form}/revisions', [\App\Http\Controllers\Api\BuilderRevisionController::class, 'indexForm']);
+            Route::post('forms/{form}/revisions/{revisionId}/restore', [\App\Http\Controllers\Api\BuilderRevisionController::class, 'restoreForm']);
             Route::apiResource('forms', \App\Http\Controllers\Api\FormController::class);
         });
 

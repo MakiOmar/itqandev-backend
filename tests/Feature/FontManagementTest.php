@@ -233,8 +233,8 @@ class FontManagementTest extends TestCase
             ->assertJsonPath('data.typography.ltr.css_family', 'Custom LTR')
             ->assertJsonPath('data.typography.ltr.fallback_stack', "'Custom LTR', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif")
             ->assertJsonPath('data.typography.rtl.css_family', 'Custom RTL')
-            ->assertJsonPath('data.typography.ltr.sources.woff2', url('/storage/fonts/custom-ltr.woff2'))
-            ->assertJsonPath('data.typography.rtl.sources.woff2', url('/storage/fonts/custom-rtl.woff2'));
+            ->assertJsonPath('data.typography.ltr.sources.woff2', url('/storage/fonts/custom-ltr.woff2').'?cors=1')
+            ->assertJsonPath('data.typography.rtl.sources.woff2', url('/storage/fonts/custom-rtl.woff2').'?cors=1');
     }
 
     public function test_custom_typography_font_sources_are_absolute_against_app_url(): void
@@ -260,10 +260,10 @@ class FontManagementTest extends TestCase
             ])
             ->assertOk();
 
-        $expectedWoff2 = url('/storage/fonts/monadi.woff2');
-        $expectedWoff = url('/storage/fonts/monadi.woff');
+        $expectedWoff2 = url('/storage/fonts/monadi.woff2').'?cors=1';
+        $expectedWoff = url('/storage/fonts/monadi.woff').'?cors=1';
 
-        $this->assertSame('https://base.itqandev.com/storage/fonts/monadi.woff2', $expectedWoff2);
+        $this->assertSame('https://base.itqandev.com/storage/fonts/monadi.woff2?cors=1', $expectedWoff2);
 
         $this->getJson('/api/public/site-meta')
             ->assertOk()

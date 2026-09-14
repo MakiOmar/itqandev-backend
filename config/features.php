@@ -28,6 +28,7 @@ return [
         'media' => true,
         'users' => true,
         'seo' => true,
+        'overlays' => true,
     ],
 
 ];

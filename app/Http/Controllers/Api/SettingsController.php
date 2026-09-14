@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Font;
 use App\Models\Page;
 use App\Services\ActivityLogService;
+use App\Support\DesignKitResolver;
 use App\Support\FeatureModules;
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
@@ -313,6 +314,11 @@ class SettingsController extends Controller
             $settings['settings_translations'] = [];
         }
 
+        $settings[DesignKitResolver::SETTINGS_KEY] = DesignKitResolver::normalize(
+            $input[DesignKitResolver::SETTINGS_KEY] ?? $settings[DesignKitResolver::SETTINGS_KEY] ?? null,
+            $settings
+        );
+
         return $this->withResolvedFeatures($settings);
     }
 
@@ -447,6 +453,10 @@ class SettingsController extends Controller
             'default_locale' => $settings['default_locale'] ?? 'en',
             'features' => FeatureModules::all(),
             'typography' => TypographyResolver::resolveFromSettings($settings),
+            'design_kit' => DesignKitResolver::normalize($settings[DesignKitResolver::SETTINGS_KEY] ?? null, $settings),
+            'design_kit_css' => DesignKitResolver::cssVariables(
+                DesignKitResolver::normalize($settings[DesignKitResolver::SETTINGS_KEY] ?? null, $settings)
+            ),
             'search_engine_indexing' => filter_var(
                 $settings['search_engine_indexing'] ?? true,
                 FILTER_VALIDATE_BOOL

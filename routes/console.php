@@ -38,3 +38,8 @@ if ($backupEvent !== null) {
         ->withoutOverlapping()
         ->appendOutputTo(storage_path('logs/database-backup-schedule.log'));
 }
+
+Schedule::command('forms:purge-submissions')
+    ->dailyAt('03:20')
+    ->name('forms-purge-submissions')
+    ->withoutOverlapping();

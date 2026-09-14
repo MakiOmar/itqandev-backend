@@ -24,25 +24,34 @@ final class ChromeLayoutSupport
     {
         $sections = PageLayoutDocument::normalizeSectionsForPages($input['sections'] ?? $input);
 
-        return ['sections' => $sections];
+        return [
+            'document_version' => PageLayoutDocument::DOCUMENT_VERSION,
+            'sections' => $sections,
+            'overlay' => self::normalizeOverlayMeta($input['overlay'] ?? null),
+        ];
     }
 
     /**
      * Present layout for public shell and resolve menu kit items.
      *
+     * @param  array<string, mixed>|null  $tagContext
      * @return array{sections: list<array<string, mixed>>}
      */
-    public static function presentPublic(array $document, ?string $locale = null): array
+    public static function presentPublic(array $document, ?string $locale = null, ?array $tagContext = null): array
     {
         $locale = $locale !== null && $locale !== ''
             ? strtolower(trim($locale))
             : SiteLanguages::defaultCode();
 
         $sections = is_array($document['sections'] ?? null) ? $document['sections'] : [];
-        $presented = PageLayoutDocument::presentPublicForPages($sections, $locale);
+        $presented = PageLayoutDocument::presentPublicForPages($sections, $locale, $tagContext);
+        $compiled = BuilderCssCompiler::compile($presented);
 
         return [
             'sections' => self::injectMenuItems($presented, $locale),
+            'overlay' => self::normalizeOverlayMeta($document['overlay'] ?? null),
+            'css' => $compiled['css'],
+            'css_hash' => $compiled['hash'],
         ];
     }
 
@@ -72,6 +81,14 @@ final class ChromeLayoutSupport
                             continue;
                         }
                         $type = (string) ($block['type'] ?? '');
+                        if ($type === PageLayoutDocument::TYPE_INNER_BAND && isset($block['rows']) && is_array($block['rows'])) {
+                            $inner = self::injectMenuItems([[
+                                'type' => PageLayoutDocument::TYPE_LAYOUT,
+                                'rows' => $block['rows'],
+                            ]], $locale);
+                            $block['rows'] = $inner[0]['rows'] ?? $block['rows'];
+                            continue;
+                        }
                         if (! in_array($type, self::MENU_KIT_TYPES, true)) {
                             continue;
                         }
@@ -103,6 +120,63 @@ final class ChromeLayoutSupport
         unset($band);
 
         return $sections;
+    }
+
+    /**
+     * Overlay document extras: delayed open (once) for CTA modals.
+     *
+     * @return array{delay_ms: int, once: bool, sitewide: bool}|null
+     */
+    public static function normalizeOverlayMeta(mixed $raw): ?array
+    {
+        if (! is_array($raw)) {
+            return null;
+        }
+        $delay = max(0, min(120000, (int) ($raw['delay_ms'] ?? 0)));
+        $once = filter_var($raw['once'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        $sitewide = filter_var($raw['sitewide'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if ($delay <= 0 && ! $sitewide) {
+            return null;
+        }
+
+        return [
+            'delay_ms' => $delay,
+            'once' => $once,
+            'sitewide' => $sitewide,
+        ];
+    }
+
+    /**
+     * Published overlays that auto-open (delay and/or sitewide).
+     *
+     * @return list<array{id: int, delay_ms: int, once: bool, sitewide: bool}>
+     */
+    public static function delayedPublicOverlays(): array
+    {
+        if (! Schema::hasTable('chrome_layouts') || ! \App\Support\FeatureModules::enabled('overlays')) {
+            return [];
+        }
+
+        $out = [];
+        $layouts = \App\Models\ChromeLayout::query()
+            ->kind(\App\Models\ChromeLayout::KIND_OVERLAY)
+            ->published()
+            ->get(['id', 'document']);
+        foreach ($layouts as $layout) {
+            $doc = is_array($layout->document) ? $layout->document : [];
+            $meta = self::normalizeOverlayMeta($doc['overlay'] ?? null);
+            if ($meta === null) {
+                continue;
+            }
+            $out[] = [
+                'id' => (int) $layout->id,
+                'delay_ms' => $meta['delay_ms'],
+                'once' => $meta['once'],
+                'sitewide' => $meta['sitewide'],
+            ];
+        }
+
+        return $out;
     }
 
     /**

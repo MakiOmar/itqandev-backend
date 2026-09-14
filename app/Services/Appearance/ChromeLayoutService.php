@@ -33,8 +33,15 @@ final class ChromeLayoutService
         if ($kind === ChromeLayout::KIND_FOOTER) {
             return app(FooterBuilderService::class)->defaultDocument();
         }
-        if ($kind === ChromeLayout::KIND_BODY) {
+        if (in_array($kind, [
+            ChromeLayout::KIND_BODY,
+            ChromeLayout::KIND_SINGLE,
+            ChromeLayout::KIND_ARCHIVE,
+            ChromeLayout::KIND_LOOP_ITEM,
+            ChromeLayout::KIND_OVERLAY,
+        ], true)) {
             return [
+                'document_version' => PageLayoutDocument::DOCUMENT_VERSION,
                 'sections' => PageLayoutDocument::normalizeSectionsForPages([
                     [
                         'id' => 'band_body_main',
@@ -105,6 +112,8 @@ final class ChromeLayoutService
             'is_site_default' => false,
         ]);
 
+        BuilderRevisionService::snapshot($layout, $document);
+
         MarketingSettingsCache::forgetAll();
         $this->forgetLayoutCache((int) $layout->id);
 
@@ -141,15 +150,25 @@ final class ChromeLayoutService
             $layout->status = $nextStatus;
         }
 
-        if (array_key_exists('sections', $input) || array_key_exists('document', $input)) {
+        if (array_key_exists('sections', $input) || array_key_exists('document', $input) || array_key_exists('overlay', $input)) {
+            $existing = is_array($layout->document) ? $layout->document : [];
             $raw = array_key_exists('sections', $input)
                 ? ['sections' => $input['sections']]
-                : (array) $input['document'];
+                : (array_key_exists('document', $input) ? (array) $input['document'] : $existing);
+            if (! array_key_exists('overlay', $raw)) {
+                $raw['overlay'] = $existing['overlay'] ?? null;
+            }
+            if (array_key_exists('overlay', $input)) {
+                $raw['overlay'] = $input['overlay'];
+            }
             $document = $this->normalizeDocument($raw);
             if (($document['sections'] ?? []) === []) {
-                $document = $this->defaultDocument($layout->kind);
+                $fallback = $this->defaultDocument($layout->kind);
+                $fallback['overlay'] = $document['overlay'] ?? ChromeLayoutSupport::normalizeOverlayMeta($raw['overlay'] ?? null);
+                $document = $fallback;
             }
             $layout->document = $document;
+            BuilderRevisionService::snapshot($layout, $document);
         }
 
         $layout->save();
@@ -217,7 +236,15 @@ final class ChromeLayoutService
             throw ValidationException::withMessages([$field => 'Invalid layout id.']);
         }
         $layout = ChromeLayout::query()->find((int) $id);
-        if ($layout === null || $layout->kind !== $kind || ! $layout->isPublished()) {
+        if ($layout === null || ! $layout->isPublished()) {
+            throw ValidationException::withMessages([
+                $field => 'Must reference a published '.$kind.' layout.',
+            ]);
+        }
+        $allowed = $kind === ChromeLayout::KIND_BODY
+            ? [ChromeLayout::KIND_BODY, ChromeLayout::KIND_SINGLE, ChromeLayout::KIND_ARCHIVE, ChromeLayout::KIND_LOOP_ITEM]
+            : [$kind];
+        if (! in_array($layout->kind, $allowed, true)) {
             throw ValidationException::withMessages([
                 $field => 'Must reference a published '.$kind.' layout.',
             ]);
@@ -258,25 +285,27 @@ final class ChromeLayoutService
     }
 
     /**
+     * @param  array<string, mixed>|null  $tagContext
      * @return array{sections: list<array<string, mixed>>}
      */
-    public function presentById(int $id, ?string $locale = null): array
+    public function presentById(int $id, ?string $locale = null, ?array $tagContext = null): array
     {
         $locale = $locale !== null && $locale !== ''
             ? strtolower(trim($locale))
             : SiteLanguages::defaultCode();
 
-        $cacheKey = $this->layoutCacheKey($id, $locale);
+        $tagKey = $tagContext ? substr(sha1((string) json_encode($tagContext)), 0, 12) : 'none';
+        $cacheKey = $this->layoutCacheKey($id, $locale).':t:'.$tagKey;
 
         /** @var array{sections: list<array<string, mixed>>} $presented */
-        $presented = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($id, $locale) {
+        $presented = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($id, $locale, $tagContext) {
             $layout = ChromeLayout::query()->find($id);
             if ($layout === null || ! $layout->isPublished()) {
                 return ['sections' => []];
             }
             $document = is_array($layout->document) ? $layout->document : ['sections' => []];
 
-            return ChromeLayoutSupport::presentPublic($document, $locale);
+            return ChromeLayoutSupport::presentPublic($document, $locale, $tagContext);
         });
 
         return $presented;

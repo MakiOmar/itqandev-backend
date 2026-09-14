@@ -33,10 +33,14 @@ final class KitRegistry
                 'default_settings' => [
                     'show_name' => true,
                     'show_logo' => true,
+                    'transparent' => false,
+                    'overlay' => false,
                 ],
                 'settings_fields' => [
                     ['key' => 'show_logo', 'type' => 'boolean', 'label' => 'Show logo', 'translatable' => false],
                     ['key' => 'show_name', 'type' => 'boolean', 'label' => 'Show site name', 'translatable' => false],
+                    ['key' => 'transparent', 'type' => 'boolean', 'label' => 'Transparent header', 'translatable' => false],
+                    ['key' => 'overlay', 'type' => 'boolean', 'label' => 'Overlay hero', 'translatable' => false],
                 ],
             ],
             'header_menu' => [
@@ -46,10 +50,23 @@ final class KitRegistry
                 'default_settings' => [
                     'menu_slug' => 'primary',
                     'show_children_mobile' => true,
+                    'layout' => 'dropdown',
+                    'mega_columns' => ['mobile' => 1, 'tablet' => 2, 'desktop' => 3],
                 ],
                 'settings_fields' => [
                     ['key' => 'menu_slug', 'type' => 'text', 'label' => 'Menu slug', 'translatable' => false],
                     ['key' => 'show_children_mobile', 'type' => 'boolean', 'label' => 'Show nested items on mobile', 'translatable' => false],
+                    [
+                        'key' => 'layout',
+                        'type' => 'select',
+                        'label' => 'Desktop layout',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'dropdown', 'label' => 'Dropdown'],
+                            ['value' => 'mega', 'label' => 'Mega menu'],
+                        ],
+                    ],
+                    ['key' => 'mega_columns', 'type' => 'responsive_columns', 'label' => 'Mega columns', 'translatable' => false],
                 ],
             ],
             'header_cta' => [
@@ -451,6 +468,7 @@ final class KitRegistry
                 'max_instances' => 1,
                 'default_settings' => [
                     'per_page' => 12,
+                    'columns' => ['mobile' => 1, 'tablet' => 2, 'desktop' => 3],
                 ],
                 'settings_fields' => [
                     [
@@ -461,6 +479,7 @@ final class KitRegistry
                         'max' => 48,
                         'translatable' => false,
                     ],
+                    ['key' => 'columns', 'type' => 'responsive_columns', 'label' => 'Columns', 'translatable' => false],
                 ],
             ],
         ];
@@ -697,6 +716,7 @@ final class KitRegistry
                             ['key' => 'avatar', 'type' => 'media', 'label' => 'Avatar', 'accept' => 'image/*', 'translatable' => false],
                         ],
                     ],
+                    ['key' => 'columns', 'type' => 'responsive_columns', 'label' => 'Columns', 'translatable' => false],
                 ],
             ],
             'feature_grid' => [
@@ -723,6 +743,7 @@ final class KitRegistry
                             ['key' => 'description', 'type' => 'textarea', 'label' => 'Description'],
                         ],
                     ],
+                    ['key' => 'columns', 'type' => 'responsive_columns', 'label' => 'Columns', 'translatable' => false],
                 ],
             ],
             'logo_cloud' => [
@@ -746,6 +767,7 @@ final class KitRegistry
                             ['key' => 'url', 'type' => 'url', 'label' => 'Optional link'],
                         ],
                     ],
+                    ['key' => 'columns', 'type' => 'responsive_columns', 'label' => 'Columns', 'translatable' => false],
                 ],
             ],
             'accordion_content' => [
