@@ -11,6 +11,7 @@ use App\Http\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\SetHttpCacheHeaders;
 use App\Http\Middleware\SetSecurityHeaders;
+use App\Http\Middleware\AuthenticateFromAuthSessionCookie;
 use App\Http\Middleware\SetLocaleFromRequest;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -52,6 +53,8 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocaleFromRequest::class,
 
             ThrottleRequests::class . ':api',
+            // Promote HttpOnly auth_session to Bearer before auth:sanctum runs.
+            AuthenticateFromAuthSessionCookie::class,
             SubstituteBindings::class, // ✅ REQUIRED for {model} binding
         ]);
 
@@ -73,6 +76,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(
             before: SubstituteBindings::class,
             prepend: SetLocaleFromRequest::class,
+        );
+
+        // auth:sanctum sorts ahead of the API group; promote the cookie first.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            prepend: AuthenticateFromAuthSessionCookie::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
