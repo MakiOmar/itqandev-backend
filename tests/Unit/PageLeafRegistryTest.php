@@ -30,7 +30,8 @@ class PageLeafRegistryTest extends TestCase
         $defaults = WidgetRegistry::defaultSettings('testimonial_list');
         $this->assertSame('grid', $defaults['layout']);
         $this->assertSame(['mobile' => 1, 'tablet' => 2, 'desktop' => 3], $defaults['columns']);
-        $this->assertSame([], WidgetRegistry::translatableKeys('testimonial_list'));
+        $this->assertSame('', $defaults['title']);
+        $this->assertSame(['title', 'subtitle'], WidgetRegistry::translatableKeys('testimonial_list'));
 
         $admin = collect(WidgetRegistry::forAdmin())->firstWhere('type', 'testimonial_list');
         $this->assertNotNull($admin);

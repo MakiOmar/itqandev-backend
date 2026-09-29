@@ -44,6 +44,8 @@ final class WidgetRegistry
                 'category' => 'Content',
                 'max_instances' => null,
                 'default_settings' => [
+                    'title' => '',
+                    'subtitle' => '',
                     'layout' => 'grid',
                     'limit' => 6,
                     'columns' => ['mobile' => 1, 'tablet' => 2, 'desktop' => 3],
@@ -56,6 +58,8 @@ final class WidgetRegistry
                     'autoplay_seconds' => 6,
                 ],
                 'settings_fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Title', 'translatable' => true],
+                    ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle', 'translatable' => true],
                     [
                         'key' => 'layout',
                         'type' => 'select',
