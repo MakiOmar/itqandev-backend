@@ -23,7 +23,70 @@ final class WidgetRegistry
             self::misc(),
             self::theme(),
             self::extras(),
+            self::content(),
         );
+    }
+
+    /**
+     * Widgets fed by module data (rendered from the page's marketing support payload, not settings).
+     *
+     * @return array<string, WidgetDef>
+     */
+    private static function content(): array
+    {
+        $bool = static fn (string $key, string $label): array => [
+            'key' => $key, 'type' => 'boolean', 'label' => $label, 'translatable' => false,
+        ];
+
+        return [
+            'testimonial_list' => [
+                'label' => 'Testimonials',
+                'category' => 'Content',
+                'max_instances' => null,
+                'default_settings' => [
+                    'layout' => 'grid',
+                    'limit' => 6,
+                    'columns' => ['mobile' => 1, 'tablet' => 2, 'desktop' => 3],
+                    'card_style' => 'card',
+                    'show_rating' => true,
+                    'show_avatar' => true,
+                    'show_role' => true,
+                    'show_project' => true,
+                    'autoplay' => false,
+                    'autoplay_seconds' => 6,
+                ],
+                'settings_fields' => [
+                    [
+                        'key' => 'layout',
+                        'type' => 'select',
+                        'label' => 'Layout',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'grid', 'label' => 'Grid'],
+                            ['value' => 'carousel', 'label' => 'Carousel'],
+                        ],
+                    ],
+                    ['key' => 'limit', 'type' => 'number', 'label' => 'Number of testimonials', 'min' => 1, 'max' => 24, 'translatable' => false],
+                    ['key' => 'columns', 'type' => 'responsive_columns', 'label' => 'Columns', 'translatable' => false],
+                    [
+                        'key' => 'card_style',
+                        'type' => 'select',
+                        'label' => 'Card style',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'card', 'label' => 'Card'],
+                            ['value' => 'minimal', 'label' => 'Minimal'],
+                        ],
+                    ],
+                    $bool('show_rating', 'Show rating'),
+                    $bool('show_avatar', 'Show avatar'),
+                    $bool('show_role', 'Show role / company'),
+                    $bool('show_project', 'Show project'),
+                    $bool('autoplay', 'Autoplay (carousel)'),
+                    ['key' => 'autoplay_seconds', 'type' => 'number', 'label' => 'Autoplay interval (seconds)', 'min' => 3, 'max' => 15, 'translatable' => false],
+                ],
+            ],
+        ];
     }
 
     /**

@@ -22,6 +22,22 @@ class PageLeafRegistryTest extends TestCase
         $this->assertTrue(WidgetRegistry::has('heading'));
     }
 
+    public function test_testimonial_list_is_a_widget_distinct_from_the_testimonials_kit(): void
+    {
+        $this->assertSame(PageLeafRegistry::KIND_WIDGET, PageLeafRegistry::inferKind('testimonial_list'));
+        $this->assertSame(PageLeafRegistry::KIND_KIT, PageLeafRegistry::inferKind('testimonials'));
+
+        $defaults = WidgetRegistry::defaultSettings('testimonial_list');
+        $this->assertSame('grid', $defaults['layout']);
+        $this->assertSame(['mobile' => 1, 'tablet' => 2, 'desktop' => 3], $defaults['columns']);
+        $this->assertSame([], WidgetRegistry::translatableKeys('testimonial_list'));
+
+        $admin = collect(WidgetRegistry::forAdmin())->firstWhere('type', 'testimonial_list');
+        $this->assertNotNull($admin);
+        $this->assertSame('Content', $admin['category']);
+        $this->assertContains('responsive_columns', array_column($admin['settings_fields'], 'type'));
+    }
+
     public function test_page_layout_normalize_adds_kind_to_legacy_blocks(): void
     {
         $normalized = PageLayoutDocument::normalizeSectionsForPages([
