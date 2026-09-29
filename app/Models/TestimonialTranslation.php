@@ -11,6 +11,7 @@ class TestimonialTranslation extends Model
     protected $fillable = [
         'testimonial_id',
         'locale',
+        'client_name',
         'content',
         'client_role',
         'company',

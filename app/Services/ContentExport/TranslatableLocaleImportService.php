@@ -594,22 +594,27 @@ final class TranslatableLocaleImportService
             return 'created';
         }
 
+        $clientName = $this->nullableStripped((string) ($row['client_name'] ?? ''));
+
         return $this->applyLocaleUpdate(
             $testimonial,
             $locale,
             [
+                'client_name' => $clientName ?? $testimonial->client_name,
                 'content' => $content ?? $testimonial->content,
                 'client_role' => $clientRole,
                 'company' => $company,
             ],
             [[
                 'locale' => $locale,
+                'client_name' => $clientName ?? '',
                 'content' => $content ?? '',
                 'client_role' => $clientRole ?? '',
                 'company' => $company ?? '',
             ]],
-            ['content', 'client_role', 'company'],
+            ['client_name', 'content', 'client_role', 'company'],
             [
+                'client_name' => fn ($v) => $this->nullableStripped((string) $v),
                 'content' => fn ($v) => $this->nullableStripped((string) $v),
                 'client_role' => fn ($v) => $this->nullableStripped((string) $v),
                 'company' => fn ($v) => $this->nullableStripped((string) $v),

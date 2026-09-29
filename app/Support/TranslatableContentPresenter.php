@@ -234,6 +234,9 @@ final class TranslatableContentPresenter
             return;
         }
 
+        if (is_string($row->client_name) && $row->client_name !== '') {
+            $testimonial->setAttribute('client_name', $row->client_name);
+        }
         if (is_string($row->content) && $row->content !== '') {
             $testimonial->setAttribute('content', $row->content);
         }

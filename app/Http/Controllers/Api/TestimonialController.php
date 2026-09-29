@@ -93,6 +93,7 @@ class TestimonialController extends Controller
             'approved' => ['boolean'],
             'translations' => ['nullable', 'array'],
             'translations.*.locale' => ['required', 'string', 'max:16'],
+            'translations.*.client_name' => ['nullable', 'string', 'max:255'],
             'translations.*.content' => ['nullable', 'string'],
             'translations.*.client_role' => ['nullable', 'string', 'max:255'],
             'translations.*.company' => ['nullable', 'string', 'max:255'],
@@ -153,6 +154,7 @@ class TestimonialController extends Controller
             'approved' => ['boolean'],
             'translations' => ['nullable', 'array'],
             'translations.*.locale' => ['required', 'string', 'max:16'],
+            'translations.*.client_name' => ['nullable', 'string', 'max:255'],
             'translations.*.content' => ['nullable', 'string'],
             'translations.*.client_role' => ['nullable', 'string', 'max:255'],
             'translations.*.company' => ['nullable', 'string', 'max:255'],
@@ -250,6 +252,7 @@ class TestimonialController extends Controller
             }
             $normalized[] = [
                 'locale' => isset($row['locale']) ? strtolower(trim((string) $row['locale'])) : '',
+                'client_name' => $row['client_name'] ?? $row['clientName'] ?? null,
                 'content' => $row['content'] ?? null,
                 'client_role' => $row['client_role'] ?? $row['clientRole'] ?? null,
                 'company' => $row['company'] ?? null,
@@ -280,11 +283,12 @@ class TestimonialController extends Controller
                 continue;
             }
 
+            $clientName = isset($row['client_name']) ? trim((string) $row['client_name']) : '';
             $content = isset($row['content']) ? trim((string) $row['content']) : '';
             $clientRole = isset($row['client_role']) ? trim((string) $row['client_role']) : '';
             $company = isset($row['company']) ? trim((string) $row['company']) : '';
 
-            if ($content === '' && $clientRole === '' && $company === '') {
+            if ($clientName === '' && $content === '' && $clientRole === '' && $company === '') {
                 $testimonial->translations()->where('locale', $locale)->delete();
 
                 continue;
@@ -293,6 +297,7 @@ class TestimonialController extends Controller
             $testimonial->translations()->updateOrCreate(
                 ['locale' => $locale],
                 [
+                    'client_name' => $clientName !== '' ? $this->sanitizer->stripAll($clientName) : null,
                     'content' => $content !== '' ? $this->sanitizer->stripAll($content) : null,
                     'client_role' => $clientRole !== '' ? $this->sanitizer->stripAll($clientRole) : null,
                     'company' => $company !== '' ? $this->sanitizer->stripAll($company) : null,
