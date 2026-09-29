@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BulkUpdateTestimonialApprovalRequest;
 use App\Models\Testimonial;
 use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
@@ -206,6 +207,20 @@ class TestimonialController extends Controller
         return response()->json([
             'deleted' => $count,
             'message' => 'Deleted '.$count.' testimonials',
+        ]);
+    }
+
+    public function bulkApproval(BulkUpdateTestimonialApprovalRequest $request)
+    {
+        $data = $request->validated();
+        $approved = (bool) $data['approved'];
+
+        $count = Testimonial::whereIn('id', $data['ids'])->update(['approved' => $approved]);
+
+        return response()->json([
+            'updated' => $count,
+            'approved' => $approved,
+            'message' => ($approved ? 'Approved ' : 'Unapproved ').$count.' testimonials',
         ]);
     }
 

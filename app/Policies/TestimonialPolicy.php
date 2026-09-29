@@ -36,6 +36,12 @@ class TestimonialPolicy
         return $this->create($user);
     }
 
+    /** Bulk approve / unapprove: same rights as editing one testimonial. */
+    public function bulkUpdate(User $user): bool
+    {
+        return $this->create($user);
+    }
+
     public function bulkDelete(User $user): bool
     {
         return $this->viewAny($user);

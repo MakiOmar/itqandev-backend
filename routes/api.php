@@ -205,6 +205,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('testimonials/export', [\App\Http\Controllers\Api\TestimonialController::class, 'export']);
             Route::post('testimonials/import', [\App\Http\Controllers\Api\TestimonialController::class, 'import'])->middleware('throttle:bulk');
             Route::post('testimonials/bulk-delete', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::post('testimonials/bulk-approval', [\App\Http\Controllers\Api\TestimonialController::class, 'bulkApproval'])->middleware('throttle:bulk');
             Route::apiResource('testimonials', \App\Http\Controllers\Api\TestimonialController::class);
         });
 
