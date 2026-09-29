@@ -43,6 +43,21 @@ class PageLeafRegistryTest extends TestCase
         $this->assertContains('responsive_columns', array_column($admin['settings_fields'], 'type'));
     }
 
+    public function test_testimonials_kit_offers_carousel_layout_settings(): void
+    {
+        $defaults = KitRegistry::defaultSettings('testimonials');
+        $this->assertSame('grid', $defaults['layout']);
+        $this->assertSame('sides', $defaults['arrows_position']);
+        $this->assertFalse($defaults['autoplay']);
+
+        $kit = collect(KitRegistry::forAdmin())->firstWhere('type', 'testimonials');
+        $keys = array_column($kit['settings_fields'], 'key');
+        foreach (['layout', 'autoplay', 'autoplay_seconds', 'arrows_position'] as $key) {
+            $this->assertContains($key, $keys);
+        }
+        $this->assertSame(['title', 'subtitle'], KitRegistry::translatableKeys('testimonials'));
+    }
+
     public function test_page_layout_normalize_adds_kind_to_legacy_blocks(): void
     {
         $normalized = PageLayoutDocument::normalizeSectionsForPages([

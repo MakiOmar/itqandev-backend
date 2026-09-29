@@ -374,11 +374,14 @@ final class KitRegistry
                     'title' => 'What our clients say',
                     'subtitle' => 'Trusted by startups and enterprises.',
                     'limit' => 6,
+                    ...CarouselSettingsFields::defaults(),
                 ],
                 'settings_fields' => [
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
                     ['key' => 'limit', 'type' => 'number', 'label' => 'Limit', 'min' => 1, 'max' => 24],
+                    CarouselSettingsFields::layoutField(),
+                    ...CarouselSettingsFields::carouselFields(),
                 ],
             ],
             'tech_stack' => [
