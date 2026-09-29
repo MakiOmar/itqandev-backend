@@ -3,8 +3,9 @@
 namespace App\Services\Appearance;
 
 /**
- * Grid/carousel layout settings shared by listing widgets and kits (e.g. testimonials),
+ * Grid/carousel settings shared by listing widgets and kits (e.g. testimonials),
  * so the same keys render through the shared frontend carousel options parser.
+ * Legacy `layout: carousel` values are still honoured by the frontend parser.
  */
 final class CarouselSettingsFields
 {
@@ -14,7 +15,7 @@ final class CarouselSettingsFields
     public static function defaults(): array
     {
         return [
-            'layout' => 'grid',
+            'carousel' => false,
             'autoplay' => false,
             'autoplay_seconds' => 6,
             'arrows_position' => 'sides',
@@ -22,30 +23,14 @@ final class CarouselSettingsFields
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    public static function layoutField(): array
-    {
-        return [
-            'key' => 'layout',
-            'type' => 'select',
-            'label' => 'Layout',
-            'translatable' => false,
-            'options' => [
-                ['value' => 'grid', 'label' => 'Grid'],
-                ['value' => 'carousel', 'label' => 'Carousel'],
-            ],
-        ];
-    }
-
-    /**
-     * Carousel-only controls (autoplay + arrows position).
+     * Carousel toggle plus its controls (autoplay + arrows position).
      *
      * @return list<array<string, mixed>>
      */
-    public static function carouselFields(): array
+    public static function fields(): array
     {
         return [
+            ['key' => 'carousel', 'type' => 'boolean', 'label' => 'Carousel', 'translatable' => false],
             ['key' => 'autoplay', 'type' => 'boolean', 'label' => 'Autoplay (carousel)', 'translatable' => false],
             ['key' => 'autoplay_seconds', 'type' => 'number', 'label' => 'Autoplay interval (seconds)', 'min' => 3, 'max' => 15, 'translatable' => false],
             [

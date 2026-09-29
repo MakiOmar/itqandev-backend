@@ -58,7 +58,6 @@ final class WidgetRegistry
                 'settings_fields' => [
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title', 'translatable' => true],
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle', 'translatable' => true],
-                    CarouselSettingsFields::layoutField(),
                     ['key' => 'limit', 'type' => 'number', 'label' => 'Number of testimonials', 'min' => 1, 'max' => 24, 'translatable' => false],
                     ['key' => 'columns', 'type' => 'responsive_columns', 'label' => 'Columns', 'translatable' => false],
                     [
@@ -75,7 +74,7 @@ final class WidgetRegistry
                     $bool('show_avatar', 'Show avatar'),
                     $bool('show_role', 'Show role / company'),
                     $bool('show_project', 'Show project'),
-                    ...CarouselSettingsFields::carouselFields(),
+                    ...CarouselSettingsFields::fields(),
                 ],
             ],
         ];

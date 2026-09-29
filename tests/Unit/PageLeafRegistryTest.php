@@ -28,7 +28,7 @@ class PageLeafRegistryTest extends TestCase
         $this->assertSame(PageLeafRegistry::KIND_KIT, PageLeafRegistry::inferKind('testimonials'));
 
         $defaults = WidgetRegistry::defaultSettings('testimonial_list');
-        $this->assertSame('grid', $defaults['layout']);
+        $this->assertFalse($defaults['carousel']);
         $this->assertSame(['mobile' => 1, 'tablet' => 2, 'desktop' => 3], $defaults['columns']);
         $this->assertSame('', $defaults['title']);
         $this->assertSame('sides', $defaults['arrows_position']);
@@ -46,13 +46,15 @@ class PageLeafRegistryTest extends TestCase
     public function test_testimonials_kit_offers_carousel_layout_settings(): void
     {
         $defaults = KitRegistry::defaultSettings('testimonials');
-        $this->assertSame('grid', $defaults['layout']);
+        $this->assertFalse($defaults['carousel']);
         $this->assertSame('sides', $defaults['arrows_position']);
         $this->assertFalse($defaults['autoplay']);
 
         $kit = collect(KitRegistry::forAdmin())->firstWhere('type', 'testimonials');
+        $carousel = collect($kit['settings_fields'])->firstWhere('key', 'carousel');
+        $this->assertSame('boolean', $carousel['type']);
         $keys = array_column($kit['settings_fields'], 'key');
-        foreach (['layout', 'autoplay', 'autoplay_seconds', 'arrows_position'] as $key) {
+        foreach (['carousel', 'autoplay', 'autoplay_seconds', 'arrows_position'] as $key) {
             $this->assertContains($key, $keys);
         }
         $this->assertSame(['title', 'subtitle'], KitRegistry::translatableKeys('testimonials'));

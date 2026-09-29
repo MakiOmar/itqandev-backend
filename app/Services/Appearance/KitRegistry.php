@@ -380,8 +380,7 @@ final class KitRegistry
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
                     ['key' => 'limit', 'type' => 'number', 'label' => 'Limit', 'min' => 1, 'max' => 24],
-                    CarouselSettingsFields::layoutField(),
-                    ...CarouselSettingsFields::carouselFields(),
+                    ...CarouselSettingsFields::fields(),
                 ],
             ],
             'tech_stack' => [
