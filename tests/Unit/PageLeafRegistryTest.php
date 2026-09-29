@@ -31,6 +31,10 @@ class PageLeafRegistryTest extends TestCase
         $this->assertSame('grid', $defaults['layout']);
         $this->assertSame(['mobile' => 1, 'tablet' => 2, 'desktop' => 3], $defaults['columns']);
         $this->assertSame('', $defaults['title']);
+        $this->assertSame('sides', $defaults['arrows_position']);
+        $arrows = collect(WidgetRegistry::forAdmin())->firstWhere('type', 'testimonial_list')['settings_fields'];
+        $arrowsField = collect($arrows)->firstWhere('key', 'arrows_position');
+        $this->assertCount(9, $arrowsField['options']);
         $this->assertSame(['title', 'subtitle'], WidgetRegistry::translatableKeys('testimonial_list'));
 
         $admin = collect(WidgetRegistry::forAdmin())->firstWhere('type', 'testimonial_list');

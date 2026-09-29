@@ -56,6 +56,7 @@ final class WidgetRegistry
                     'show_project' => true,
                     'autoplay' => false,
                     'autoplay_seconds' => 6,
+                    'arrows_position' => 'sides',
                 ],
                 'settings_fields' => [
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title', 'translatable' => true],
@@ -88,6 +89,23 @@ final class WidgetRegistry
                     $bool('show_project', 'Show project'),
                     $bool('autoplay', 'Autoplay (carousel)'),
                     ['key' => 'autoplay_seconds', 'type' => 'number', 'label' => 'Autoplay interval (seconds)', 'min' => 3, 'max' => 15, 'translatable' => false],
+                    [
+                        'key' => 'arrows_position',
+                        'type' => 'select',
+                        'label' => 'Arrows position (carousel)',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'sides', 'label' => 'Sides'],
+                            ['value' => 'top_left', 'label' => 'Top left'],
+                            ['value' => 'top_center', 'label' => 'Top center'],
+                            ['value' => 'top_right', 'label' => 'Top right'],
+                            ['value' => 'top_between', 'label' => 'Top space between'],
+                            ['value' => 'bottom_left', 'label' => 'Bottom left'],
+                            ['value' => 'bottom_center', 'label' => 'Bottom center'],
+                            ['value' => 'bottom_right', 'label' => 'Bottom right'],
+                            ['value' => 'bottom_between', 'label' => 'Bottom space between'],
+                        ],
+                    ],
                 ],
             ],
         ];
