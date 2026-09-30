@@ -80,6 +80,19 @@ final class BuilderStyleDocument
         'card_chip_bg' => 'color', 'card_chip_border_color' => 'color', 'card_chip_radius' => 'length',
     ];
 
+    /** Testimonial card parts (stars, quote, author, avatar); the card box reuses the `card_*` keys. */
+    private const TESTIMONIAL_KEYS = [
+        'rating_color' => 'color', 'rating_empty_color' => 'color', 'rating_size' => 'length',
+        'quote_font_size' => 'length', 'quote_font_weight' => 'weight', 'quote_line_height' => 'length',
+        'quote_letter_spacing' => 'length', 'quote_font_style' => 'font_style', 'quote_color' => 'color',
+        'author_name_font_size' => 'length', 'author_name_font_weight' => 'weight', 'author_name_transform' => 'transform',
+        'author_name_letter_spacing' => 'length', 'author_name_color' => 'color', 'author_divider_color' => 'color',
+        'author_meta_font_size' => 'length', 'author_meta_font_weight' => 'weight', 'author_meta_color' => 'color',
+        'avatar_size' => 'length', 'avatar_radius' => 'length', 'avatar_ring_width' => 'length', 'avatar_ring_color' => 'color',
+    ];
+
+    private const PART_KEYS = [...self::CASE_CARD_KEYS, ...self::TESTIMONIAL_KEYS];
+
     /** Button parts (hero CTAs, case study card); each gets every BUTTON_* suffix as `{part}_{suffix}`. */
     private const BUTTON_PARTS = ['btn_primary', 'btn_secondary', 'btn_card'];
 
@@ -100,7 +113,7 @@ final class BuilderStyleDocument
                 ...self::BUTTON_COLOR_SUFFIXES, ...self::BUTTON_LENGTH_SUFFIXES, ...self::BUTTON_SHADOW_SUFFIXES,
                 'font_weight', 'transform',
             ];
-            $keys = [...self::KEYS, ...array_keys(self::CASE_CARD_KEYS)];
+            $keys = [...self::KEYS, ...array_keys(self::PART_KEYS)];
             foreach (self::BUTTON_PARTS as $part) {
                 foreach ($suffixes as $suffix) {
                     $keys[] = "{$part}_{$suffix}";
@@ -187,13 +200,14 @@ final class BuilderStyleDocument
         if (preg_match('/^btn_(?:primary|secondary|card)_(.+)$/', $key, $m) === 1) {
             return self::normalizeButtonValue($m[1], $value);
         }
-        if (isset(self::CASE_CARD_KEYS[$key])) {
-            return match (self::CASE_CARD_KEYS[$key]) {
+        if (isset(self::PART_KEYS[$key])) {
+            return match (self::PART_KEYS[$key]) {
                 'color' => self::color($value),
                 'length' => self::length($value),
                 'shadow' => self::shadow($value),
                 'weight' => self::enum((string) $value, self::FONT_WEIGHT),
                 'transform' => self::enum($value, self::TEXT_TRANSFORM),
+                'font_style' => self::enum($value, self::FONT_STYLE),
             };
         }
 

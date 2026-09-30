@@ -125,6 +125,40 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertArrayNotHasKey('card_unknown', $bag);
     }
 
+    public function test_keeps_valid_testimonial_keys_and_drops_invalid_ones(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => [
+                'rating_color' => '#F59E0B',
+                'rating_size' => ['value' => 20, 'unit' => 'px'],
+                'quote_font_style' => 'italic',
+                'quote_font_weight' => '500',
+                'quote_color' => 'javascript:alert(1)',
+                'author_name_transform' => 'uppercase',
+                'author_meta_font_weight' => 'heavy',
+                'avatar_size' => ['value' => 56, 'unit' => 'px'],
+                'avatar_ring_color' => '#e2e8f0',
+                'quote_decoration' => 'underline',
+            ],
+            'mobile' => [
+                'quote_font_style' => 'oblique',
+            ],
+        ]);
+
+        $bag = $out['desktop'];
+        $this->assertSame('#f59e0b', $bag['rating_color']);
+        $this->assertSame(20.0, $bag['rating_size']['value']);
+        $this->assertSame('italic', $bag['quote_font_style']);
+        $this->assertSame('500', $bag['quote_font_weight']);
+        $this->assertArrayNotHasKey('quote_color', $bag);
+        $this->assertSame('uppercase', $bag['author_name_transform']);
+        $this->assertArrayNotHasKey('author_meta_font_weight', $bag);
+        $this->assertSame(56.0, $bag['avatar_size']['value']);
+        $this->assertSame('#e2e8f0', $bag['avatar_ring_color']);
+        $this->assertArrayNotHasKey('quote_decoration', $bag);
+        $this->assertArrayNotHasKey('mobile', $out);
+    }
+
     public function test_strips_unsafe_custom_css(): void
     {
         $out = BuilderStyleDocument::normalize([
