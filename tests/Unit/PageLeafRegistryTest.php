@@ -71,6 +71,20 @@ class PageLeafRegistryTest extends TestCase
         $this->assertNotContains('card_style', KitRegistry::translatableKeys('case_studies'));
     }
 
+    public function test_hero_kit_offers_watermark_motion_off_by_default(): void
+    {
+        $defaults = KitRegistry::defaultSettings('hero');
+        $this->assertFalse($defaults['watermark_motion']);
+        $this->assertSame(40, $defaults['watermark_speed']);
+
+        $kit = collect(KitRegistry::forAdmin())->firstWhere('type', 'hero');
+        $fields = collect($kit['settings_fields'])->keyBy('key');
+        $this->assertSame('boolean', $fields['watermark_motion']['type']);
+        $this->assertSame([10, 120, 40], [$fields['watermark_speed']['min'], $fields['watermark_speed']['max'], $fields['watermark_speed']['default']]);
+        $this->assertNotContains('watermark_motion', KitRegistry::translatableKeys('hero'));
+        $this->assertNotContains('watermark_speed', KitRegistry::translatableKeys('hero'));
+    }
+
     public function test_page_layout_normalize_adds_kind_to_legacy_blocks(): void
     {
         $normalized = PageLayoutDocument::normalizeSectionsForPages([
