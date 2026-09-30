@@ -69,6 +69,30 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertArrayNotHasKey('subtitle_color', $bag);
     }
 
+    public function test_keeps_valid_button_part_keys_and_drops_invalid_ones(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => [
+                'btn_primary_bg' => '#f59e0b',
+                'btn_primary_hover_bg' => 'red; background:url(x)',
+                'btn_primary_radius' => ['value' => 999, 'unit' => 'px'],
+                'btn_primary_font_weight' => '600',
+                'btn_secondary_shadow' => ['h' => 0, 'v' => 4, 'blur' => 12, 'spread' => 0, 'color' => '#00000033'],
+                'btn_secondary_transform' => 'sideways',
+                'btn_tertiary_bg' => '#000000',
+            ],
+        ]);
+
+        $bag = $out['desktop'];
+        $this->assertSame('#f59e0b', $bag['btn_primary_bg']);
+        $this->assertArrayNotHasKey('btn_primary_hover_bg', $bag);
+        $this->assertSame(999.0, $bag['btn_primary_radius']['value']);
+        $this->assertSame('600', $bag['btn_primary_font_weight']);
+        $this->assertSame(12.0, $bag['btn_secondary_shadow']['blur']);
+        $this->assertArrayNotHasKey('btn_secondary_transform', $bag);
+        $this->assertArrayNotHasKey('btn_tertiary_bg', $bag);
+    }
+
     public function test_strips_unsafe_custom_css(): void
     {
         $out = BuilderStyleDocument::normalize([

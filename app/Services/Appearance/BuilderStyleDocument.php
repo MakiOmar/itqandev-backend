@@ -63,6 +63,49 @@ final class BuilderStyleDocument
         'subtitle_transform', 'subtitle_color',
     ];
 
+    /** Button parts (e.g. hero CTAs); each gets every BUTTON_* suffix as `{part}_{suffix}`. */
+    private const BUTTON_PARTS = ['btn_primary', 'btn_secondary'];
+
+    private const BUTTON_COLOR_SUFFIXES = ['color', 'bg', 'border_color', 'hover_color', 'hover_bg', 'hover_border_color'];
+
+    private const BUTTON_LENGTH_SUFFIXES = ['font_size', 'letter_spacing', 'border_width', 'radius', 'min_width', 'padding_x', 'padding_y'];
+
+    private const BUTTON_SHADOW_SUFFIXES = ['shadow', 'hover_shadow'];
+
+    /**
+     * @return list<string>
+     */
+    private static function allowedKeys(): array
+    {
+        static $keys = null;
+        if ($keys === null) {
+            $suffixes = [
+                ...self::BUTTON_COLOR_SUFFIXES, ...self::BUTTON_LENGTH_SUFFIXES, ...self::BUTTON_SHADOW_SUFFIXES,
+                'font_weight', 'transform',
+            ];
+            $keys = self::KEYS;
+            foreach (self::BUTTON_PARTS as $part) {
+                foreach ($suffixes as $suffix) {
+                    $keys[] = "{$part}_{$suffix}";
+                }
+            }
+        }
+
+        return $keys;
+    }
+
+    private static function normalizeButtonValue(string $suffix, mixed $value): mixed
+    {
+        return match (true) {
+            in_array($suffix, self::BUTTON_COLOR_SUFFIXES, true) => self::color($value),
+            in_array($suffix, self::BUTTON_LENGTH_SUFFIXES, true) => self::length($value),
+            in_array($suffix, self::BUTTON_SHADOW_SUFFIXES, true) => self::shadow($value),
+            $suffix === 'font_weight' => self::enum((string) $value, self::FONT_WEIGHT),
+            $suffix === 'transform' => self::enum($value, self::TEXT_TRANSFORM),
+            default => null,
+        };
+    }
+
     /**
      * @param  mixed  $raw
      * @return BuilderStyles|null
@@ -109,7 +152,7 @@ final class BuilderStyleDocument
     private static function normalizeBag(array $bag): array
     {
         $out = [];
-        foreach (self::KEYS as $key) {
+        foreach (self::allowedKeys() as $key) {
             if (! array_key_exists($key, $bag)) {
                 continue;
             }
@@ -124,6 +167,10 @@ final class BuilderStyleDocument
 
     private static function normalizeValue(string $key, mixed $value): mixed
     {
+        if (preg_match('/^btn_(?:primary|secondary)_(.+)$/', $key, $m) === 1) {
+            return self::normalizeButtonValue($m[1], $value);
+        }
+
         return match ($key) {
             'align', 'caption_align' => self::enum($value, self::ALIGN),
             'object_fit' => self::enum($value, self::OBJECT_FIT),
