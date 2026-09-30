@@ -358,8 +358,8 @@ final class KitRegistry
                         'label' => 'Card style',
                         'translatable' => false,
                         'options' => [
-                            ['value' => 'overlay', 'label' => 'Image with title overlay'],
-                            ['value' => 'detailed', 'label' => 'Detailed (category, summary, skills, button)'],
+                            ['value' => 'overlay', 'label' => 'Overlay'],
+                            ['value' => 'detailed', 'label' => 'Detailed'],
                         ],
                     ],
                     [
