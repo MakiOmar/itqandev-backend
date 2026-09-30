@@ -47,6 +47,10 @@ class BuilderStyleDocumentTest extends TestCase
                 'link_transform' => 'uppercase',
                 'link_font_weight' => 'heavy',
                 'link_letter_spacing' => ['value' => 0.1, 'unit' => 'em'],
+                'title_color' => '#f59e0b',
+                'title_font_size' => ['value' => 48, 'unit' => 'px'],
+                'subtitle_transform' => 'shout',
+                'subtitle_color' => 'expression(alert(1))',
             ],
         ]);
 
@@ -59,6 +63,10 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertSame('uppercase', $bag['link_transform']);
         $this->assertArrayNotHasKey('link_font_weight', $bag);
         $this->assertSame('em', $bag['link_letter_spacing']['unit']);
+        $this->assertSame('#f59e0b', $bag['title_color']);
+        $this->assertSame(48.0, $bag['title_font_size']['value']);
+        $this->assertArrayNotHasKey('subtitle_transform', $bag);
+        $this->assertArrayNotHasKey('subtitle_color', $bag);
     }
 
     public function test_strips_unsafe_custom_css(): void

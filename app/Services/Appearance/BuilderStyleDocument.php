@@ -57,6 +57,10 @@ final class BuilderStyleDocument
         'nav_hover_bg', 'nav_radius',
         'link_font_size', 'link_font_weight', 'link_transform', 'link_letter_spacing', 'link_color',
         'link_hover_color',
+        'title_font_size', 'title_font_weight', 'title_line_height', 'title_letter_spacing', 'title_transform',
+        'title_color',
+        'subtitle_font_size', 'subtitle_font_weight', 'subtitle_line_height', 'subtitle_letter_spacing',
+        'subtitle_transform', 'subtitle_color',
     ];
 
     /**
@@ -147,11 +151,13 @@ final class BuilderStyleDocument
             'type_role' => self::enum($value, ['heading', 'body', 'accent']),
             'tab_color', 'tab_bg', 'tab_hover_color', 'tab_hover_bg', 'tab_active_color', 'tab_active_bg',
             'tab_indicator_color', 'nav_color', 'nav_bg', 'nav_border_color', 'nav_hover_color', 'nav_hover_bg',
-            'link_color', 'link_hover_color' => self::color($value),
+            'link_color', 'link_hover_color', 'title_color', 'subtitle_color' => self::color($value),
             'tab_font_size', 'tab_radius', 'nav_size', 'nav_icon_size', 'nav_radius',
-            'link_font_size', 'link_letter_spacing' => self::length($value),
-            'tab_font_weight', 'link_font_weight' => self::enum((string) $value, self::FONT_WEIGHT),
-            'link_transform' => self::enum($value, self::TEXT_TRANSFORM),
+            'link_font_size', 'link_letter_spacing',
+            'title_font_size', 'title_line_height', 'title_letter_spacing',
+            'subtitle_font_size', 'subtitle_line_height', 'subtitle_letter_spacing' => self::length($value),
+            'tab_font_weight', 'link_font_weight', 'title_font_weight', 'subtitle_font_weight' => self::enum((string) $value, self::FONT_WEIGHT),
+            'link_transform', 'title_transform', 'subtitle_transform' => self::enum($value, self::TEXT_TRANSFORM),
             'filters', 'hover_filters' => self::filters($value),
             'box_shadow', 'hover_box_shadow' => self::shadow($value),
             'custom_css' => self::customCss($value),
