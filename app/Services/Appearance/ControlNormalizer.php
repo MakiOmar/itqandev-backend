@@ -69,6 +69,7 @@ final class ControlNormalizer
             'number' => is_numeric($value) ? 0 + $value : ($field['min'] ?? 0),
             'boolean', 'switcher' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
             'media' => is_numeric($value) ? (int) $value : $value,
+            'icon' => IconValueNormalizer::normalize($value),
             'repeater' => self::normalizeRepeater($value, is_array($field['item_fields'] ?? null) ? $field['item_fields'] : [], $html),
             default => $value,
         };
