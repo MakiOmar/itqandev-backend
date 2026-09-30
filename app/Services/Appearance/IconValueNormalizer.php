@@ -9,8 +9,9 @@ use App\Models\AppMedia;
  *
  * Accepted shapes (anything else becomes ''):
  * - legacy name string, e.g. "star"
- * - bundled set icon: {library: "lucide", name, body, view_box} — body is inline SVG markup
- *   rendered on the public site, so it must pass a strict element/attribute allowlist
+ * - bundled set icon: {library: "lucide", name, body, view_box, color?} — body is inline SVG markup
+ *   rendered on the public site, so it must pass a strict element/attribute allowlist;
+ *   color must be a hex value (it reaches a style attribute), anything else is dropped
  * - uploaded image: {library: "svg", media_id} — URL is always re-read from our media table,
  *   so an icon can never point at a third-party host
  */
@@ -88,7 +89,13 @@ final class IconValueNormalizer
             $viewBox = '0 0 24 24';
         }
 
-        return ['library' => $library, 'name' => $name, 'body' => $body, 'view_box' => $viewBox];
+        $icon = ['library' => $library, 'name' => $name, 'body' => $body, 'view_box' => $viewBox];
+        $color = strtolower(trim((string) ($value['color'] ?? '')));
+        if (preg_match('/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/', $color)) {
+            $icon['color'] = $color;
+        }
+
+        return $icon;
     }
 
     /**
