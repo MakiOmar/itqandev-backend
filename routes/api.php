@@ -281,6 +281,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('media')->group(function () {
                 Route::get('/', [\App\Http\Controllers\Api\MediaController::class, 'index']);
                 Route::get('/statistics', [\App\Http\Controllers\Api\MediaController::class, 'statistics']);
+                Route::get('/lookup', [\App\Http\Controllers\Api\MediaController::class, 'lookup']);
                 Route::get('/{media}', [\App\Http\Controllers\Api\MediaController::class, 'show'])->where('media', '[0-9]+');
                 Route::get('/{media}/download-link', [\App\Http\Controllers\Api\MediaController::class, 'downloadLink'])->where('media', '[0-9]+');
                 Route::get('/{media}/download', [\App\Http\Controllers\Api\MediaController::class, 'download'])->where('media', '[0-9]+');

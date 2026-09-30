@@ -8,9 +8,102 @@ use App\Support\SiteLanguages;
 
 /**
  * Resolve appearance builder media settings (id or legacy URL) for public presentation.
+ *
+ * Wrap a whole document in {@see withPrimed()} so every referenced media row loads in one query
+ * instead of one `find()` per image.
  */
 final class AppearanceMediaResolver
 {
+    /** @var array<int, AppMedia|null> Rows loaded by the active {@see withPrimed()} scope (null = missing). */
+    private static array $primed = [];
+
+    private static int $primeDepth = 0;
+
+    /**
+     * Run `$callback` with the given media ids preloaded; the cache is cleared when the outermost
+     * scope ends, so long-running workers never serve stale rows.
+     *
+     * @template T
+     *
+     * @param  list<int>  $ids
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public static function withPrimed(array $ids, callable $callback): mixed
+    {
+        self::$primeDepth++;
+        try {
+            self::prime($ids);
+
+            return $callback();
+        } finally {
+            self::$primeDepth--;
+            if (self::$primeDepth === 0) {
+                self::$primed = [];
+            }
+        }
+    }
+
+    /**
+     * @param  list<int>  $ids
+     */
+    private static function prime(array $ids): void
+    {
+        $missing = array_values(array_diff(array_unique(array_filter($ids, fn ($id) => $id > 0)), array_keys(self::$primed)));
+        if ($missing === []) {
+            return;
+        }
+        $rows = AppMedia::query()->with('translations')->whereIn('id', $missing)->get()->keyBy('id');
+        foreach ($missing as $id) {
+            self::$primed[$id] = $rows->get($id);
+        }
+    }
+
+    /**
+     * Media ids referenced by one block's settings: `media` fields, `media` sub-fields of repeaters,
+     * hero floating icons, including every per-locale override in `translations`.
+     *
+     * @param  array<string, mixed>  $settings  Raw stored settings (with the `translations` bag)
+     * @param  list<array<string, mixed>>  $fields
+     * @return list<int>
+     */
+    public static function collectIds(array $settings, array $fields): array
+    {
+        $bags = [$settings];
+        foreach (is_array($settings['translations'] ?? null) ? $settings['translations'] : [] as $bag) {
+            if (is_array($bag)) {
+                $bags[] = $bag;
+            }
+        }
+
+        $ids = [];
+        foreach ($bags as $bag) {
+            foreach ($fields as $field) {
+                $key = (string) ($field['key'] ?? '');
+                $type = $field['type'] ?? '';
+                if ($key === '' || ! array_key_exists($key, $bag)) {
+                    continue;
+                }
+                if ($type === 'media') {
+                    $ids[] = self::idOf($bag[$key]);
+                } elseif ($type === 'repeater' && is_array($bag[$key])) {
+                    $itemFields = is_array($field['item_fields'] ?? null) ? $field['item_fields'] : [];
+                    foreach ($bag[$key] as $row) {
+                        if (is_array($row)) {
+                            array_push($ids, ...self::collectIds($row, $itemFields));
+                        }
+                    }
+                } elseif ($type === 'floating_icons' && is_array($bag[$key])) {
+                    foreach ($bag[$key] as $icon) {
+                        $ids[] = is_array($icon) ? self::idOf($icon['media_id'] ?? null) : null;
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids, fn ($id) => $id !== null)));
+    }
+
     /**
      * @param  list<array{key?: string, type?: string}>  $fields
      * @param  array<string, mixed>  $settings  Locale-resolved flat settings (no translations bag)
@@ -87,24 +180,19 @@ final class AppearanceMediaResolver
         }
 
         if (is_int($value) || (is_string($value) && ctype_digit(trim($value)))) {
-            $id = (int) $value;
-            if ($id <= 0) {
+            $id = self::idOf($value);
+            if ($id === null) {
                 return ['url' => '', 'alt' => null, 'media_id' => null];
             }
-
-            /** @var AppMedia|null $media */
-            $media = AppMedia::query()->with('translations')->find($id);
+            $media = array_key_exists($id, self::$primed)
+                ? self::$primed[$id]
+                : AppMedia::query()->with('translations')->find($id);
             if (! $media) {
                 return ['url' => '', 'alt' => null, 'media_id' => $id];
             }
 
-            $url = $media->getUrl();
-            if ($url && ! filter_var($url, FILTER_VALIDATE_URL)) {
-                $url = url($url);
-            }
-
             return [
-                'url' => (string) ($url ?: ''),
+                'url' => self::urlFor($media),
                 'alt' => LocalizedMediaMeta::alt($media, $locale, $defaultLocale),
                 'media_id' => $id,
             ];
@@ -115,5 +203,30 @@ final class AppearanceMediaResolver
         }
 
         return ['url' => '', 'alt' => null, 'media_id' => null];
+    }
+
+    /** Absolute public URL of a media row ('' when it has none). */
+    public static function urlFor(AppMedia $media): string
+    {
+        $url = $media->getUrl();
+        if ($url && ! filter_var($url, FILTER_VALIDATE_URL)) {
+            $url = url($url);
+        }
+
+        return (string) ($url ?: '');
+    }
+
+    private static function idOf(mixed $value): ?int
+    {
+        if (is_int($value)) {
+            return $value > 0 ? $value : null;
+        }
+        if (is_string($value) && ctype_digit(trim($value))) {
+            $id = (int) trim($value);
+
+            return $id > 0 ? $id : null;
+        }
+
+        return null;
     }
 }

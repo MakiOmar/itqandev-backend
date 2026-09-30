@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\AuthorizesResolvedModel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListQueryRequest;
+use App\Http\Requests\LookupMediaRequest;
+use App\Services\Appearance\AppearanceMediaResolver;
 use App\Http\Requests\UploadMediaRequest;
 use App\Http\Resources\MediaResource;
 use App\Models\BlogPost;
@@ -124,6 +126,22 @@ class MediaController extends Controller
     /**
      * Show a single media item.
      */
+    /**
+     * Resolve many media ids to public URLs in one query (page builder canvas previews).
+     */
+    public function lookup(LookupMediaRequest $request)
+    {
+        $rows = Media::query()->whereIn('id', $request->ids())->get();
+
+        return response()->json([
+            'data' => $rows->map(fn (Media $media) => [
+                'id' => $media->id,
+                'url' => AppearanceMediaResolver::urlFor($media),
+                'mime_type' => $media->mime_type,
+            ])->values(),
+        ]);
+    }
+
     public function show($id)
     {
         $media = Media::findOrFail($id);

@@ -99,6 +99,58 @@ final class PageLayoutDocument
 
         $sections = GlobalWidgetService::resolveSections($sections);
 
+        return AppearanceMediaResolver::withPrimed(
+            self::collectMediaIds($sections),
+            fn () => self::presentSections($sections, $locale, $defaultLocale, $tagContext),
+        );
+    }
+
+    /**
+     * Every media id referenced by leaf settings anywhere in the document (bands, rows, columns,
+     * inner bands), so presentation can load them in one query.
+     *
+     * @param  array<int|string, mixed>  $node
+     * @return list<int>
+     */
+    public static function collectMediaIds(array $node): array
+    {
+        $ids = [];
+        if (isset($node['type']) && is_string($node['type']) && is_array($node['settings'] ?? null)) {
+            $type = strtolower(trim($node['type']));
+            $kind = PageLeafRegistry::inferKind($type, isset($node['kind']) ? (string) $node['kind'] : null);
+            $entry = match ($kind) {
+                PageLeafRegistry::KIND_WIDGET => WidgetRegistry::all()[$type] ?? null,
+                PageLeafRegistry::KIND_KIT => KitRegistry::all()[$type] ?? null,
+                default => null,
+            };
+            $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
+            $ids = AppearanceMediaResolver::collectIds($node['settings'], $fields);
+        }
+        foreach (['rows', 'columns', 'blocks'] as $childKey) {
+            foreach (is_array($node[$childKey] ?? null) ? $node[$childKey] : [] as $child) {
+                if (is_array($child)) {
+                    array_push($ids, ...self::collectMediaIds($child));
+                }
+            }
+        }
+        if (array_is_list($node)) {
+            foreach ($node as $child) {
+                if (is_array($child)) {
+                    array_push($ids, ...self::collectMediaIds($child));
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $sections
+     * @param  array<string, mixed>|null  $tagContext
+     * @return list<array<string, mixed>>
+     */
+    private static function presentSections(array $sections, string $locale, string $defaultLocale, ?array $tagContext): array
+    {
         $out = [];
         foreach ($sections as $section) {
             if (! is_array($section)) {
