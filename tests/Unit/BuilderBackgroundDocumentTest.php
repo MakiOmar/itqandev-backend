@@ -49,4 +49,19 @@ class BuilderBackgroundDocumentTest extends TestCase
         $this->assertSame('#000000', $invalid['overlay_color']);
         $this->assertSame(50, $invalid['overlay_opacity']);
     }
+
+    public function test_image_lazy_is_only_stored_when_disabled(): void
+    {
+        $default = BuilderBackgroundDocument::normalize(['type' => 'image', 'image_url' => '/storage/a.webp']);
+        $this->assertArrayNotHasKey('image_lazy', $default);
+
+        $on = BuilderBackgroundDocument::normalize(['type' => 'image', 'image_url' => '/storage/a.webp', 'image_lazy' => true]);
+        $this->assertArrayNotHasKey('image_lazy', $on);
+
+        $off = BuilderBackgroundDocument::normalize(['type' => 'image', 'image_url' => '/storage/a.webp', 'image_lazy' => false]);
+        $this->assertFalse($off['image_lazy']);
+
+        $color = BuilderBackgroundDocument::normalize(['type' => 'color', 'color' => '#ffffff', 'image_lazy' => false]);
+        $this->assertArrayNotHasKey('image_lazy', $color);
+    }
 }
