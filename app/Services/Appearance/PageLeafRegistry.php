@@ -84,6 +84,23 @@ final class PageLeafRegistry
     }
 
     /**
+     * Shared repeaters (per-row translated item fields) for a leaf type.
+     *
+     * @return array<string, list<string>>
+     */
+    public static function sharedRepeaterKeys(string $kind, string $type): array
+    {
+        $entry = match ($kind) {
+            self::KIND_WIDGET => WidgetRegistry::all()[$type] ?? null,
+            self::KIND_KIT => KitRegistry::all()[$type] ?? null,
+            default => null,
+        };
+        $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
+
+        return SharedRepeaterTranslations::fromFields($fields);
+    }
+
+    /**
      * Count key for max_instances (kind-aware).
      */
     public static function countKey(string $kind, string $type): string

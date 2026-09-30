@@ -48,10 +48,15 @@ final class AppearanceLocalizedSettings
      * @param  array<string, mixed>  $settings
      * @param  array<string, mixed>  $defaults
      * @param  list<string>  $translatableKeys
+     * @param  array<string, list<string>>  $sharedRepeaters  See SharedRepeaterTranslations::fromFields()
      * @return array<string, mixed>
      */
-    public static function normalize(array $settings, array $defaults, array $translatableKeys): array
-    {
+    public static function normalize(
+        array $settings,
+        array $defaults,
+        array $translatableKeys,
+        array $sharedRepeaters = [],
+    ): array {
         $translationsIn = is_array($settings['translations'] ?? null) ? $settings['translations'] : [];
         unset($settings['translations']);
 
@@ -93,6 +98,12 @@ final class AppearanceLocalizedSettings
             $merged = HeroParticlesSettings::normalizeInto($merged);
         }
 
+        foreach (array_keys($sharedRepeaters) as $sharedKey) {
+            if (array_key_exists($sharedKey, $merged)) {
+                $merged[$sharedKey] = SharedRepeaterTranslations::ensureIds($merged[$sharedKey]);
+            }
+        }
+
         $normalizedTranslations = [];
         $keySet = array_fill_keys($translatableKeys, true);
         foreach ($translationsIn as $locale => $bag) {
@@ -106,6 +117,15 @@ final class AppearanceLocalizedSettings
             $out = [];
             foreach ($bag as $key => $value) {
                 $key = (string) $key;
+                if (isset($sharedRepeaters[$key])) {
+                    $rows = is_array($merged[$key] ?? null) ? $merged[$key] : [];
+                    $sharedBag = SharedRepeaterTranslations::sanitizeBag($value, $sharedRepeaters[$key], $rows);
+                    if ($sharedBag !== []) {
+                        $out[$key] = $sharedBag;
+                    }
+
+                    continue;
+                }
                 if (! isset($keySet[$key])) {
                     continue;
                 }
@@ -132,6 +152,7 @@ final class AppearanceLocalizedSettings
      *
      * @param  array<string, mixed>  $settings
      * @param  list<string>  $translatableKeys
+     * @param  array<string, list<string>>  $sharedRepeaters  See SharedRepeaterTranslations::fromFields()
      * @return array<string, mixed>
      */
     public static function resolveForLocale(
@@ -139,6 +160,7 @@ final class AppearanceLocalizedSettings
         ?string $locale,
         string $defaultLocale,
         array $translatableKeys,
+        array $sharedRepeaters = [],
     ): array {
         $locale = strtolower(trim((string) $locale));
         $defaultLocale = strtolower(trim($defaultLocale));
@@ -150,6 +172,11 @@ final class AppearanceLocalizedSettings
         }
 
         $bag = is_array($translations[$locale] ?? null) ? $translations[$locale] : [];
+        foreach ($sharedRepeaters as $sharedKey => $itemKeys) {
+            if (array_key_exists($sharedKey, $settings)) {
+                $settings[$sharedKey] = SharedRepeaterTranslations::overlay($settings[$sharedKey], $bag[$sharedKey] ?? null, $itemKeys);
+            }
+        }
         foreach ($translatableKeys as $key) {
             if (! array_key_exists($key, $bag)) {
                 continue;

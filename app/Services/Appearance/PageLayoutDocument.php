@@ -361,6 +361,7 @@ final class PageLayoutDocument
             $settings,
             PageLeafRegistry::defaultSettings($kind, $type),
             PageLeafRegistry::translatableKeys($kind, $type),
+            PageLeafRegistry::sharedRepeaterKeys($kind, $type),
         );
         $entry = $kind === PageLeafRegistry::KIND_WIDGET
             ? (WidgetRegistry::all()[$type] ?? null)
@@ -679,6 +680,7 @@ final class PageLayoutDocument
             $locale,
             $defaultLocale,
             PageLeafRegistry::translatableKeys($kind, $type),
+            PageLeafRegistry::sharedRepeaterKeys($kind, $type),
         );
         $entry = $kind === PageLeafRegistry::KIND_WIDGET
             ? (WidgetRegistry::all()[$type] ?? null)
