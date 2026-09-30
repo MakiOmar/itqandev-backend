@@ -347,10 +347,21 @@ final class KitRegistry
                         'tablet' => 2,
                         'desktop' => 2,
                     ],
+                    'card_style' => 'overlay',
                 ],
                 'settings_fields' => [
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
+                    [
+                        'key' => 'card_style',
+                        'type' => 'select',
+                        'label' => 'Card style',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'overlay', 'label' => 'Image with title overlay'],
+                            ['value' => 'detailed', 'label' => 'Detailed (category, summary, skills, button)'],
+                        ],
+                    ],
                     [
                         'key' => 'category_ids',
                         'type' => 'category_multi',

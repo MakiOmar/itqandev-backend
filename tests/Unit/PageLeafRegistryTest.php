@@ -60,6 +60,17 @@ class PageLeafRegistryTest extends TestCase
         $this->assertSame(['title', 'subtitle'], KitRegistry::translatableKeys('testimonials'));
     }
 
+    public function test_case_studies_kit_offers_card_style_select(): void
+    {
+        $this->assertSame('overlay', KitRegistry::defaultSettings('case_studies')['card_style']);
+
+        $kit = collect(KitRegistry::forAdmin())->firstWhere('type', 'case_studies');
+        $field = collect($kit['settings_fields'])->firstWhere('key', 'card_style');
+        $this->assertSame('select', $field['type']);
+        $this->assertSame(['overlay', 'detailed'], array_column($field['options'], 'value'));
+        $this->assertNotContains('card_style', KitRegistry::translatableKeys('case_studies'));
+    }
+
     public function test_page_layout_normalize_adds_kind_to_legacy_blocks(): void
     {
         $normalized = PageLayoutDocument::normalizeSectionsForPages([
