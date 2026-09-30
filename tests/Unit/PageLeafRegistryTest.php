@@ -85,6 +85,25 @@ class PageLeafRegistryTest extends TestCase
         $this->assertNotContains('watermark_speed', KitRegistry::translatableKeys('hero'));
     }
 
+    public function test_hero_kit_fields_are_grouped_with_valid_toggle_dependencies(): void
+    {
+        $kit = collect(KitRegistry::forAdmin())->firstWhere('type', 'hero');
+        $fields = collect($kit['settings_fields'])->keyBy('key');
+
+        $this->assertSame(
+            ['content', 'images', 'layout', 'watermark', 'particles', 'floating_icons'],
+            $fields->pluck('group')->unique()->values()->all(),
+        );
+        foreach ($fields->whereNotNull('show_if') as $key => $field) {
+            $parent = $fields->get($field['show_if']);
+            $this->assertNotNull($parent, "{$key} depends on a missing field");
+            $this->assertSame('boolean', $parent['type'], "{$key} must depend on a boolean toggle");
+            $this->assertSame($field['group'], $parent['group'], "{$key} and its toggle must share a group");
+        }
+        $this->assertSame('particles_enabled', $fields['particles_density']['show_if']);
+        $this->assertSame('floating_icons_enabled', $fields['floating_icons']['show_if']);
+    }
+
     public function test_page_layout_normalize_adds_kind_to_legacy_blocks(): void
     {
         $normalized = PageLayoutDocument::normalizeSectionsForPages([
