@@ -5,7 +5,7 @@ namespace App\Services\Appearance;
 /**
  * Sanitize layout-node `settings.background` (band / row / column / leaf).
  *
- * @phpstan-type BuilderBackground array{type: string, color?: string, gradient_from?: string, gradient_to?: string, gradient_angle?: int, image_url?: string, image_size?: string, image_position?: string, image_repeat?: string, particles_density?: int, particles_speed?: int, particles_opacity?: int, particles_size?: int, particles_color?: string, rain_color?: string, rain_speed?: int, rain_density?: int, rain_direction?: string}
+ * @phpstan-type BuilderBackground array{type: string, color?: string, gradient_from?: string, gradient_to?: string, gradient_angle?: int, image_url?: string, image_id?: int, overlay?: bool, overlay_color?: string, overlay_opacity?: int, image_size?: string, image_position?: string, image_repeat?: string, particles_density?: int, particles_speed?: int, particles_opacity?: int, particles_size?: int, particles_color?: string, rain_color?: string, rain_speed?: int, rain_density?: int, rain_direction?: string}
  */
 final class BuilderBackgroundDocument
 {
@@ -71,6 +71,14 @@ final class BuilderBackgroundDocument
             $out['image_position'] = $pos !== '' ? mb_substr($pos, 0, 64) : 'center';
             $repeat = strtolower(trim((string) ($raw['image_repeat'] ?? 'no-repeat')));
             $out['image_repeat'] = in_array($repeat, self::IMAGE_REPEATS, true) ? $repeat : 'no-repeat';
+            if (is_numeric($raw['image_id'] ?? null) && (int) $raw['image_id'] > 0) {
+                $out['image_id'] = (int) $raw['image_id'];
+            }
+            if (filter_var($raw['overlay'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                $out['overlay'] = true;
+                $out['overlay_color'] = self::optionalHexColor($raw['overlay_color'] ?? null) ?? '#000000';
+                $out['overlay_opacity'] = self::clampInt($raw['overlay_opacity'] ?? 50, 0, 100, 50);
+            }
 
             return $out;
         }
