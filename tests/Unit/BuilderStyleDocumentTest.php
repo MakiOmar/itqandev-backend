@@ -93,6 +93,38 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertArrayNotHasKey('btn_tertiary_bg', $bag);
     }
 
+    public function test_keeps_valid_case_study_card_keys_and_drops_invalid_ones(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'mobile' => [
+                'card_bg' => '#0F172A',
+                'card_border_color' => 'blue',
+                'card_radius' => ['value' => 24, 'unit' => 'px'],
+                'card_hover_shadow' => ['h' => 0, 'v' => 8, 'blur' => 24, 'spread' => 0, 'color' => '#6366f133'],
+                'card_cat_font_weight' => '700',
+                'card_title_transform' => 'uppercase',
+                'card_summary_line_height' => 'tall',
+                'card_chip_bg' => 'rgba(30, 41, 59, 0.8)',
+                'btn_card_hover_bg' => '#4f46e5',
+                'btn_card_padding_y' => ['value' => 14, 'unit' => 'px'],
+                'card_unknown' => '#ffffff',
+            ],
+        ]);
+
+        $bag = $out['mobile'];
+        $this->assertSame('#0f172a', $bag['card_bg']);
+        $this->assertArrayNotHasKey('card_border_color', $bag);
+        $this->assertSame(24.0, $bag['card_radius']['value']);
+        $this->assertSame(24.0, $bag['card_hover_shadow']['blur']);
+        $this->assertSame('700', $bag['card_cat_font_weight']);
+        $this->assertSame('uppercase', $bag['card_title_transform']);
+        $this->assertArrayNotHasKey('card_summary_line_height', $bag);
+        $this->assertSame('rgba(30, 41, 59, 0.8)', $bag['card_chip_bg']);
+        $this->assertSame('#4f46e5', $bag['btn_card_hover_bg']);
+        $this->assertSame(14.0, $bag['btn_card_padding_y']['value']);
+        $this->assertArrayNotHasKey('card_unknown', $bag);
+    }
+
     public function test_strips_unsafe_custom_css(): void
     {
         $out = BuilderStyleDocument::normalize([

@@ -63,8 +63,25 @@ final class BuilderStyleDocument
         'subtitle_transform', 'subtitle_color',
     ];
 
-    /** Button parts (e.g. hero CTAs); each gets every BUTTON_* suffix as `{part}_{suffix}`. */
-    private const BUTTON_PARTS = ['btn_primary', 'btn_secondary'];
+    /** Detailed case study card parts, keyed to the kind of value each one accepts. */
+    private const CASE_CARD_KEYS = [
+        'card_bg' => 'color', 'card_border_color' => 'color', 'card_hover_border_color' => 'color',
+        'card_border_width' => 'length', 'card_radius' => 'length', 'card_padding' => 'length',
+        'card_shadow' => 'shadow', 'card_hover_shadow' => 'shadow',
+        'card_cat_font_size' => 'length', 'card_cat_font_weight' => 'weight', 'card_cat_transform' => 'transform',
+        'card_cat_letter_spacing' => 'length', 'card_cat_color' => 'color', 'card_cat_bg' => 'color',
+        'card_cat_radius' => 'length',
+        'card_title_font_size' => 'length', 'card_title_font_weight' => 'weight', 'card_title_line_height' => 'length',
+        'card_title_letter_spacing' => 'length', 'card_title_transform' => 'transform', 'card_title_color' => 'color',
+        'card_title_hover_color' => 'color',
+        'card_summary_font_size' => 'length', 'card_summary_font_weight' => 'weight',
+        'card_summary_line_height' => 'length', 'card_summary_color' => 'color',
+        'card_chip_font_size' => 'length', 'card_chip_font_weight' => 'weight', 'card_chip_color' => 'color',
+        'card_chip_bg' => 'color', 'card_chip_border_color' => 'color', 'card_chip_radius' => 'length',
+    ];
+
+    /** Button parts (hero CTAs, case study card); each gets every BUTTON_* suffix as `{part}_{suffix}`. */
+    private const BUTTON_PARTS = ['btn_primary', 'btn_secondary', 'btn_card'];
 
     private const BUTTON_COLOR_SUFFIXES = ['color', 'bg', 'border_color', 'hover_color', 'hover_bg', 'hover_border_color'];
 
@@ -83,7 +100,7 @@ final class BuilderStyleDocument
                 ...self::BUTTON_COLOR_SUFFIXES, ...self::BUTTON_LENGTH_SUFFIXES, ...self::BUTTON_SHADOW_SUFFIXES,
                 'font_weight', 'transform',
             ];
-            $keys = self::KEYS;
+            $keys = [...self::KEYS, ...array_keys(self::CASE_CARD_KEYS)];
             foreach (self::BUTTON_PARTS as $part) {
                 foreach ($suffixes as $suffix) {
                     $keys[] = "{$part}_{$suffix}";
@@ -167,8 +184,17 @@ final class BuilderStyleDocument
 
     private static function normalizeValue(string $key, mixed $value): mixed
     {
-        if (preg_match('/^btn_(?:primary|secondary)_(.+)$/', $key, $m) === 1) {
+        if (preg_match('/^btn_(?:primary|secondary|card)_(.+)$/', $key, $m) === 1) {
             return self::normalizeButtonValue($m[1], $value);
+        }
+        if (isset(self::CASE_CARD_KEYS[$key])) {
+            return match (self::CASE_CARD_KEYS[$key]) {
+                'color' => self::color($value),
+                'length' => self::length($value),
+                'shadow' => self::shadow($value),
+                'weight' => self::enum((string) $value, self::FONT_WEIGHT),
+                'transform' => self::enum($value, self::TEXT_TRANSFORM),
+            };
         }
 
         return match ($key) {
