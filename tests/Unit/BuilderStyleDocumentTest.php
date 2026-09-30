@@ -35,6 +35,32 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertArrayNotHasKey('mobile', $out);
     }
 
+    public function test_keeps_valid_widget_part_keys_and_drops_invalid_ones(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => [
+                'tab_active_color' => '#ef4444',
+                'tab_bg' => 'url(javascript:alert(1))',
+                'tab_font_weight' => 700,
+                'nav_size' => ['value' => 48, 'unit' => 'px'],
+                'nav_hover_bg' => '#0f172a',
+                'link_transform' => 'uppercase',
+                'link_font_weight' => 'heavy',
+                'link_letter_spacing' => ['value' => 0.1, 'unit' => 'em'],
+            ],
+        ]);
+
+        $bag = $out['desktop'];
+        $this->assertSame('#ef4444', $bag['tab_active_color']);
+        $this->assertArrayNotHasKey('tab_bg', $bag);
+        $this->assertSame('700', $bag['tab_font_weight']);
+        $this->assertSame(48.0, $bag['nav_size']['value']);
+        $this->assertSame('#0f172a', $bag['nav_hover_bg']);
+        $this->assertSame('uppercase', $bag['link_transform']);
+        $this->assertArrayNotHasKey('link_font_weight', $bag);
+        $this->assertSame('em', $bag['link_letter_spacing']['unit']);
+    }
+
     public function test_strips_unsafe_custom_css(): void
     {
         $out = BuilderStyleDocument::normalize([
