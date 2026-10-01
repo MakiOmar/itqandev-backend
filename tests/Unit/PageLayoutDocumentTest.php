@@ -97,6 +97,35 @@ class PageLayoutDocumentTest extends TestCase
         $this->assertArrayHasKey('settings', $blocks[0]);
     }
 
+    public function test_column_flex_is_sanitized_and_kept_through_public_presentation(): void
+    {
+        $normalized = PageLayoutDocument::normalizeSectionsForPages([
+            [
+                'type' => 'layout',
+                'rows' => [
+                    [
+                        'columns' => [
+                            [
+                                'flex' => ['direction' => 'row', 'justify' => 'evenly', 'align' => 'bogus', 'wrap' => 'false', 'gap' => 99],
+                                'blocks' => [['type' => 'cta', 'settings' => []]],
+                            ],
+                            ['flex' => 'not-an-object', 'blocks' => []],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $expected = ['direction' => 'row', 'justify' => 'evenly', 'align' => 'stretch', 'wrap' => false, 'gap' => 16];
+        $columns = $normalized[0]['rows'][0]['columns'];
+        $this->assertSame($expected, $columns[0]['flex']);
+        $this->assertArrayNotHasKey('flex', $columns[1]);
+
+        $public = PageLayoutDocument::presentPublicForPages($normalized, 'en');
+        $this->assertSame($expected, $public[0]['rows'][0]['columns'][0]['flex']);
+        $this->assertArrayNotHasKey('flex', $public[0]['rows'][0]['columns'][1]);
+    }
+
     public function test_persists_row_and_column_background_and_styles(): void
     {
         $out = PageLayoutDocument::normalizeSectionsForPages([

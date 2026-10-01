@@ -29,6 +29,9 @@ final class PageLayoutDocument
     /** @var list<string> */
     private const FLEX_ALIGN = ['start', 'center', 'end', 'stretch'];
 
+    /** @var list<string> */
+    private const COLUMN_FLEX_JUSTIFY = ['start', 'center', 'end', 'between', 'around', 'evenly'];
+
     /**
      * @param  array<string, mixed>|list<mixed>|null  $input
      * @return list<array<string, mixed>>
@@ -344,9 +347,38 @@ final class PageLayoutDocument
             'blocks' => $blocks,
         ];
 
+        $normalized = self::appendColumnFlex($normalized, $col['flex'] ?? null);
         $normalized = LayoutHideOn::appendTo($normalized, $col['hide_on'] ?? null);
 
         return BuilderStyleDocument::appendTo($normalized, $col['styles'] ?? null);
+    }
+
+    /**
+     * Columns without a valid `flex` object keep the legacy vertical stack, so the key is omitted.
+     *
+     * @param  array<string, mixed>  $column
+     * @return array<string, mixed>
+     */
+    private static function appendColumnFlex(array $column, mixed $flex): array
+    {
+        if (! is_array($flex)) {
+            return $column;
+        }
+
+        $direction = strtolower(trim((string) ($flex['direction'] ?? 'column')));
+        $justify = strtolower(trim((string) ($flex['justify'] ?? 'start')));
+        $align = strtolower(trim((string) ($flex['align'] ?? 'stretch')));
+        $gap = (int) ($flex['gap'] ?? 6);
+
+        $column['flex'] = [
+            'direction' => in_array($direction, self::FLEX_DIRECTION, true) ? $direction : 'column',
+            'justify' => in_array($justify, self::COLUMN_FLEX_JUSTIFY, true) ? $justify : 'start',
+            'align' => in_array($align, self::FLEX_ALIGN, true) ? $align : 'stretch',
+            'wrap' => filter_var($flex['wrap'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            'gap' => max(0, min(16, $gap)),
+        ];
+
+        return $column;
     }
 
     /**
@@ -641,6 +673,7 @@ final class PageLayoutDocument
                     'settings' => BuilderBackgroundDocument::normalizeLayoutSettings($rawCol['settings'] ?? null),
                     'blocks' => $blocksOut,
                 ];
+                $column = self::appendColumnFlex($column, $rawCol['flex'] ?? null);
                 $column = LayoutHideOn::appendTo($column, $rawCol['hide_on'] ?? null);
                 $columnsOut[] = BuilderStyleDocument::appendTo($column, $rawCol['styles'] ?? null);
             }
