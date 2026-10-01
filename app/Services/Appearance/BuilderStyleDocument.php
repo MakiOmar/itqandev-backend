@@ -6,7 +6,7 @@ namespace App\Services\Appearance;
  * Sanitize leaf `styles` maps (desktop / tablet / mobile). Unknown keys dropped.
  *
  * @phpstan-type StyleBag array<string, mixed>
- * @phpstan-type BuilderStyles array{desktop?: StyleBag, tablet?: StyleBag, mobile?: StyleBag}
+ * @phpstan-type BuilderStyles array{desktop?: StyleBag, tablet?: StyleBag, mobile?: StyleBag, dark?: StyleBag}
  */
 final class BuilderStyleDocument
 {
@@ -62,6 +62,22 @@ final class BuilderStyleDocument
         'subtitle_font_size', 'subtitle_font_weight', 'subtitle_line_height', 'subtitle_letter_spacing',
         'subtitle_transform', 'subtitle_color',
     ];
+
+    /** Colour keys among KEYS; with SHADOW_KEYS they are the only keys a `dark` bag accepts. */
+    private const COLOR_KEYS = [
+        'border_color', 'caption_color', 'text_color',
+        'tab_color', 'tab_bg', 'tab_hover_color', 'tab_hover_bg', 'tab_active_color', 'tab_active_bg',
+        'tab_indicator_color', 'nav_color', 'nav_bg', 'nav_border_color', 'nav_hover_color', 'nav_hover_bg',
+        'link_color', 'link_hover_color', 'title_color', 'subtitle_color',
+    ];
+
+    private const SHADOW_KEYS = ['box_shadow', 'hover_box_shadow'];
+
+    /** Dark-bag value meaning "use the widget's theme default", overriding a custom light value. */
+    public const THEME_SENTINEL = 'theme';
+
+    /** Design kit global colour reference; the kit emits light and dark values for each slug. */
+    public const KIT_COLOR_VAR_PATTERN = '/^var\(--kit-color-[a-z0-9-]{1,40}\)$/';
 
     /** Detailed case study card parts, keyed to the kind of value each one accepts. */
     private const CASE_CARD_KEYS = [
@@ -156,8 +172,61 @@ final class BuilderStyleDocument
                 $out[$bp] = $bag;
             }
         }
+        if (isset($raw['dark']) && is_array($raw['dark'])) {
+            $dark = self::normalizeDarkBag($raw['dark']);
+            if ($dark !== []) {
+                $out['dark'] = $dark;
+            }
+        }
 
         return $out === [] ? null : $out;
+    }
+
+    /**
+     * Dark overrides are colours only (one bag for every breakpoint).
+     *
+     * @param  array<string, mixed>  $bag
+     * @return StyleBag
+     */
+    private static function normalizeDarkBag(array $bag): array
+    {
+        $out = [];
+        foreach ($bag as $key => $value) {
+            $kind = is_string($key) ? self::colorKind($key) : null;
+            if ($kind === null) {
+                continue;
+            }
+            $normalized = $value === self::THEME_SENTINEL
+                ? self::THEME_SENTINEL
+                : ($kind === 'color' ? self::color($value) : self::shadow($value));
+            if ($normalized !== null) {
+                $out[$key] = $normalized;
+            }
+        }
+
+        return $out;
+    }
+
+    /** `color` / `shadow` for keys a dark bag may override, otherwise null. */
+    public static function colorKind(string $key): ?string
+    {
+        if (preg_match('/^btn_(?:primary|secondary|card)_(.+)$/', $key, $m) === 1) {
+            return match (true) {
+                in_array($m[1], self::BUTTON_COLOR_SUFFIXES, true) => 'color',
+                in_array($m[1], self::BUTTON_SHADOW_SUFFIXES, true) => 'shadow',
+                default => null,
+            };
+        }
+        $partKind = self::PART_KEYS[$key] ?? null;
+        if ($partKind === 'color' || $partKind === 'shadow') {
+            return $partKind;
+        }
+
+        return match (true) {
+            in_array($key, self::COLOR_KEYS, true) => 'color',
+            in_array($key, self::SHADOW_KEYS, true) => 'shadow',
+            default => null,
+        };
     }
 
     /**
@@ -211,6 +280,13 @@ final class BuilderStyleDocument
             };
         }
 
+        if (in_array($key, self::COLOR_KEYS, true)) {
+            return self::color($value);
+        }
+        if (in_array($key, self::SHADOW_KEYS, true)) {
+            return self::shadow($value);
+        }
+
         return match ($key) {
             'align', 'caption_align' => self::enum($value, self::ALIGN),
             'object_fit' => self::enum($value, self::OBJECT_FIT),
@@ -228,7 +304,6 @@ final class BuilderStyleDocument
             'opacity', 'hover_opacity' => self::ratio($value),
             'z_index' => self::intInRange($value, -9999, 9999),
             'hover_transition' => self::intInRange($value, 0, 5000),
-            'border_color', 'caption_color', 'text_color' => self::color($value),
             'font_family' => self::fontFamily($value),
             'font_size', 'line_height', 'letter_spacing' => self::length($value),
             'font_weight' => self::enum((string) $value, self::FONT_WEIGHT),
@@ -236,9 +311,6 @@ final class BuilderStyleDocument
             'font_style' => self::enum($value, self::FONT_STYLE),
             'text_decoration' => self::enum($value, self::TEXT_DECORATION),
             'type_role' => self::enum($value, ['heading', 'body', 'accent']),
-            'tab_color', 'tab_bg', 'tab_hover_color', 'tab_hover_bg', 'tab_active_color', 'tab_active_bg',
-            'tab_indicator_color', 'nav_color', 'nav_bg', 'nav_border_color', 'nav_hover_color', 'nav_hover_bg',
-            'link_color', 'link_hover_color', 'title_color', 'subtitle_color' => self::color($value),
             'tab_font_size', 'tab_radius', 'nav_size', 'nav_icon_size', 'nav_radius',
             'link_font_size', 'link_letter_spacing',
             'title_font_size', 'title_line_height', 'title_letter_spacing',
@@ -246,7 +318,6 @@ final class BuilderStyleDocument
             'tab_font_weight', 'link_font_weight', 'title_font_weight', 'subtitle_font_weight' => self::enum((string) $value, self::FONT_WEIGHT),
             'link_transform', 'title_transform', 'subtitle_transform' => self::enum($value, self::TEXT_TRANSFORM),
             'filters', 'hover_filters' => self::filters($value),
-            'box_shadow', 'hover_box_shadow' => self::shadow($value),
             'custom_css' => self::customCss($value),
             default => null,
         };
@@ -354,6 +425,9 @@ final class BuilderStyleDocument
             return strtolower($s);
         }
         if (preg_match('/^rgba?\(\s*[\d.]+(?:\s*,\s*[\d.]+){2,3}\s*\)$/i', $s) === 1) {
+            return $s;
+        }
+        if (preg_match(self::KIT_COLOR_VAR_PATTERN, $s) === 1) {
             return $s;
         }
 

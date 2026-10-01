@@ -217,4 +217,105 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertSame(320.0, $block['styles']['desktop']['width']['value']);
         $this->assertArrayNotHasKey('evil', $block['styles']['desktop']);
     }
+
+    public function test_dark_bag_keeps_only_colour_and_shadow_keys(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'dark' => [
+                'text_color' => '#F1F5F9',
+                'card_bg' => 'rgba(15, 23, 42, 0.9)',
+                'btn_primary_hover_bg' => '#0ea5e9',
+                'box_shadow' => ['color' => '#00000099', 'h' => 0, 'v' => 4, 'blur' => 12],
+                'card_hover_shadow' => ['color' => '#000', 'blur' => 8],
+                'font_size' => ['value' => 20, 'unit' => 'px'],
+                'card_radius' => ['value' => 8, 'unit' => 'px'],
+                'btn_primary_font_size' => ['value' => 16, 'unit' => 'px'],
+                'custom_css' => 'color:red',
+                'unknown' => '#fff',
+            ],
+        ]);
+
+        $dark = $out['dark'];
+        $this->assertSame('#f1f5f9', $dark['text_color']);
+        $this->assertSame('rgba(15, 23, 42, 0.9)', $dark['card_bg']);
+        $this->assertSame('#0ea5e9', $dark['btn_primary_hover_bg']);
+        $this->assertSame(12.0, $dark['box_shadow']['blur']);
+        $this->assertSame(8.0, $dark['card_hover_shadow']['blur']);
+        foreach (['font_size', 'card_radius', 'btn_primary_font_size', 'custom_css', 'unknown'] as $key) {
+            $this->assertArrayNotHasKey($key, $dark);
+        }
+    }
+
+    public function test_dark_bag_accepts_theme_sentinel_and_rejects_unsafe_values(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => ['text_color' => '#111111'],
+            'dark' => [
+                'text_color' => 'theme',
+                'box_shadow' => 'theme',
+                'title_color' => 'red;}</style><script>',
+                'link_color' => 'expression(alert(1))',
+                'card_bg' => 'url(javascript:alert(1))',
+            ],
+        ]);
+
+        $this->assertSame('#111111', $out['desktop']['text_color']);
+        $this->assertSame(['text_color' => 'theme', 'box_shadow' => 'theme'], $out['dark']);
+    }
+
+    public function test_empty_dark_bag_is_omitted(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => ['object_fit' => 'cover'],
+            'dark' => ['font_size' => '12px'],
+        ]);
+
+        $this->assertArrayNotHasKey('dark', $out);
+    }
+
+    public function test_light_bags_do_not_accept_theme_sentinel(): void
+    {
+        $out = BuilderStyleDocument::normalize(['desktop' => ['text_color' => 'theme']]);
+
+        $this->assertNull($out);
+    }
+
+    public function test_colours_accept_design_kit_variables_only_in_strict_form(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => [
+                'text_color' => 'var(--kit-color-primary)',
+                'title_color' => 'var(--kit-color-primary, red)',
+                'link_color' => 'var(--other)',
+            ],
+            'dark' => ['text_color' => 'var(--kit-color-surface-2)'],
+        ]);
+
+        $this->assertSame(['text_color' => 'var(--kit-color-primary)'], $out['desktop']);
+        $this->assertSame('var(--kit-color-surface-2)', $out['dark']['text_color']);
+    }
+
+    public function test_page_layout_keeps_block_dark_styles(): void
+    {
+        $sections = PageLayoutDocument::normalizeSectionsForPages([
+            [
+                'type' => 'layout',
+                'rows' => [[
+                    'columns' => [[
+                        'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
+                        'blocks' => [[
+                            'id' => 'blk_image_2',
+                            'type' => 'image',
+                            'kind' => 'widget',
+                            'styles' => ['dark' => ['border_color' => '#e2e8f0', 'width' => '40px']],
+                            'settings' => ['alt' => 'x'],
+                        ]],
+                    ]],
+                ]],
+            ],
+        ]);
+
+        $block = $sections[0]['rows'][0]['columns'][0]['blocks'][0];
+        $this->assertSame(['border_color' => '#e2e8f0'], $block['styles']['dark']);
+    }
 }
