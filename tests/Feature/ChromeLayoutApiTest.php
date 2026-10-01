@@ -143,6 +143,63 @@ class ChromeLayoutApiTest extends TestCase
         );
     }
 
+    /**
+     * Header/footer builders offer the page builder's widgets and kits; they must save,
+     * sanitize and present exactly like page layouts.
+     */
+    public function test_header_and_footer_layouts_round_trip_page_widgets_and_kits(): void
+    {
+        $headers = $this->bearerHeaders($this->admin());
+
+        foreach (['headers', 'footers'] as $slug) {
+            $create = $this->withHeaders($headers)->postJson('/api/appearance/'.$slug, [
+                'name' => 'Widgets '.$slug,
+                'status' => 'published',
+            ])->assertCreated();
+            $id = (int) $create->json('data.id');
+
+            $sections = [[
+                'id' => 'band_w',
+                'type' => 'layout',
+                'rows' => [[
+                    'id' => 'row_w',
+                    'columns' => [[
+                        'id' => 'col_w',
+                        'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
+                        'blocks' => [
+                            ['id' => 'blk_brand', 'kind' => 'kit', 'type' => $slug === 'headers' ? 'header_brand' : 'footer_brand', 'settings' => []],
+                            ['id' => 'blk_heading', 'kind' => 'widget', 'type' => 'heading', 'settings' => ['text' => 'Hello', 'level' => 'h3']],
+                            ['id' => 'blk_rich', 'kind' => 'widget', 'type' => 'rich_text', 'settings' => ['html' => '<p>Hi</p><script>alert(1)</script>']],
+                            ['id' => 'blk_cta', 'kind' => 'kit', 'type' => 'cta', 'settings' => []],
+                        ],
+                    ]],
+                ]],
+            ]];
+
+            $this->withHeaders($headers)->putJson('/api/appearance/'.$slug.'/'.$id, ['sections' => $sections])
+                ->assertOk();
+
+            $blocks = $this->withHeaders($headers)->getJson('/api/appearance/'.$slug.'/'.$id)
+                ->assertOk()
+                ->json('data.sections.0.rows.0.columns.0.blocks');
+            $this->assertSame(
+                ['blk_brand', 'blk_heading', 'blk_rich', 'blk_cta'],
+                array_column($blocks, 'id'),
+            );
+            $byId = array_column($blocks, null, 'id');
+            $this->assertSame('widget', $byId['blk_heading']['kind']);
+            $this->assertSame('h3', $byId['blk_heading']['settings']['level']);
+            $this->assertSame('kit', $byId['blk_cta']['kind']);
+            $this->assertStringNotContainsString('<script', json_encode($byId['blk_rich']['settings']));
+
+            $presented = app(ChromeLayoutService::class)->presentById($id, 'en');
+            $publicTypes = array_column($presented['sections'][0]['rows'][0]['columns'][0]['blocks'], 'type');
+            $this->assertContains('heading', $publicTypes);
+            $this->assertContains('rich_text', $publicTypes);
+            $this->assertContains('cta', $publicTypes);
+        }
+    }
+
     public function test_legacy_appearance_header_endpoint_still_works(): void
     {
         $headers = $this->bearerHeaders($this->admin());
