@@ -64,4 +64,87 @@ class BuilderBackgroundDocumentTest extends TestCase
         $color = BuilderBackgroundDocument::normalize(['type' => 'color', 'color' => '#ffffff', 'image_lazy' => false]);
         $this->assertArrayNotHasKey('image_lazy', $color);
     }
+
+    public function test_dark_overrides_keep_only_keys_for_the_background_type(): void
+    {
+        $color = BuilderBackgroundDocument::normalize([
+            'type' => 'color',
+            'color' => '#ffffff',
+            'dark' => ['color' => '#0F172A', 'gradient_from' => '#000000', 'image_url' => '/storage/x.webp'],
+        ]);
+        $this->assertSame(['color' => '#0f172a'], $color['dark']);
+
+        $gradient = BuilderBackgroundDocument::normalize([
+            'type' => 'gradient',
+            'dark' => ['gradient_from' => '#111111', 'gradient_to' => 'nope', 'gradient_angle' => 10],
+        ]);
+        $this->assertSame(['gradient_from' => '#111111'], $gradient['dark']);
+
+        $particles = BuilderBackgroundDocument::normalize([
+            'type' => 'particles',
+            'dark' => ['particles_color' => '#38bdf8', 'particles_speed' => 90],
+        ]);
+        $this->assertSame(['particles_color' => '#38bdf8'], $particles['dark']);
+
+        $rain = BuilderBackgroundDocument::normalize([
+            'type' => 'animated_rain',
+            'dark' => ['rain_color' => '#ffffff80'],
+        ]);
+        $this->assertSame(['rain_color' => '#ffffff80'], $rain['dark']);
+    }
+
+    public function test_dark_image_override_sanitizes_url_overlay_and_drops_orphan_id(): void
+    {
+        $image = BuilderBackgroundDocument::normalize([
+            'type' => 'image',
+            'image_url' => '/storage/light.webp',
+            'dark' => [
+                'image_url' => '/storage/dark.webp',
+                'image_id' => '42',
+                'overlay_color' => '#000000',
+                'overlay_opacity' => 140,
+                'image_size' => 'contain',
+            ],
+        ]);
+        $this->assertSame([
+            'image_url' => '/storage/dark.webp',
+            'image_id' => 42,
+            'overlay_color' => '#000000',
+            'overlay_opacity' => 100,
+        ], $image['dark']);
+
+        $unsafe = BuilderBackgroundDocument::normalize([
+            'type' => 'image',
+            'image_url' => '/storage/light.webp',
+            'dark' => ['image_url' => 'javascript:alert(1)', 'image_id' => 7, 'overlay_color' => 'red;}'],
+        ]);
+        $this->assertArrayNotHasKey('dark', $unsafe);
+    }
+
+    public function test_particles_and_rain_reject_kit_vars_but_css_colours_accept_them(): void
+    {
+        $color = BuilderBackgroundDocument::normalize([
+            'type' => 'color',
+            'color' => 'var(--kit-color-surface)',
+            'dark' => ['color' => 'var(--kit-color-surface-dark)'],
+        ]);
+        $this->assertSame('var(--kit-color-surface)', $color['color']);
+        $this->assertSame('var(--kit-color-surface-dark)', $color['dark']['color']);
+
+        $particles = BuilderBackgroundDocument::normalize([
+            'type' => 'particles',
+            'particles_color' => 'var(--kit-color-primary)',
+            'dark' => ['particles_color' => 'var(--kit-color-primary)'],
+        ]);
+        $this->assertArrayNotHasKey('particles_color', $particles);
+        $this->assertArrayNotHasKey('dark', $particles);
+    }
+
+    public function test_none_background_drops_dark_overrides(): void
+    {
+        $this->assertSame(
+            ['type' => 'none'],
+            BuilderBackgroundDocument::normalize(['type' => 'none', 'dark' => ['color' => '#000000']]),
+        );
+    }
 }

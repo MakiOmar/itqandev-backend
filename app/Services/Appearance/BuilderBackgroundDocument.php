@@ -5,7 +5,7 @@ namespace App\Services\Appearance;
 /**
  * Sanitize layout-node `settings.background` (band / row / column / leaf).
  *
- * @phpstan-type BuilderBackground array{type: string, color?: string, gradient_from?: string, gradient_to?: string, gradient_angle?: int, image_url?: string, image_id?: int, image_lazy?: false, overlay?: bool, overlay_color?: string, overlay_opacity?: int, image_size?: string, image_position?: string, image_repeat?: string, particles_density?: int, particles_speed?: int, particles_opacity?: int, particles_size?: int, particles_color?: string, rain_color?: string, rain_speed?: int, rain_density?: int, rain_direction?: string}
+ * @phpstan-type BuilderBackground array{type: string, color?: string, gradient_from?: string, gradient_to?: string, gradient_angle?: int, image_url?: string, image_id?: int, image_lazy?: false, overlay?: bool, overlay_color?: string, overlay_opacity?: int, image_size?: string, image_position?: string, image_repeat?: string, particles_density?: int, particles_speed?: int, particles_opacity?: int, particles_size?: int, particles_color?: string, rain_color?: string, rain_speed?: int, rain_density?: int, rain_direction?: string, dark?: array<string, mixed>}
  */
 final class BuilderBackgroundDocument
 {
@@ -41,10 +41,65 @@ final class BuilderBackgroundDocument
             return ['type' => 'none'];
         }
 
+        $out = self::normalizeLight($type, $raw);
+        $dark = isset($raw['dark']) && is_array($raw['dark']) ? self::normalizeDark($type, $raw['dark']) : [];
+        if ($dark !== []) {
+            $out['dark'] = $dark;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Dark-mode overrides: colours (and the image) only; layout and motion stay shared with light.
+     *
+     * @param  array<string, mixed>  $raw
+     * @return array<string, mixed>
+     */
+    private static function normalizeDark(string $type, array $raw): array
+    {
+        $out = [];
+        $put = static function (string $key, mixed $value) use (&$out): void {
+            if ($value !== null) {
+                $out[$key] = $value;
+            }
+        };
+
+        match ($type) {
+            'color' => $put('color', self::optionalColor($raw['color'] ?? null)),
+            'gradient' => [
+                $put('gradient_from', self::optionalColor($raw['gradient_from'] ?? null)),
+                $put('gradient_to', self::optionalColor($raw['gradient_to'] ?? null)),
+            ],
+            'image' => [
+                $put('image_url', self::optionalUrl($raw['image_url'] ?? null)),
+                $put('image_id', is_numeric($raw['image_id'] ?? null) && (int) $raw['image_id'] > 0 ? (int) $raw['image_id'] : null),
+                $put('overlay_color', self::optionalColor($raw['overlay_color'] ?? null)),
+                $put('overlay_opacity', is_numeric($raw['overlay_opacity'] ?? null)
+                    ? self::clampInt($raw['overlay_opacity'], 0, 100, 50)
+                    : null),
+            ],
+            'particles' => $put('particles_color', self::optionalHexColor($raw['particles_color'] ?? null)),
+            'animated_rain' => $put('rain_color', self::optionalHexColor($raw['rain_color'] ?? null)),
+            default => null,
+        };
+        if (! isset($out['image_url'])) {
+            unset($out['image_id']);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $raw
+     * @return array<string, mixed>
+     */
+    private static function normalizeLight(string $type, array $raw): array
+    {
         $out = ['type' => $type];
 
         if ($type === 'color') {
-            $color = self::optionalHexColor($raw['color'] ?? null);
+            $color = self::optionalColor($raw['color'] ?? null);
             if ($color !== null) {
                 $out['color'] = $color;
             }
@@ -53,8 +108,8 @@ final class BuilderBackgroundDocument
         }
 
         if ($type === 'gradient') {
-            $out['gradient_from'] = self::optionalHexColor($raw['gradient_from'] ?? null) ?? '#0389a1';
-            $out['gradient_to'] = self::optionalHexColor($raw['gradient_to'] ?? null) ?? '#0ea5e9';
+            $out['gradient_from'] = self::optionalColor($raw['gradient_from'] ?? null) ?? '#0389a1';
+            $out['gradient_to'] = self::optionalColor($raw['gradient_to'] ?? null) ?? '#0ea5e9';
             $out['gradient_angle'] = self::clampInt($raw['gradient_angle'] ?? 135, 0, 360, 135);
 
             return $out;
@@ -79,7 +134,7 @@ final class BuilderBackgroundDocument
             }
             if (filter_var($raw['overlay'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 $out['overlay'] = true;
-                $out['overlay_color'] = self::optionalHexColor($raw['overlay_color'] ?? null) ?? '#000000';
+                $out['overlay_color'] = self::optionalColor($raw['overlay_color'] ?? null) ?? '#000000';
                 $out['overlay_opacity'] = self::clampInt($raw['overlay_opacity'] ?? 50, 0, 100, 50);
             }
 
@@ -165,6 +220,18 @@ final class BuilderBackgroundDocument
         }
 
         return strtolower($v);
+    }
+
+    /** Hex or a design kit colour var; used where the value only reaches CSS (not canvas drawing). */
+    private static function optionalColor(mixed $value): ?string
+    {
+        $hex = self::optionalHexColor($value);
+        if ($hex !== null) {
+            return $hex;
+        }
+        $v = is_string($value) ? trim($value) : '';
+
+        return preg_match(BuilderStyleDocument::KIT_COLOR_VAR_PATTERN, $v) === 1 ? $v : null;
     }
 
     private static function optionalUrl(mixed $value): ?string
