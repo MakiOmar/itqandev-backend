@@ -231,6 +231,24 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertSame('var(--kit-color-accent)', $out['dark']['icon_color']);
     }
 
+    public function test_hero_glow_colours_and_intensity_are_kept_with_dark_colours_only(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => ['glow_primary_color' => '#38BDF8', 'glow_opacity' => 0.4],
+            'mobile' => ['glow_opacity' => 3, 'glow_secondary_color' => 'url(x)'],
+            'dark' => [
+                'glow_primary_color' => '#0EA5E9',
+                'glow_secondary_color' => 'theme',
+                'glow_opacity' => 0.1,
+            ],
+        ]);
+
+        $this->assertSame('#38bdf8', $out['desktop']['glow_primary_color']);
+        $this->assertSame(0.4, $out['desktop']['glow_opacity']);
+        $this->assertSame(['glow_opacity' => 1.0], $out['mobile']);
+        $this->assertSame(['glow_primary_color' => '#0ea5e9', 'glow_secondary_color' => 'theme'], $out['dark']);
+    }
+
     public function test_dark_bag_keeps_only_colour_and_shadow_keys(): void
     {
         $out = BuilderStyleDocument::normalize([

@@ -52,6 +52,7 @@ final class BuilderStyleDocument
         'text_color', 'text_transform', 'font_style', 'text_decoration',
         'type_role',
         'icon_color',
+        'glow_primary_color', 'glow_secondary_color', 'glow_opacity',
         'tab_font_size', 'tab_font_weight', 'tab_color', 'tab_bg', 'tab_hover_color', 'tab_hover_bg',
         'tab_active_color', 'tab_active_bg', 'tab_indicator_color', 'tab_radius',
         'nav_size', 'nav_icon_size', 'nav_color', 'nav_bg', 'nav_border_color', 'nav_hover_color',
@@ -66,7 +67,7 @@ final class BuilderStyleDocument
 
     /** Colour keys among KEYS; with SHADOW_KEYS they are the only keys a `dark` bag accepts. */
     private const COLOR_KEYS = [
-        'border_color', 'caption_color', 'text_color', 'icon_color',
+        'border_color', 'caption_color', 'text_color', 'icon_color', 'glow_primary_color', 'glow_secondary_color',
         'tab_color', 'tab_bg', 'tab_hover_color', 'tab_hover_bg', 'tab_active_color', 'tab_active_bg',
         'tab_indicator_color', 'nav_color', 'nav_bg', 'nav_border_color', 'nav_hover_color', 'nav_hover_bg',
         'link_color', 'link_hover_color', 'title_color', 'subtitle_color',
@@ -302,7 +303,7 @@ final class BuilderStyleDocument
             'width', 'max_width', 'height', 'border_width', 'radius',
             'caption_font_size', 'caption_line_height', 'caption_letter_spacing', 'caption_spacing' => self::length($value),
             'margin', 'padding' => self::dimensions($value),
-            'opacity', 'hover_opacity' => self::ratio($value),
+            'opacity', 'hover_opacity', 'glow_opacity' => self::ratio($value),
             'z_index' => self::intInRange($value, -9999, 9999),
             'hover_transition' => self::intInRange($value, 0, 5000),
             'font_family' => self::fontFamily($value),
