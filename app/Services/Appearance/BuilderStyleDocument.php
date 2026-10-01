@@ -77,7 +77,7 @@ final class BuilderStyleDocument
     public const THEME_SENTINEL = 'theme';
 
     /** Design kit global colour reference; the kit emits light and dark values for each slug. */
-    public const KIT_COLOR_VAR_PATTERN = '/^var\(--kit-color-[a-z0-9-]{1,40}\)$/';
+    public const KIT_COLOR_VAR_PATTERN = '/^var\(--kit-color-[a-z0-9_-]{1,40}\)$/';
 
     /** Detailed case study card parts, keyed to the kind of value each one accepts. */
     private const CASE_CARD_KEYS = [

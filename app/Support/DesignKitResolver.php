@@ -9,6 +9,8 @@ final class DesignKitResolver
 {
     public const SETTINGS_KEY = 'design_kit';
 
+    public const BASE_COLORS = ['primary', 'secondary', 'text', 'accent', 'muted'];
+
     /**
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
@@ -54,6 +56,7 @@ final class DesignKitResolver
                 'muted' => $muted,
                 'custom' => $custom,
             ],
+            'colors_dark' => self::darkColors($row['colors_dark'] ?? null, $custom),
             'type_roles' => [
                 'heading' => self::typeRole($row['type_roles']['heading'] ?? null, '700', '2rem', '1.2'),
                 'body' => self::typeRole($row['type_roles']['body'] ?? null, '400', '1rem', '1.6'),
@@ -93,7 +96,41 @@ final class DesignKitResolver
             $lines[] = '--kit-type-'.$role.'-line: '.($r['line_height'] ?? '1.5').';';
         }
 
-        return ':root{'.implode('', $lines).'}';
+        // `.dark` after `:root,.light` (equal specificity) so the nearest theme scope wins; unset dark colours inherit light.
+        $css = ':root,.light{'.implode('', $lines).'}';
+        $dark = [];
+        foreach (is_array($kit['colors_dark'] ?? null) ? $kit['colors_dark'] : [] as $id => $value) {
+            $id = preg_replace('/[^a-z0-9_-]/', '', (string) $id);
+            $value = self::hex($value);
+            if ($id && $value) {
+                $dark[] = '--kit-color-'.$id.': '.$value.';';
+            }
+        }
+
+        return $dark === [] ? $css : $css.'.dark{'.implode('', $dark).'}';
+    }
+
+    /**
+     * Dark values for base and custom colour ids; omitted ids mean "same as light".
+     *
+     * @param  list<array{id: string, name: string, value: string}>  $custom
+     * @return array<string, string>
+     */
+    private static function darkColors(mixed $raw, array $custom): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+        $allowed = array_merge(self::BASE_COLORS, array_column($custom, 'id'));
+        $out = [];
+        foreach ($allowed as $id) {
+            $value = self::hex($raw[$id] ?? null);
+            if ($value !== null) {
+                $out[$id] = $value;
+            }
+        }
+
+        return $out;
     }
 
     /**

@@ -28,6 +28,9 @@ class UpdateDesignKitRequest extends FormRequest
             'colors.custom' => ['sometimes', 'array', 'max:16'],
             'colors.custom.*.id' => ['required_with:colors.custom', 'string', 'max:32'],
             'colors.custom.*.value' => ['required_with:colors.custom', 'string', $hex],
+            // Keyed by colour id (base or custom); unknown ids are dropped by DesignKitResolver.
+            'colors_dark' => ['sometimes', 'array', 'max:21'],
+            'colors_dark.*' => ['nullable', 'string', $hex],
             'type_roles' => ['sometimes', 'array'],
             'type_roles.heading' => ['sometimes', 'array'],
             'type_roles.body' => ['sometimes', 'array'],
