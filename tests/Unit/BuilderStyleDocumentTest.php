@@ -218,6 +218,19 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertArrayNotHasKey('evil', $block['styles']['desktop']);
     }
 
+    public function test_icon_color_is_a_colour_key_in_light_and_dark_bags(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => ['icon_color' => '#0284C7'],
+            'mobile' => ['icon_color' => 'red;}body{'],
+            'dark' => ['icon_color' => 'var(--kit-color-accent)'],
+        ]);
+
+        $this->assertSame('#0284c7', $out['desktop']['icon_color']);
+        $this->assertArrayNotHasKey('mobile', $out);
+        $this->assertSame('var(--kit-color-accent)', $out['dark']['icon_color']);
+    }
+
     public function test_dark_bag_keeps_only_colour_and_shadow_keys(): void
     {
         $out = BuilderStyleDocument::normalize([
