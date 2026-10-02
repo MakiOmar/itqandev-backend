@@ -14,7 +14,7 @@ use Throwable;
 final class ChromeLayoutSupport
 {
     /** @var list<string> */
-    public const MENU_KIT_TYPES = ['header_menu', 'footer_menu'];
+    public const MENU_KIT_TYPES = ['header_menu', 'header_mobile_menu', 'footer_menu'];
 
     /**
      * @param  array<string, mixed>  $input

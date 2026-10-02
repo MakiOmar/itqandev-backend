@@ -234,6 +234,37 @@ class ChromeLayoutApiTest extends TestCase
         $this->assertSame('After', $text($service->presentById($id, 'en', $context)));
     }
 
+    public function test_mobile_menu_kit_saves_settings_and_receives_menu_items(): void
+    {
+        $headers = $this->bearerHeaders($this->admin());
+        $id = (int) $this->withHeaders($headers)->postJson('/api/appearance/headers', [
+            'name' => 'Mobile menu',
+            'status' => 'published',
+        ])->assertCreated()->json('data.id');
+
+        $settings = ['menu_slug' => 'primary', 'panel' => 'fullscreen', 'direction' => 'top', 'animation' => 'fade', 'trigger' => 'icon_label'];
+        $this->withHeaders($headers)->putJson('/api/appearance/headers/'.$id, ['sections' => [[
+            'id' => 'band_m',
+            'type' => 'layout',
+            'rows' => [[
+                'id' => 'row_m',
+                'columns' => [[
+                    'id' => 'col_m',
+                    'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
+                    'blocks' => [['id' => 'blk_mm', 'kind' => 'kit', 'type' => 'header_mobile_menu', 'settings' => $settings]],
+                ]],
+            ]],
+        ]]])->assertOk();
+
+        $presented = app(ChromeLayoutService::class)->presentById($id, 'en');
+        $block = $presented['sections'][0]['rows'][0]['columns'][0]['blocks'][0];
+        $this->assertSame('header_mobile_menu', $block['type']);
+        $this->assertSame('fullscreen', $block['settings']['panel']);
+        $this->assertSame('top', $block['settings']['direction']);
+        $this->assertSame('fade', $block['settings']['animation']);
+        $this->assertIsArray($block['settings']['items']);
+    }
+
     public function test_header_offers_separate_action_kits(): void
     {
         $headers = $this->bearerHeaders($this->admin());

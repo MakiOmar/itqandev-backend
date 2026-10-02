@@ -56,6 +56,7 @@ final class HeaderBuilderService
                     'span' => ['mobile' => 6, 'tablet' => 3, 'desktop' => 2],
                     'blocks' => [
                         ChromeLayoutSupport::makeKitBlock('header_actions', [], 'kit_header_actions'),
+                        ChromeLayoutSupport::makeKitBlock('header_mobile_menu', [], 'kit_header_mobile_menu'),
                     ],
                 ],
             ], 'full', 'none'),
