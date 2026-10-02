@@ -311,11 +311,14 @@ final class ChromeLayoutService
         return $presented;
     }
 
+    /**
+     * Presented layouts are cached per locale and per dynamic-tag context (one entry per record),
+     * so they cannot be listed for deletion; bumping the layout's version orphans every entry.
+     */
     public function forgetLayoutCache(int $id): void
     {
-        foreach ($this->cacheLocales() as $locale) {
-            Cache::forget($this->layoutCacheKey($id, $locale));
-        }
+        $versionKey = $this->layoutVersionKey($id);
+        Cache::forever($versionKey, (int) Cache::get($versionKey, 1) + 1);
     }
 
     public function forgetAllLayoutCaches(): void
@@ -547,30 +550,11 @@ final class ChromeLayoutService
 
     private function layoutCacheKey(int $id, string $locale): string
     {
-        return 'chrome:layout:'.$id.':'.$locale;
+        return 'chrome:layout:'.$id.':v'.(int) Cache::get($this->layoutVersionKey($id), 1).':'.$locale;
     }
 
-    /**
-     * @return list<string>
-     */
-    private function cacheLocales(): array
+    private function layoutVersionKey(int $id): string
     {
-        $locales = array_unique(array_merge(
-            [SiteLanguages::defaultCode(), 'en', 'ar'],
-            array_map(
-                fn ($row) => strtolower((string) ($row['code'] ?? '')),
-                SiteLanguages::all()
-            ),
-        ));
-
-        $out = [];
-        foreach ($locales as $locale) {
-            $locale = strtolower(trim((string) $locale));
-            if ($locale !== '') {
-                $out[] = $locale;
-            }
-        }
-
-        return array_values(array_unique($out));
+        return 'chrome:layout:'.$id.':version';
     }
 }

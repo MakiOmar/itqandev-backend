@@ -200,6 +200,40 @@ class ChromeLayoutApiTest extends TestCase
         }
     }
 
+    public function test_saving_a_layout_refreshes_cached_presentations_for_every_tag_context(): void
+    {
+        $headers = $this->bearerHeaders($this->admin());
+        $id = (int) $this->withHeaders($headers)->postJson('/api/appearance/headers', [
+            'name' => 'Cached',
+            'status' => 'published',
+        ])->assertCreated()->json('data.id');
+
+        $sectionsWith = fn (string $text): array => [[
+            'id' => 'band_c',
+            'type' => 'layout',
+            'rows' => [[
+                'id' => 'row_c',
+                'columns' => [[
+                    'id' => 'col_c',
+                    'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
+                    'blocks' => [['id' => 'blk_h', 'kind' => 'widget', 'type' => 'heading', 'settings' => ['text' => $text, 'level' => 'h3']]],
+                ]],
+            ]],
+        ]];
+        $text = fn (array $presented): string => (string) $presented['sections'][0]['rows'][0]['columns'][0]['blocks'][0]['settings']['text'];
+
+        $this->withHeaders($headers)->putJson('/api/appearance/headers/'.$id, ['sections' => $sectionsWith('Before')])->assertOk();
+        $service = app(ChromeLayoutService::class);
+        $context = ['post' => ['title' => 'A post']];
+        $this->assertSame('Before', $text($service->presentById($id, 'en')));
+        $this->assertSame('Before', $text($service->presentById($id, 'en', $context)));
+
+        $this->withHeaders($headers)->putJson('/api/appearance/headers/'.$id, ['sections' => $sectionsWith('After')])->assertOk();
+
+        $this->assertSame('After', $text($service->presentById($id, 'en')));
+        $this->assertSame('After', $text($service->presentById($id, 'en', $context)));
+    }
+
     public function test_header_offers_separate_action_kits(): void
     {
         $headers = $this->bearerHeaders($this->admin());
