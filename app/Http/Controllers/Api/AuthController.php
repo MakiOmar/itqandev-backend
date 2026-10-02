@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
 use App\Http\Resources\CurrentUserResource;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -11,14 +12,9 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
-
-        if (! Auth::attempt($credentials)) {
+        if (! Auth::attempt($request->credentials(), $request->remember())) {
             throw ValidationException::withMessages([
                 'email' => __('auth.failed'),
             ]);
