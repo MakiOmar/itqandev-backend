@@ -200,6 +200,51 @@ class ChromeLayoutApiTest extends TestCase
         }
     }
 
+    public function test_header_offers_separate_action_kits(): void
+    {
+        $headers = $this->bearerHeaders($this->admin());
+        $id = (int) $this->withHeaders($headers)->postJson('/api/appearance/headers', [
+            'name' => 'Split actions',
+            'status' => 'published',
+        ])->assertCreated()->json('data.id');
+
+        $blocks = [
+            ['id' => 'blk_theme', 'kind' => 'kit', 'type' => 'header_theme_toggle', 'settings' => []],
+            ['id' => 'blk_lang', 'kind' => 'kit', 'type' => 'header_language_switcher', 'settings' => ['show_flag' => false]],
+            ['id' => 'blk_account', 'kind' => 'kit', 'type' => 'header_account', 'settings' => ['login_label' => 'Sign in', 'login_variant' => 'primary']],
+        ];
+        $sections = [[
+            'id' => 'band_a',
+            'type' => 'layout',
+            'rows' => [[
+                'id' => 'row_a',
+                'columns' => [[
+                    'id' => 'col_a',
+                    'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
+                    'blocks' => $blocks,
+                ]],
+            ]],
+        ]];
+
+        $this->withHeaders($headers)->putJson('/api/appearance/headers/'.$id, ['sections' => $sections])
+            ->assertOk();
+
+        $saved = $this->withHeaders($headers)->getJson('/api/appearance/headers/'.$id)
+            ->assertOk()
+            ->json('data.sections.0.rows.0.columns.0.blocks');
+        $byId = array_column($saved, null, 'id');
+        $this->assertSame(['blk_theme', 'blk_lang', 'blk_account'], array_column($saved, 'id'));
+        $this->assertFalse($byId['blk_lang']['settings']['show_flag']);
+        $this->assertSame('Sign in', $byId['blk_account']['settings']['login_label']);
+        $this->assertSame('primary', $byId['blk_account']['settings']['login_variant']);
+
+        $kits = collect($this->withHeaders($headers)->getJson('/api/appearance/registries')->assertOk()->json('data.kits'))
+            ->keyBy('type');
+        foreach (['header_theme_toggle', 'header_language_switcher', 'header_account'] as $type) {
+            $this->assertSame('Header', $kits[$type]['category'] ?? null, $type);
+        }
+    }
+
     public function test_legacy_appearance_header_endpoint_still_works(): void
     {
         $headers = $this->bearerHeaders($this->admin());

@@ -100,6 +100,53 @@ final class KitRegistry
                     ['key' => 'show_auth', 'type' => 'boolean', 'label' => 'Login / account', 'translatable' => false],
                 ],
             ],
+            'header_theme_toggle' => [
+                'label' => 'Theme toggle',
+                'category' => 'Header',
+                'max_instances' => 1,
+                'default_settings' => [],
+                'settings_fields' => [],
+            ],
+            'header_language_switcher' => [
+                'label' => 'Language switcher',
+                'category' => 'Header',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'show_flag' => true,
+                    'show_label' => true,
+                ],
+                'settings_fields' => [
+                    ['key' => 'show_flag', 'type' => 'boolean', 'label' => 'Show flag', 'translatable' => false],
+                    ['key' => 'show_label', 'type' => 'boolean', 'label' => 'Show language name', 'translatable' => false],
+                ],
+            ],
+            'header_account' => [
+                'label' => 'Login / account',
+                'category' => 'Header',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'login_label' => 'Login',
+                    'login_variant' => 'outline',
+                    'translations' => [
+                        'ar' => ['login_label' => 'تسجيل الدخول'],
+                    ],
+                ],
+                'settings_fields' => [
+                    ['key' => 'login_label', 'type' => 'text', 'label' => 'Login button label'],
+                    [
+                        'key' => 'login_variant',
+                        'type' => 'select',
+                        'label' => 'Login button style',
+                        'translatable' => false,
+                        'options' => [
+                            ['value' => 'outline', 'label' => 'Outline'],
+                            ['value' => 'primary', 'label' => 'Primary'],
+                            ['value' => 'secondary', 'label' => 'Secondary'],
+                            ['value' => 'ghost', 'label' => 'Ghost'],
+                        ],
+                    ],
+                ],
+            ],
             'header_spacer' => [
                 'label' => 'Header spacer',
                 'category' => 'Header',
