@@ -6,7 +6,7 @@ namespace App\Services\Appearance;
  * Atomic page Widgets for the page builder.
  *
  * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, options?: list<array{value: string, label: string}>, item_fields?: list<SettingsField>, translatable?: bool}
- * @phpstan-type WidgetDef array{label: string, category: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
+ * @phpstan-type WidgetDef array{label: string, category: string, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
  */
 final class WidgetRegistry
 {
@@ -52,7 +52,6 @@ final class WidgetRegistry
         return [
             'label' => 'Trust badges',
             'category' => 'Content',
-            'max_instances' => null,
             'default_settings' => [
                 'badges' => [
                     $badge('itm_secure', 'shield-check', '<g '.$stroke.'><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12l2 2l4-4"/></g>', 'Secure payments'),
@@ -108,7 +107,6 @@ final class WidgetRegistry
             'testimonial_list' => [
                 'label' => 'Testimonials',
                 'category' => 'Content',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => '',
                     'subtitle' => '',
@@ -156,7 +154,6 @@ final class WidgetRegistry
             'heading' => [
                 'label' => 'Heading',
                 'category' => 'Typography',
-                'max_instances' => null,
                 'default_settings' => [
                     'text' => 'Heading',
                     'level' => 'h2',
@@ -194,7 +191,6 @@ final class WidgetRegistry
             'text' => [
                 'label' => 'Paragraph',
                 'category' => 'Typography',
-                'max_instances' => null,
                 'default_settings' => [
                     'content' => 'Add your paragraph…',
                     'align' => 'start',
@@ -217,7 +213,6 @@ final class WidgetRegistry
             'rich_text' => [
                 'label' => 'Rich text',
                 'category' => 'Typography',
-                'max_instances' => null,
                 'default_settings' => [
                     'html' => '<p>Add rich content…</p>',
                 ],
@@ -228,7 +223,6 @@ final class WidgetRegistry
             'list' => [
                 'label' => 'List',
                 'category' => 'Typography',
-                'max_instances' => null,
                 'default_settings' => [
                     'style' => 'ul',
                     'items' => [
@@ -261,7 +255,6 @@ final class WidgetRegistry
             'quote' => [
                 'label' => 'Quote',
                 'category' => 'Typography',
-                'max_instances' => null,
                 'default_settings' => [
                     'quote' => 'A memorable quote.',
                     'cite' => '',
@@ -274,7 +267,6 @@ final class WidgetRegistry
             'badge' => [
                 'label' => 'Badge / eyebrow',
                 'category' => 'Typography',
-                'max_instances' => null,
                 'default_settings' => [
                     'text' => 'New',
                 ],
@@ -294,7 +286,6 @@ final class WidgetRegistry
             'image' => [
                 'label' => 'Image',
                 'category' => 'Media',
-                'max_instances' => null,
                 'default_settings' => [
                     'image' => null,
                     'alt' => '',
@@ -315,7 +306,6 @@ final class WidgetRegistry
             'gallery' => [
                 'label' => 'Gallery',
                 'category' => 'Media',
-                'max_instances' => null,
                 'default_settings' => [
                     'images' => [],
                 ],
@@ -335,7 +325,6 @@ final class WidgetRegistry
             'video' => [
                 'label' => 'Video',
                 'category' => 'Media',
-                'max_instances' => null,
                 'default_settings' => [
                     'video_url' => '',
                     'aspect' => '16:9',
@@ -358,7 +347,6 @@ final class WidgetRegistry
             'icon' => [
                 'label' => 'Icon',
                 'category' => 'Media',
-                'max_instances' => null,
                 'default_settings' => [
                     'icon' => 'star',
                     'size' => 32,
@@ -371,7 +359,6 @@ final class WidgetRegistry
             'embed' => [
                 'label' => 'Embed / HTML',
                 'category' => 'Media',
-                'max_instances' => null,
                 'default_settings' => [
                     'html' => '',
                 ],
@@ -391,7 +378,6 @@ final class WidgetRegistry
             'button' => [
                 'label' => 'Button',
                 'category' => 'Actions',
-                'max_instances' => null,
                 'default_settings' => [
                     'label' => 'Learn more',
                     'url' => '',
@@ -423,7 +409,6 @@ final class WidgetRegistry
             'button_group' => [
                 'label' => 'Button group',
                 'category' => 'Actions',
-                'max_instances' => null,
                 'default_settings' => [
                     'buttons' => [
                         ['label' => 'Primary', 'url' => '', 'style' => 'primary'],
@@ -467,7 +452,6 @@ final class WidgetRegistry
             'spacer' => [
                 'label' => 'Spacer',
                 'category' => 'Layout',
-                'max_instances' => null,
                 'default_settings' => [
                     'height' => 48,
                 ],
@@ -478,7 +462,6 @@ final class WidgetRegistry
             'divider' => [
                 'label' => 'Divider',
                 'category' => 'Layout',
-                'max_instances' => null,
                 'default_settings' => [
                     'style' => 'line',
                     'spacing' => 24,
@@ -500,7 +483,6 @@ final class WidgetRegistry
             'anchor' => [
                 'label' => 'Anchor',
                 'category' => 'Layout',
-                'max_instances' => null,
                 'default_settings' => [
                     'anchor_id' => 'section',
                 ],
@@ -511,7 +493,6 @@ final class WidgetRegistry
             'breadcrumb' => [
                 'label' => 'Breadcrumbs',
                 'category' => 'Layout',
-                'max_instances' => null,
                 'default_settings' => [
                     'home_label' => 'Home',
                     'auto' => true,
@@ -544,7 +525,6 @@ final class WidgetRegistry
             'map' => [
                 'label' => 'Map',
                 'category' => 'Embeds',
-                'max_instances' => null,
                 'default_settings' => [
                     'embed_url' => '',
                     'height' => 320,
@@ -557,7 +537,6 @@ final class WidgetRegistry
             'social_links' => [
                 'label' => 'Social links',
                 'category' => 'Embeds',
-                'max_instances' => null,
                 'default_settings' => [
                     'links' => [
                         ['label' => 'Twitter', 'url' => ''],
@@ -589,7 +568,6 @@ final class WidgetRegistry
         $text = static fn (string $label, string $tag): array => [
             'label' => $label,
             'category' => 'Theme',
-            'max_instances' => null,
             'default_settings' => ['fallback' => ''],
             'settings_fields' => [
                 ['key' => 'fallback', 'type' => 'text', 'label' => 'Fallback text'],
@@ -602,14 +580,12 @@ final class WidgetRegistry
             'post_content' => [
                 'label' => 'Post content',
                 'category' => 'Theme',
-                'max_instances' => 1,
                 'default_settings' => [],
                 'settings_fields' => [],
             ],
             'post_featured_image' => [
                 'label' => 'Featured image',
                 'category' => 'Theme',
-                'max_instances' => 1,
                 'default_settings' => ['lightbox' => false],
                 'settings_fields' => [
                     ['key' => 'lightbox', 'type' => 'boolean', 'label' => 'Open in lightbox', 'translatable' => false],
@@ -618,7 +594,6 @@ final class WidgetRegistry
             'post_info' => [
                 'label' => 'Post info',
                 'category' => 'Theme',
-                'max_instances' => 1,
                 'default_settings' => ['show_date' => true, 'show_terms' => true],
                 'settings_fields' => [
                     ['key' => 'show_date', 'type' => 'boolean', 'label' => 'Show date', 'translatable' => false],
@@ -629,7 +604,6 @@ final class WidgetRegistry
             'loop_grid' => [
                 'label' => 'Loop grid',
                 'category' => 'Theme',
-                'max_instances' => null,
                 'default_settings' => [
                     'source' => 'blog',
                     'count' => 6,
@@ -699,7 +673,6 @@ final class WidgetRegistry
             'lottie' => [
                 'label' => 'Lottie',
                 'category' => 'Media',
-                'max_instances' => null,
                 'default_settings' => [
                     'media_id' => null,
                     'loop' => true,
@@ -718,7 +691,6 @@ final class WidgetRegistry
             'flip_box' => [
                 'label' => 'Flip box',
                 'category' => 'Media',
-                'max_instances' => null,
                 'default_settings' => [
                     'front_heading' => 'Front',
                     'front_text' => '',
@@ -748,7 +720,7 @@ final class WidgetRegistry
     }
 
     /**
-     * @return list<array{type: string, kind: string, label: string, category: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
+     * @return list<array{type: string, kind: string, label: string, category: string, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
      */
     public static function forAdmin(): array
     {
@@ -759,7 +731,6 @@ final class WidgetRegistry
                 'kind' => PageLeafRegistry::KIND_WIDGET,
                 'label' => $def['label'],
                 'category' => $def['category'],
-                'max_instances' => $def['max_instances'],
                 'default_settings' => $def['default_settings'],
                 'settings_fields' => self::fieldsForAdmin($def['settings_fields']),
             ];
@@ -808,12 +779,5 @@ final class WidgetRegistry
         $all = self::all();
 
         return $all[$type]['default_settings'] ?? [];
-    }
-
-    public static function maxInstances(string $type): ?int
-    {
-        $all = self::all();
-
-        return $all[$type]['max_instances'] ?? null;
     }
 }

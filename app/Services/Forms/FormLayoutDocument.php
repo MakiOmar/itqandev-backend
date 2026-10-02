@@ -26,7 +26,6 @@ final class FormLayoutDocument
             }
         }
 
-        $counts = [];
         $rows = [];
         foreach ($rowsIn as $row) {
             if (! is_array($row)) {
@@ -43,11 +42,6 @@ final class FormLayoutDocument
                 }
                 $type = (string) ($field['type'] ?? '');
                 if (! FormFieldRegistry::has($type) || $type === 'honeypot') {
-                    continue;
-                }
-                $max = FormFieldRegistry::maxInstances($type);
-                $counts[$type] = ($counts[$type] ?? 0) + 1;
-                if ($max !== null && $counts[$type] > $max) {
                     continue;
                 }
                 $settings = is_array($field['settings'] ?? null)

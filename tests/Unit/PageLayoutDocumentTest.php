@@ -197,7 +197,7 @@ class PageLayoutDocumentTest extends TestCase
         );
     }
 
-    public function test_enforces_max_instances_across_tree(): void
+    public function test_keeps_repeated_widget_types(): void
     {
         $out = PageLayoutDocument::normalizeSectionsForPages([
             [
@@ -219,7 +219,6 @@ class PageLayoutDocumentTest extends TestCase
         ]);
 
         $blocks = $out[0]['rows'][0]['columns'][0]['blocks'];
-        $this->assertCount(1, $blocks);
-        $this->assertSame('hero', $blocks[0]['type']);
+        $this->assertSame(['hero', 'hero'], array_column($blocks, 'type'));
     }
 }

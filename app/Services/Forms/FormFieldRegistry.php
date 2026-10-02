@@ -6,7 +6,7 @@ namespace App\Services\Forms;
  * Canonical form field types for the Forms builder.
  *
  * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, translatable?: bool}
- * @phpstan-type FieldTypeDef array{label: string, max_instances: int|null, palette: bool, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
+ * @phpstan-type FieldTypeDef array{label: string, palette: bool, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
  */
 final class FormFieldRegistry
 {
@@ -31,7 +31,6 @@ final class FormFieldRegistry
             'radio' => self::choiceField('Radio', true),
             'checkbox' => [
                 'label' => 'Checkbox',
-                'max_instances' => null,
                 'palette' => true,
                 'default_settings' => [
                     'label' => 'Checkbox',
@@ -51,7 +50,6 @@ final class FormFieldRegistry
             'date' => self::inputField('Date', ['required' => false]),
             'hidden' => [
                 'label' => 'Hidden',
-                'max_instances' => null,
                 'palette' => true,
                 'default_settings' => [
                     'label' => 'Hidden',
@@ -67,7 +65,6 @@ final class FormFieldRegistry
             ],
             'consent' => [
                 'label' => 'Consent',
-                'max_instances' => 3,
                 'palette' => true,
                 'default_settings' => [
                     'label' => 'I agree to the privacy policy',
@@ -84,7 +81,6 @@ final class FormFieldRegistry
             ],
             'file' => [
                 'label' => 'File upload',
-                'max_instances' => 5,
                 'palette' => true,
                 'default_settings' => [
                     'label' => 'Attachment',
@@ -108,7 +104,6 @@ final class FormFieldRegistry
             'time' => self::inputField('Time', ['required' => false]),
             'html' => [
                 'label' => 'HTML block',
-                'max_instances' => 8,
                 'palette' => true,
                 'default_settings' => [
                     'label' => 'HTML',
@@ -123,7 +118,6 @@ final class FormFieldRegistry
             ],
             'honeypot' => [
                 'label' => 'Honeypot',
-                'max_instances' => 1,
                 'palette' => false,
                 'default_settings' => [
                     'label' => 'Website',
@@ -145,7 +139,6 @@ final class FormFieldRegistry
     {
         return [
             'label' => $label,
-            'max_instances' => null,
             'palette' => true,
             'default_settings' => array_merge([
                 'label' => $label,
@@ -172,7 +165,6 @@ final class FormFieldRegistry
     {
         return [
             'label' => $label,
-            'max_instances' => null,
             'palette' => true,
             'default_settings' => [
                 'label' => $label,
@@ -209,20 +201,13 @@ final class FormFieldRegistry
         return self::all()[$type]['default_settings'] ?? [];
     }
 
-    public static function maxInstances(string $type): ?int
-    {
-        $max = self::all()[$type]['max_instances'] ?? null;
-
-        return is_int($max) ? $max : null;
-    }
-
     public static function isPalette(string $type): bool
     {
         return (bool) (self::all()[$type]['palette'] ?? true);
     }
 
     /**
-     * @return list<array{type: string, label: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
+     * @return list<array{type: string, label: string, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
      */
     public static function forAdmin(): array
     {
@@ -234,7 +219,6 @@ final class FormFieldRegistry
             $out[] = [
                 'type' => $type,
                 'label' => $def['label'],
-                'max_instances' => $def['max_instances'],
                 'default_settings' => $def['default_settings'],
                 'settings_fields' => $def['settings_fields'],
             ];

@@ -23,7 +23,7 @@ final class HomepageSectionRegistry
     }
 
     /**
-     * @return list<array{type: string, label: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
+     * @return list<array{type: string, label: string, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
      */
     public static function forAdmin(): array
     {
@@ -33,7 +33,6 @@ final class HomepageSectionRegistry
             $out[] = [
                 'type' => $row['type'],
                 'label' => $row['label'],
-                'max_instances' => $row['max_instances'],
                 'default_settings' => $row['default_settings'],
                 'settings_fields' => $row['settings_fields'],
             ];
@@ -56,10 +55,5 @@ final class HomepageSectionRegistry
     public static function defaultSettings(string $type): array
     {
         return KitRegistry::defaultSettings($type);
-    }
-
-    public static function maxInstances(string $type): ?int
-    {
-        return KitRegistry::maxInstances($type);
     }
 }

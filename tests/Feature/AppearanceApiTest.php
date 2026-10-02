@@ -133,10 +133,10 @@ class AppearanceApiTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     'homepage_sections' => [
-                        ['type', 'label', 'max_instances', 'default_settings', 'settings_fields'],
+                        ['type', 'label', 'default_settings', 'settings_fields'],
                     ],
                     'kits' => [
-                        ['type', 'label', 'category', 'max_instances', 'default_settings', 'settings_fields'],
+                        ['type', 'label', 'category', 'default_settings', 'settings_fields'],
                     ],
                 ],
             ])

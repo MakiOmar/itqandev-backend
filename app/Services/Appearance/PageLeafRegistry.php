@@ -62,15 +62,6 @@ final class PageLeafRegistry
         };
     }
 
-    public static function maxInstances(string $kind, string $type): ?int
-    {
-        return match ($kind) {
-            self::KIND_WIDGET => WidgetRegistry::maxInstances($type),
-            self::KIND_KIT => KitRegistry::maxInstances($type),
-            default => null,
-        };
-    }
-
     /**
      * @return list<string>
      */
@@ -98,13 +89,5 @@ final class PageLeafRegistry
         $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
 
         return SharedRepeaterTranslations::fromFields($fields);
-    }
-
-    /**
-     * Count key for max_instances (kind-aware).
-     */
-    public static function countKey(string $kind, string $type): string
-    {
-        return $kind.':'.$type;
     }
 }

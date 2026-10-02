@@ -182,10 +182,7 @@ final class GlobalWidgetService
         if (strtolower(trim((string) ($leaf['kind'] ?? ''))) === 'global') {
             throw ValidationException::withMessages(['document' => 'Globals cannot nest other globals.']);
         }
-        $counts = [];
-        $normalized = PageLayoutDocument::normalizeLeafForGlobal($leaf, $counts);
-
-        return $normalized;
+        return PageLayoutDocument::normalizeLeafForGlobal($leaf);
     }
 
     private function status(mixed $status): string

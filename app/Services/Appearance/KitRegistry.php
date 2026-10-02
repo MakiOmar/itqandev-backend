@@ -6,7 +6,7 @@ namespace App\Services\Appearance;
  * Predesigned page Kits (composite section widgets).
  *
  * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, options?: list<array{value: string, label: string}>, item_fields?: list<SettingsField>, translatable?: bool}
- * @phpstan-type KitDef array{label: string, category: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
+ * @phpstan-type KitDef array{label: string, category: string, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
  */
 final class KitRegistry
 {
@@ -29,7 +29,6 @@ final class KitRegistry
             'header_brand' => [
                 'label' => 'Header brand',
                 'category' => 'Header',
-                'max_instances' => 1,
                 'default_settings' => [
                     'show_name' => true,
                     'show_logo' => true,
@@ -46,7 +45,6 @@ final class KitRegistry
             'header_menu' => [
                 'label' => 'Header menu',
                 'category' => 'Header',
-                'max_instances' => 2,
                 'default_settings' => [
                     'menu_slug' => 'primary',
                     'show_children_mobile' => true,
@@ -72,7 +70,6 @@ final class KitRegistry
             'header_cta' => [
                 'label' => 'Header CTA',
                 'category' => 'Header',
-                'max_instances' => 2,
                 'default_settings' => [
                     'label' => 'Get in touch',
                     'url' => '/contact/',
@@ -88,7 +85,6 @@ final class KitRegistry
             'header_actions' => [
                 'label' => 'Header actions',
                 'category' => 'Header',
-                'max_instances' => 1,
                 'default_settings' => [
                     'show_theme' => true,
                     'show_language' => true,
@@ -103,7 +99,6 @@ final class KitRegistry
             'header_mobile_menu' => [
                 'label' => 'Mobile menu',
                 'category' => 'Header',
-                'max_instances' => 1,
                 'default_settings' => [
                     'menu_slug' => 'primary',
                     'show_below' => 'desktop',
@@ -181,14 +176,12 @@ final class KitRegistry
             'header_theme_toggle' => [
                 'label' => 'Theme toggle',
                 'category' => 'Header',
-                'max_instances' => 1,
                 'default_settings' => [],
                 'settings_fields' => [],
             ],
             'header_language_switcher' => [
                 'label' => 'Language switcher',
                 'category' => 'Header',
-                'max_instances' => 1,
                 'default_settings' => [
                     'show_flag' => true,
                     'show_label' => true,
@@ -201,7 +194,6 @@ final class KitRegistry
             'header_account' => [
                 'label' => 'Login / account',
                 'category' => 'Header',
-                'max_instances' => 1,
                 'default_settings' => [
                     'login_label' => 'Login',
                     'login_variant' => 'outline',
@@ -228,14 +220,12 @@ final class KitRegistry
             'header_spacer' => [
                 'label' => 'Header spacer',
                 'category' => 'Header',
-                'max_instances' => null,
                 'default_settings' => [],
                 'settings_fields' => [],
             ],
             'footer_brand' => [
                 'label' => 'Footer brand',
                 'category' => 'Footer',
-                'max_instances' => 1,
                 'default_settings' => [
                     'show_logo' => true,
                     'show_name' => true,
@@ -253,7 +243,6 @@ final class KitRegistry
             'footer_menu' => [
                 'label' => 'Footer menu',
                 'category' => 'Footer',
-                'max_instances' => 4,
                 'default_settings' => [
                     'title' => 'Navigate',
                     'menu_slug' => 'primary',
@@ -269,7 +258,6 @@ final class KitRegistry
             'footer_links' => [
                 'label' => 'Footer links',
                 'category' => 'Footer',
-                'max_instances' => 4,
                 'default_settings' => [
                     'title' => 'Quick links',
                     'links' => [
@@ -306,7 +294,6 @@ final class KitRegistry
             'footer_contact' => [
                 'label' => 'Footer contact',
                 'category' => 'Footer',
-                'max_instances' => 1,
                 'default_settings' => [
                     'title' => 'Contact',
                     'use_site_contact' => true,
@@ -326,7 +313,6 @@ final class KitRegistry
             'footer_social' => [
                 'label' => 'Footer social',
                 'category' => 'Footer',
-                'max_instances' => 1,
                 'default_settings' => [
                     'title' => '',
                     'use_site_socials' => true,
@@ -339,7 +325,6 @@ final class KitRegistry
             'footer_rich_text' => [
                 'label' => 'Footer rich text',
                 'category' => 'Footer',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => '',
                     'body' => '',
@@ -352,7 +337,6 @@ final class KitRegistry
             'footer_cta' => [
                 'label' => 'Footer CTA',
                 'category' => 'Footer',
-                'max_instances' => 2,
                 'default_settings' => [
                     'title' => 'Ready to start?',
                     'subtitle' => 'Tell us about your project.',
@@ -376,7 +360,6 @@ final class KitRegistry
             'footer_copyright' => [
                 'label' => 'Footer copyright',
                 'category' => 'Footer',
-                'max_instances' => 1,
                 'default_settings' => [
                     'text' => '© {year} {brand}. All rights reserved.',
                     'translations' => [
@@ -399,7 +382,6 @@ final class KitRegistry
             'hero' => [
                 'label' => 'Hero',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'headline' => 'We build web, Android & iOS apps that scale',
                     'subheadline' => 'From MVPs to enterprise products. Modern stack, clear process, and long-term support.',
@@ -448,7 +430,6 @@ final class KitRegistry
             'services_teaser' => [
                 'label' => 'Services teaser',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'eyebrow' => 'Capabilities',
                     'title' => 'What we do',
@@ -465,7 +446,6 @@ final class KitRegistry
             'case_studies' => [
                 'label' => 'Case studies',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'title' => 'Selected portfolio',
                     'subtitle' => 'Recent projects we are proud of.',
@@ -509,7 +489,6 @@ final class KitRegistry
             'testimonials' => [
                 'label' => 'Testimonials',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'title' => 'What our clients say',
                     'subtitle' => 'Trusted by startups and enterprises.',
@@ -526,7 +505,6 @@ final class KitRegistry
             'tech_stack' => [
                 'label' => 'Tech stack',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'eyebrow' => 'Built with',
                 ],
@@ -537,7 +515,6 @@ final class KitRegistry
             'blog_preview' => [
                 'label' => 'Blog preview',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'title' => 'From the blog',
                     'subtitle' => 'Tips and updates from our team.',
@@ -552,7 +529,6 @@ final class KitRegistry
             'cta' => [
                 'label' => 'Call to action',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'title' => 'Ready to start your project?',
                     'subtitle' => "Tell us about your idea. We'll get back within 24 hours.",
@@ -569,7 +545,6 @@ final class KitRegistry
             'form' => [
                 'label' => 'Form',
                 'category' => 'Marketing',
-                'max_instances' => null,
                 'default_settings' => [
                     'form_slug' => '',
                     'title' => '',
@@ -584,7 +559,6 @@ final class KitRegistry
             'projects_list' => [
                 'label' => 'Portfolio / projects list',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'show_filters' => true,
                     'category_ids' => [],
@@ -607,7 +581,6 @@ final class KitRegistry
             'blog_posts_list' => [
                 'label' => 'Blog / articles list',
                 'category' => 'Marketing',
-                'max_instances' => 1,
                 'default_settings' => [
                     'per_page' => 12,
                     'columns' => ['mobile' => 1, 'tablet' => 2, 'desktop' => 3],
@@ -636,7 +609,6 @@ final class KitRegistry
             'faq' => [
                 'label' => 'FAQ',
                 'category' => 'Content',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => 'Frequently asked questions',
                     'items' => [
@@ -661,7 +633,6 @@ final class KitRegistry
             'stats' => [
                 'label' => 'Stats / counters',
                 'category' => 'Content',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => '',
                     'items' => [
@@ -687,7 +658,6 @@ final class KitRegistry
             'pricing' => [
                 'label' => 'Pricing',
                 'category' => 'Content',
-                'max_instances' => 1,
                 'default_settings' => [
                     'title' => 'Pricing',
                     'subtitle' => 'Transparent packages. Custom quotes for larger scope.',
@@ -735,7 +705,6 @@ final class KitRegistry
             'contact_info' => [
                 'label' => 'Contact info',
                 'category' => 'Content',
-                'max_instances' => null,
                 'default_settings' => [
                     'office_heading' => 'Office',
                     'address' => '',
@@ -775,7 +744,6 @@ final class KitRegistry
                 'label' => 'Image + text',
                 'category' => 'Content',
                 // Presentation (object-fit, radius, hover, …) lives on sibling `styles`, not settings.
-                'max_instances' => null,
                 'default_settings' => [
                     'eyebrow' => '',
                     'title' => 'A compelling headline',
@@ -807,7 +775,6 @@ final class KitRegistry
             'timeline' => [
                 'label' => 'Timeline / process',
                 'category' => 'Content',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => 'How we work',
                     'subtitle' => '',
@@ -837,7 +804,6 @@ final class KitRegistry
             'team' => [
                 'label' => 'Team',
                 'category' => 'Content',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => 'The team',
                     'members' => [
@@ -864,7 +830,6 @@ final class KitRegistry
             'feature_grid' => [
                 'label' => 'Feature / values grid',
                 'category' => 'Content',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => 'Our values',
                     'items' => [
@@ -891,7 +856,6 @@ final class KitRegistry
             'logo_cloud' => [
                 'label' => 'Logo cloud',
                 'category' => 'Trust',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => 'Trusted by',
                     'logos' => [],
@@ -915,7 +879,6 @@ final class KitRegistry
             'accordion_content' => [
                 'label' => 'Accordion',
                 'category' => 'Engagement',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => '',
                     'items' => [
@@ -939,7 +902,6 @@ final class KitRegistry
             'tabs_content' => [
                 'label' => 'Tabs',
                 'category' => 'Engagement',
-                'max_instances' => null,
                 'default_settings' => [
                     'items' => [
                         ['title' => 'Tab one', 'body' => 'Content…'],
@@ -962,7 +924,6 @@ final class KitRegistry
             'video_cta' => [
                 'label' => 'Video + CTA',
                 'category' => 'Engagement',
-                'max_instances' => null,
                 'default_settings' => [
                     'title' => 'See it in action',
                     'subtitle' => '',
@@ -981,7 +942,6 @@ final class KitRegistry
             'page_header' => [
                 'label' => 'Page title + breadcrumbs',
                 'category' => 'Navigation',
-                'max_instances' => 1,
                 'default_settings' => [
                     'show_breadcrumbs' => true,
                     'show_title' => true,
@@ -1019,7 +979,7 @@ final class KitRegistry
     }
 
     /**
-     * @return list<array{type: string, kind: string, label: string, category: string, max_instances: int|null, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
+     * @return list<array{type: string, kind: string, label: string, category: string, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}>
      */
     public static function forAdmin(): array
     {
@@ -1030,7 +990,6 @@ final class KitRegistry
                 'kind' => PageLeafRegistry::KIND_KIT,
                 'label' => $def['label'],
                 'category' => $def['category'],
-                'max_instances' => $def['max_instances'],
                 'default_settings' => $def['default_settings'],
                 'settings_fields' => self::fieldsForAdmin($def['settings_fields']),
             ];
@@ -1079,12 +1038,5 @@ final class KitRegistry
         $all = self::all();
 
         return $all[$type]['default_settings'] ?? [];
-    }
-
-    public static function maxInstances(string $type): ?int
-    {
-        $all = self::all();
-
-        return $all[$type]['max_instances'] ?? null;
     }
 }

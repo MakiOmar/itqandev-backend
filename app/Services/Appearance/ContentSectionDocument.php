@@ -25,7 +25,6 @@ final class ContentSectionDocument
             }
         }
 
-        $counts = [];
         $sections = [];
 
         foreach ($rawSections as $row) {
@@ -38,12 +37,6 @@ final class ContentSectionDocument
                 continue;
             }
             $kind = PageLeafRegistry::KIND_KIT;
-            $countKey = PageLeafRegistry::countKey($kind, $type);
-            $counts[$countKey] = ($counts[$countKey] ?? 0) + 1;
-            $max = KitRegistry::maxInstances($type);
-            if ($max !== null && $counts[$countKey] > $max) {
-                continue;
-            }
 
             $id = trim((string) ($row['id'] ?? ''));
             if ($id === '') {

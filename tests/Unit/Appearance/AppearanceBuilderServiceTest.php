@@ -27,7 +27,7 @@ class AppearanceBuilderServiceTest extends TestCase
         );
     }
 
-    public function test_homepage_rejects_unknown_types_and_enforces_max_instances(): void
+    public function test_homepage_rejects_unknown_types_and_keeps_repeated_types(): void
     {
         $service = new HomepageBuilderService;
         $saved = $service->save([
@@ -40,8 +40,9 @@ class AppearanceBuilderServiceTest extends TestCase
         ]);
 
         $types = array_column($saved['sections'], 'type');
-        $this->assertSame(['hero', 'cta'], $types);
+        $this->assertSame(['hero', 'hero', 'cta'], $types);
         $this->assertSame('A', $saved['sections'][0]['settings']['headline']);
+        $this->assertSame('B', $saved['sections'][1]['settings']['headline']);
     }
 
     public function test_homepage_public_present_skips_disabled(): void

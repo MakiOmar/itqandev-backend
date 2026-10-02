@@ -47,7 +47,6 @@ final class PageLayoutDocument
             }
         }
 
-        $blockCounts = [];
         $out = [];
 
         foreach ($rawSections as $row) {
@@ -58,7 +57,7 @@ final class PageLayoutDocument
             $type = strtolower(trim((string) ($row['type'] ?? '')));
 
             if ($type === self::TYPE_LAYOUT || isset($row['rows'])) {
-                $band = self::normalizeBand($row, $blockCounts);
+                $band = self::normalizeBand($row);
                 if ($band !== null) {
                     $out[] = $band;
                 }
@@ -67,7 +66,7 @@ final class PageLayoutDocument
             }
 
             // Legacy flat homepage-style section → wrap into layout tree.
-            $flat = self::normalizeLegacyFlat($row, $blockCounts);
+            $flat = self::normalizeLegacyFlat($row);
             if ($flat !== null) {
                 $out[] = $flat;
             }
@@ -80,12 +79,11 @@ final class PageLayoutDocument
      * Public wrapper so global widgets can reuse leaf normalization.
      *
      * @param  array<string, mixed>  $block
-     * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    public static function normalizeLeafForGlobal(array $block, array &$blockCounts): ?array
+    public static function normalizeLeafForGlobal(array $block): ?array
     {
-        return self::normalizeBlock($block, $blockCounts, false);
+        return self::normalizeBlock($block, false);
     }
 
     /**
@@ -187,10 +185,9 @@ final class PageLayoutDocument
 
     /**
      * @param  array<string, mixed>  $row
-     * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    private static function normalizeBand(array $row, array &$blockCounts): ?array
+    private static function normalizeBand(array $row): ?array
     {
         $id = trim((string) ($row['id'] ?? ''));
         if ($id === '') {
@@ -209,7 +206,7 @@ final class PageLayoutDocument
             if (! is_array($rawRow)) {
                 continue;
             }
-            $normalizedRow = self::normalizeRow($rawRow, $blockCounts, true);
+            $normalizedRow = self::normalizeRow($rawRow, true);
             if ($normalizedRow !== null) {
                 $rows[] = $normalizedRow;
             }
@@ -235,15 +232,9 @@ final class PageLayoutDocument
 
     /**
      * @param  array<string, mixed>  $row
-     * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    /**
-     * @param  array<string, mixed>  $row
-     * @param  array<string, int>  $blockCounts
-     * @return array<string, mixed>|null
-     */
-    private static function normalizeRow(array $row, array &$blockCounts, bool $allowInnerBand): ?array
+    private static function normalizeRow(array $row, bool $allowInnerBand): ?array
     {
         $id = trim((string) ($row['id'] ?? ''));
         if ($id === '') {
@@ -283,7 +274,7 @@ final class PageLayoutDocument
             if (! is_array($rawCol)) {
                 continue;
             }
-            $col = self::normalizeColumn($rawCol, $blockCounts, $allowInnerBand);
+            $col = self::normalizeColumn($rawCol, $allowInnerBand);
             if ($col !== null) {
                 $columns[] = $col;
             }
@@ -312,15 +303,9 @@ final class PageLayoutDocument
 
     /**
      * @param  array<string, mixed>  $col
-     * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    /**
-     * @param  array<string, mixed>  $col
-     * @param  array<string, int>  $blockCounts
-     * @return array<string, mixed>|null
-     */
-    private static function normalizeColumn(array $col, array &$blockCounts, bool $allowInnerBand): ?array
+    private static function normalizeColumn(array $col, bool $allowInnerBand): ?array
     {
         $id = trim((string) ($col['id'] ?? ''));
         if ($id === '') {
@@ -334,7 +319,7 @@ final class PageLayoutDocument
             if (! is_array($rawBlock)) {
                 continue;
             }
-            $block = self::normalizeBlock($rawBlock, $blockCounts, $allowInnerBand);
+            $block = self::normalizeBlock($rawBlock, $allowInnerBand);
             if ($block !== null) {
                 $blocks[] = $block;
             }
@@ -383,10 +368,9 @@ final class PageLayoutDocument
 
     /**
      * @param  array<string, mixed>  $block
-     * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    private static function normalizeBlock(array $block, array &$blockCounts, bool $allowInnerBand = true): ?array
+    private static function normalizeBlock(array $block, bool $allowInnerBand = true): ?array
     {
         $kindHint = strtolower(trim((string) ($block['kind'] ?? '')));
         if ($kindHint === PageLeafRegistry::KIND_GLOBAL) {
@@ -417,7 +401,7 @@ final class PageLayoutDocument
                 return null;
             }
 
-            return self::normalizeInnerBand($block, $blockCounts);
+            return self::normalizeInnerBand($block);
         }
         if ($type === '' || $type === self::TYPE_LAYOUT) {
             return null;
@@ -425,13 +409,6 @@ final class PageLayoutDocument
 
         $kind = PageLeafRegistry::inferKind($type, isset($block['kind']) ? (string) $block['kind'] : null);
         if ($kind === null) {
-            return null;
-        }
-
-        $countKey = PageLeafRegistry::countKey($kind, $type);
-        $blockCounts[$countKey] = ($blockCounts[$countKey] ?? 0) + 1;
-        $max = PageLeafRegistry::maxInstances($kind, $type);
-        if ($max !== null && $blockCounts[$countKey] > $max) {
             return null;
         }
 
@@ -477,10 +454,9 @@ final class PageLayoutDocument
 
     /**
      * @param  array<string, mixed>  $block
-     * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    private static function normalizeInnerBand(array $block, array &$blockCounts): ?array
+    private static function normalizeInnerBand(array $block): ?array
     {
         $id = trim((string) ($block['id'] ?? ''));
         if ($id === '') {
@@ -492,7 +468,7 @@ final class PageLayoutDocument
             if (! is_array($rawRow)) {
                 continue;
             }
-            $row = self::normalizeRow($rawRow, $blockCounts, false);
+            $row = self::normalizeRow($rawRow, false);
             if ($row !== null) {
                 $rows[] = $row;
             }
@@ -515,10 +491,9 @@ final class PageLayoutDocument
 
     /**
      * @param  array<string, mixed>  $row
-     * @param  array<string, int>  $blockCounts
      * @return array<string, mixed>|null
      */
-    private static function normalizeLegacyFlat(array $row, array &$blockCounts): ?array
+    private static function normalizeLegacyFlat(array $row): ?array
     {
         $type = strtolower(trim((string) ($row['type'] ?? '')));
         if (PageLeafRegistry::inferKind($type) === null) {
@@ -532,7 +507,7 @@ final class PageLayoutDocument
             'settings' => is_array($row['settings'] ?? null) ? $row['settings'] : [],
             'hide_on' => $row['hide_on'] ?? null,
             'styles' => $row['styles'] ?? null,
-        ], $blockCounts);
+        ]);
 
         if ($block === null) {
             return null;
