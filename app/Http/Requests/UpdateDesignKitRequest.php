@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\DesignKitResolver;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateDesignKitRequest extends FormRequest
@@ -17,6 +18,7 @@ class UpdateDesignKitRequest extends FormRequest
     public function rules(): array
     {
         $hex = 'regex:/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/';
+        $hexAlpha = 'regex:/^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/';
 
         return [
             'colors' => ['sometimes', 'array'],
@@ -31,6 +33,13 @@ class UpdateDesignKitRequest extends FormRequest
             // Keyed by colour id (base or custom); unknown ids are dropped by DesignKitResolver.
             'colors_dark' => ['sometimes', 'array', 'max:21'],
             'colors_dark.*' => ['nullable', 'string', $hex],
+            'background' => ['sometimes', 'array'],
+            'background.light' => ['sometimes', 'array'],
+            'background.dark' => ['sometimes', 'array'],
+            'background.*.type' => ['sometimes', 'string', 'in:'.implode(',', DesignKitResolver::BACKGROUND_TYPES)],
+            'background.*.color' => ['nullable', 'string', $hexAlpha],
+            'background.*.color_end' => ['nullable', 'string', $hexAlpha],
+            'background.*.angle' => ['nullable', 'integer', 'between:0,360'],
             'type_roles' => ['sometimes', 'array'],
             'type_roles.heading' => ['sometimes', 'array'],
             'type_roles.body' => ['sometimes', 'array'],

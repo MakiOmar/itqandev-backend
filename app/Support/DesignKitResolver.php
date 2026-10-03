@@ -11,6 +11,12 @@ final class DesignKitResolver
 
     public const BASE_COLORS = ['primary', 'secondary', 'text', 'accent', 'muted'];
 
+    /** `theme` keeps the built-in page gradient; the others replace it. */
+    public const BACKGROUND_TYPES = ['theme', 'color', 'gradient'];
+
+    /** Public page wrapper (`data-public-page` in the Qwik public layout). */
+    private const PAGE_SELECTOR = '[data-public-page]';
+
     /**
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
@@ -57,6 +63,10 @@ final class DesignKitResolver
                 'custom' => $custom,
             ],
             'colors_dark' => self::darkColors($row['colors_dark'] ?? null, $custom),
+            'background' => [
+                'light' => self::background($row['background']['light'] ?? null),
+                'dark' => self::background($row['background']['dark'] ?? null),
+            ],
             'type_roles' => [
                 'heading' => self::typeRole($row['type_roles']['heading'] ?? null, '700', '2rem', '1.2'),
                 'body' => self::typeRole($row['type_roles']['body'] ?? null, '400', '1rem', '1.6'),
@@ -107,7 +117,76 @@ final class DesignKitResolver
             }
         }
 
-        return $dark === [] ? $css : $css.'.dark{'.implode('', $dark).'}';
+        if ($dark !== []) {
+            $css .= '.dark{'.implode('', $dark).'}';
+        }
+
+        return $css.self::backgroundCss($kit['background'] ?? null);
+    }
+
+    /**
+     * Page background rules. Light is scoped to `:root:not(.dark)` so a light-only value never
+     * leaks into dark mode; each mode left on `theme` keeps the layout's built-in gradient.
+     */
+    private static function backgroundCss(mixed $raw): string
+    {
+        $bg = is_array($raw) ? $raw : [];
+        $css = '';
+        $light = self::backgroundValue(self::background($bg['light'] ?? null));
+        if ($light !== null) {
+            $css .= ':root:not(.dark) '.self::PAGE_SELECTOR.'{background:'.$light.'}';
+        }
+        $dark = self::backgroundValue(self::background($bg['dark'] ?? null));
+        if ($dark !== null) {
+            $css .= '.dark '.self::PAGE_SELECTOR.'{background:'.$dark.'}';
+        }
+
+        return $css;
+    }
+
+    /**
+     * @param  array{type: string, color: string, color_end: string, angle: int}  $bg
+     */
+    private static function backgroundValue(array $bg): ?string
+    {
+        if ($bg['type'] === 'color' && $bg['color'] !== '') {
+            return $bg['color'];
+        }
+        if ($bg['type'] === 'gradient' && $bg['color'] !== '') {
+            $end = $bg['color_end'] !== '' ? $bg['color_end'] : $bg['color'];
+
+            return 'linear-gradient('.$bg['angle'].'deg,'.$bg['color'].','.$end.')';
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{type: string, color: string, color_end: string, angle: int}
+     */
+    private static function background(mixed $raw): array
+    {
+        $row = is_array($raw) ? $raw : [];
+        $type = in_array($row['type'] ?? null, self::BACKGROUND_TYPES, true) ? $row['type'] : 'theme';
+        $angle = is_numeric($row['angle'] ?? null) ? (int) $row['angle'] : 135;
+
+        return [
+            'type' => $type,
+            'color' => self::hexAlpha($row['color'] ?? null) ?? '',
+            'color_end' => self::hexAlpha($row['color_end'] ?? null) ?? '',
+            'angle' => max(0, min(360, $angle)),
+        ];
+    }
+
+    /** Hex colour with optional alpha (`#rgb`, `#rrggbb`, `#rrggbbaa`). */
+    private static function hexAlpha(mixed $value): ?string
+    {
+        $s = trim((string) $value);
+        if (preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $s) !== 1) {
+            return null;
+        }
+
+        return strtolower($s);
     }
 
     /**
