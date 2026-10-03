@@ -25,6 +25,22 @@ class BuilderBackgroundDocumentTest extends TestCase
         $this->assertSame(100, $out['overlay_opacity']);
     }
 
+    public function test_backdrop_blur_is_clamped_and_omitted_when_off(): void
+    {
+        $blurred = BuilderBackgroundDocument::normalize(['type' => 'color', 'color' => '#ffffffcc', 'backdrop_blur' => '99']);
+        $this->assertSame(BuilderBackgroundDocument::MAX_BACKDROP_BLUR, $blurred['backdrop_blur']);
+
+        $gradient = BuilderBackgroundDocument::normalize(['type' => 'gradient', 'backdrop_blur' => 8]);
+        $this->assertSame(8, $gradient['backdrop_blur']);
+
+        foreach ([0, -5, 'abc', null] as $off) {
+            $out = BuilderBackgroundDocument::normalize(['type' => 'color', 'color' => '#000000', 'backdrop_blur' => $off]);
+            $this->assertArrayNotHasKey('backdrop_blur', $out);
+        }
+
+        $this->assertSame(['type' => 'none'], BuilderBackgroundDocument::normalize(['type' => 'none', 'backdrop_blur' => 10]));
+    }
+
     public function test_overlay_fields_are_dropped_when_overlay_is_off_and_invalid_values_fall_back(): void
     {
         $off = BuilderBackgroundDocument::normalize([

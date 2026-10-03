@@ -5,7 +5,7 @@ namespace App\Services\Appearance;
 /**
  * Sanitize layout-node `settings.background` (band / row / column / leaf).
  *
- * @phpstan-type BuilderBackground array{type: string, color?: string, gradient_from?: string, gradient_to?: string, gradient_angle?: int, image_url?: string, image_id?: int, image_lazy?: false, overlay?: bool, overlay_color?: string, overlay_opacity?: int, image_size?: string, image_position?: string, image_repeat?: string, particles_density?: int, particles_speed?: int, particles_opacity?: int, particles_size?: int, particles_color?: string, rain_color?: string, rain_speed?: int, rain_density?: int, rain_direction?: string, dark?: array<string, mixed>}
+ * @phpstan-type BuilderBackground array{type: string, backdrop_blur?: int, color?: string, gradient_from?: string, gradient_to?: string, gradient_angle?: int, image_url?: string, image_id?: int, image_lazy?: false, overlay?: bool, overlay_color?: string, overlay_opacity?: int, image_size?: string, image_position?: string, image_repeat?: string, particles_density?: int, particles_speed?: int, particles_opacity?: int, particles_size?: int, particles_color?: string, rain_color?: string, rain_speed?: int, rain_density?: int, rain_direction?: string, dark?: array<string, mixed>}
  */
 final class BuilderBackgroundDocument
 {
@@ -23,6 +23,9 @@ final class BuilderBackgroundDocument
     public const IMAGE_REPEATS = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 
     public const RAIN_DIRECTIONS = ['down', 'up', 'both'];
+
+    /** Frosted-glass blur (px) of whatever sits behind the node; 0 / omitted = off. */
+    public const MAX_BACKDROP_BLUR = 40;
 
     /**
      * @param  mixed  $raw
@@ -42,6 +45,10 @@ final class BuilderBackgroundDocument
         }
 
         $out = self::normalizeLight($type, $raw);
+        $blur = is_numeric($raw['backdrop_blur'] ?? null) ? self::clampInt($raw['backdrop_blur'], 0, self::MAX_BACKDROP_BLUR, 0) : 0;
+        if ($blur > 0) {
+            $out['backdrop_blur'] = $blur;
+        }
         $dark = isset($raw['dark']) && is_array($raw['dark']) ? self::normalizeDark($type, $raw['dark']) : [];
         if ($dark !== []) {
             $out['dark'] = $dark;

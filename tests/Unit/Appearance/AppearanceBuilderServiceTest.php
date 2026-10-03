@@ -125,6 +125,24 @@ class AppearanceBuilderServiceTest extends TestCase
         $this->assertNotEmpty($public['sections']);
     }
 
+    public function test_header_default_bar_look_is_stored_on_the_band_and_row(): void
+    {
+        $band = (new \App\Services\Appearance\HeaderBuilderService)->defaultDocument()['sections'][0];
+
+        $this->assertSame('full', $band['layout_width']);
+        $this->assertSame(
+            ['type' => 'color', 'color' => '#ffffffe6', 'backdrop_blur' => 12, 'dark' => ['color' => '#0f172ae6']],
+            $band['settings']['background']
+        );
+        $this->assertSame('#e2e8f0cc', $band['styles']['desktop']['box_shadow']['color']);
+        $this->assertSame('#334155cc', $band['styles']['dark']['box_shadow']['color']);
+
+        $row = $band['rows'][0]['styles'];
+        $this->assertSame(['value' => 72.0, 'unit' => 'rem'], $row['desktop']['max_width']);
+        $this->assertSame('center', $row['desktop']['align']);
+        $this->assertSame(16.0, $row['mobile']['padding']['left']);
+    }
+
     public function test_legacy_footer_zones_migrate_to_layout(): void
     {
         $legacy = [

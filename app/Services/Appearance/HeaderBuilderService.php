@@ -61,8 +61,40 @@ final class HeaderBuilderService
                 ],
             ], 'full', 'none'),
         ];
+        $sections[0] = $this->withDefaultBarStyle($sections[0]);
 
         return ChromeLayoutSupport::normalizeDocument(['sections' => $sections]);
+    }
+
+    /**
+     * Starting look of the default header bar, stored on the band/row so every part stays editable
+     * in the header builder (the public shell adds no background, border, padding or width).
+     *
+     * @param  array<string, mixed>  $band
+     * @return array<string, mixed>
+     */
+    private function withDefaultBarStyle(array $band): array
+    {
+        $band['settings']['background'] = [
+            'type' => 'color',
+            'color' => '#ffffffe6',
+            'backdrop_blur' => 12,
+            'dark' => ['color' => '#0f172ae6'],
+        ];
+        $hairline = static fn (string $color): array => ['color' => $color, 'h' => 0, 'v' => 1, 'blur' => 0, 'spread' => 0, 'inset' => false];
+        $band['styles'] = [
+            'desktop' => ['box_shadow' => $hairline('#e2e8f0cc')],
+            'dark' => ['box_shadow' => $hairline('#334155cc')],
+        ];
+
+        $padding = static fn (int $x): array => ['top' => 12, 'right' => $x, 'bottom' => 12, 'left' => $x, 'unit' => 'px', 'linked' => false];
+        $band['rows'][0]['styles'] = [
+            'desktop' => ['max_width' => ['value' => 72, 'unit' => 'rem'], 'align' => 'center', 'padding' => $padding(32)],
+            'tablet' => ['padding' => $padding(24)],
+            'mobile' => ['padding' => $padding(16)],
+        ];
+
+        return $band;
     }
 
     /**
