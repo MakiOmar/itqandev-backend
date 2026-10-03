@@ -274,6 +274,46 @@ final class WidgetRegistry
                     ['key' => 'text', 'type' => 'text', 'label' => 'Text'],
                 ],
             ],
+            'text_logo' => self::textLogo(),
+        ];
+    }
+
+    /**
+     * Text logo: mark tile (short text or icon) beside a brand name with an emphasised `[[part]]` and a tagline.
+     *
+     * @return WidgetDef
+     */
+    private static function textLogo(): array
+    {
+        $select = static fn (string $key, string $label, array $options): array => [
+            'key' => $key,
+            'type' => 'select',
+            'label' => $label,
+            'translatable' => false,
+            'options' => array_map(static fn (string $v, string $l): array => ['value' => $v, 'label' => $l], array_keys($options), $options),
+        ];
+
+        return [
+            'label' => 'Text logo',
+            'category' => 'Typography',
+            'default_settings' => [
+                'name' => 'BRAND[[NAME]]',
+                'tagline' => 'Web & App Development',
+                'mark_type' => 'text',
+                'mark_text' => 'BR',
+                'mark_icon' => '',
+                'layout' => 'inline',
+                'link_url' => '',
+            ],
+            'settings_fields' => [
+                ['key' => 'name', 'type' => 'text', 'label' => 'Name (wrap the emphasised part in [[ ]])', 'translatable' => true],
+                ['key' => 'tagline', 'type' => 'text', 'label' => 'Tagline (optional)', 'translatable' => true],
+                $select('mark_type', 'Mark', ['text' => 'Short text', 'icon' => 'Icon', 'none' => 'None']),
+                ['key' => 'mark_text', 'type' => 'text', 'label' => 'Mark text (1–4 characters)', 'translatable' => true],
+                ['key' => 'mark_icon', 'type' => 'icon', 'label' => 'Mark icon', 'translatable' => false],
+                $select('layout', 'Layout', ['inline' => 'Mark beside text', 'stacked' => 'Mark above text']),
+                ['key' => 'link_url', 'type' => 'text', 'label' => 'Link URL (empty = home page)', 'translatable' => false],
+            ],
         ];
     }
 

@@ -121,7 +121,22 @@ final class BuilderStyleDocument
         'tech_icon_size' => 'length', 'tech_gap' => 'length', 'tech_label_font_size' => 'length',
     ];
 
-    private const PART_KEYS = [...self::CASE_CARD_KEYS, ...self::TESTIMONIAL_KEYS, ...self::HERO_KEYS];
+    /** Text logo mark tile, brand name and tagline; the emphasised name part reuses the `highlight_*` keys. */
+    private const LOGO_KEYS = [
+        'logo_mark_bg' => 'color', 'logo_mark_bg_end' => 'color', 'logo_mark_color' => 'color',
+        'logo_mark_size' => 'length', 'logo_mark_radius' => 'length', 'logo_mark_font_size' => 'length',
+        'logo_mark_font_weight' => 'weight', 'logo_mark_icon_size' => 'length', 'logo_mark_shadow' => 'shadow',
+        'logo_gap' => 'length',
+        'logo_name_color' => 'color', 'logo_name_font_size' => 'length', 'logo_name_font_weight' => 'weight',
+        'logo_name_letter_spacing' => 'length', 'logo_name_transform' => 'transform',
+        'logo_tagline_color' => 'color', 'logo_tagline_font_size' => 'length', 'logo_tagline_font_weight' => 'weight',
+        'logo_tagline_letter_spacing' => 'length', 'logo_tagline_transform' => 'transform',
+        'logo_tagline_spacing' => 'length',
+    ];
+
+    private const PART_KEYS = [
+        ...self::CASE_CARD_KEYS, ...self::TESTIMONIAL_KEYS, ...self::HERO_KEYS, ...self::LOGO_KEYS,
+    ];
 
     /** Button parts (hero CTAs, case study card); each gets every BUTTON_* suffix as `{part}_{suffix}`. */
     private const BUTTON_PARTS = ['btn_primary', 'btn_secondary', 'btn_card'];
@@ -167,7 +182,6 @@ final class BuilderStyleDocument
     }
 
     /**
-     * @param  mixed  $raw
      * @return BuilderStyles|null
      */
     public static function normalize(mixed $raw): ?array
