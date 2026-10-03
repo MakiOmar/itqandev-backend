@@ -378,15 +378,26 @@ final class KitRegistry
      */
     private static function marketingKits(): array
     {
+        /** @var array{badge_icon: array<string, string>, tech_icons: list<array<string, mixed>>}|null $heroIcons */
+        static $heroIcons = null;
+        $heroIcons ??= require __DIR__.'/data/hero-default-icons.php';
+
         return [
             'hero' => [
                 'label' => 'Hero',
                 'category' => 'Marketing',
                 'default_settings' => [
-                    'headline' => 'We build web, Android & iOS apps that scale',
+                    'badge_enabled' => true,
+                    'badge_text' => 'Next-Gen Software Architecture',
+                    'badge_icon' => $heroIcons['badge_icon'],
+                    'headline' => 'We build web, Android [[& iOS]] apps that scale',
                     'subheadline' => 'From MVPs to enterprise products. Modern stack, clear process, and long-term support.',
                     'primary_cta_label' => 'Get in touch',
                     'secondary_cta_label' => 'View our portfolio',
+                    'tech_enabled' => true,
+                    'tech_label' => 'Tech ecosystem',
+                    'tech_divider' => true,
+                    'tech_icons' => $heroIcons['tech_icons'],
                     'image' => '/hero-banner.webp',
                     'image_mobile' => '/hero-banner-mobile.webp',
                     'floating_icons_enabled' => false,
@@ -405,10 +416,28 @@ final class KitRegistry
                     'particles_color' => '',
                 ],
                 'settings_fields' => [
-                    ['key' => 'headline', 'type' => 'text', 'label' => 'Headline', 'group' => 'content'],
+                    ['key' => 'badge_enabled', 'type' => 'boolean', 'label' => 'Show badge above headline', 'translatable' => false, 'group' => 'badge'],
+                    ['key' => 'badge_text', 'type' => 'text', 'label' => 'Badge text', 'translatable' => true, 'group' => 'badge', 'show_if' => 'badge_enabled'],
+                    ['key' => 'badge_icon', 'type' => 'icon', 'label' => 'Badge icon', 'translatable' => false, 'group' => 'badge', 'show_if' => 'badge_enabled'],
+                    ['key' => 'headline', 'type' => 'text', 'label' => 'Headline (wrap words in [[ ]] to highlight)', 'group' => 'content'],
                     ['key' => 'subheadline', 'type' => 'textarea', 'label' => 'Subheadline', 'group' => 'content'],
                     ['key' => 'primary_cta_label', 'type' => 'text', 'label' => 'Primary CTA label', 'group' => 'content'],
                     ['key' => 'secondary_cta_label', 'type' => 'text', 'label' => 'Secondary CTA label', 'group' => 'content'],
+                    ['key' => 'tech_enabled', 'type' => 'boolean', 'label' => 'Show tech ecosystem row', 'translatable' => false, 'group' => 'tech'],
+                    ['key' => 'tech_label', 'type' => 'text', 'label' => 'Row label', 'translatable' => true, 'group' => 'tech', 'show_if' => 'tech_enabled'],
+                    ['key' => 'tech_divider', 'type' => 'boolean', 'label' => 'Divider line above the row', 'translatable' => false, 'group' => 'tech', 'show_if' => 'tech_enabled'],
+                    [
+                        'key' => 'tech_icons',
+                        'type' => 'repeater',
+                        'label' => 'Logos',
+                        'translatable' => false,
+                        'group' => 'tech',
+                        'show_if' => 'tech_enabled',
+                        'item_fields' => [
+                            ['key' => 'icon', 'type' => 'icon', 'label' => 'Icon', 'translatable' => false],
+                            ['key' => 'label', 'type' => 'text', 'label' => 'Name (tooltip)', 'translatable' => true],
+                        ],
+                    ],
                     ['key' => 'image', 'type' => 'media', 'label' => 'Desktop image', 'accept' => 'image/*', 'translatable' => true, 'group' => 'images'],
                     ['key' => 'image_mobile', 'type' => 'media', 'label' => 'Mobile image', 'accept' => 'image/*', 'translatable' => true, 'group' => 'images'],
                     ['key' => 'full_viewport', 'type' => 'boolean', 'label' => 'Full viewport height (100vh)', 'translatable' => false, 'group' => 'layout'],

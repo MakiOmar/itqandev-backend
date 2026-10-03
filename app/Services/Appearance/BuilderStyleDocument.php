@@ -109,7 +109,19 @@ final class BuilderStyleDocument
         'avatar_size' => 'length', 'avatar_radius' => 'length', 'avatar_ring_width' => 'length', 'avatar_ring_color' => 'color',
     ];
 
-    private const PART_KEYS = [...self::CASE_CARD_KEYS, ...self::TESTIMONIAL_KEYS];
+    /** Hero badge pill, `[[highlighted]]` headline run and tech ecosystem row. */
+    private const HERO_KEYS = [
+        'badge_color' => 'color', 'badge_bg' => 'color', 'badge_border_color' => 'color', 'badge_icon_color' => 'color',
+        'badge_font_size' => 'length', 'badge_icon_size' => 'length', 'badge_radius' => 'length',
+        'badge_font_weight' => 'weight', 'badge_transform' => 'transform',
+        'highlight_color' => 'color', 'highlight_color_end' => 'color',
+        'highlight_font_weight' => 'weight', 'highlight_font_style' => 'font_style',
+        'tech_label_color' => 'color', 'tech_icon_color' => 'color', 'tech_icon_hover_color' => 'color',
+        'tech_divider_color' => 'color',
+        'tech_icon_size' => 'length', 'tech_gap' => 'length', 'tech_label_font_size' => 'length',
+    ];
+
+    private const PART_KEYS = [...self::CASE_CARD_KEYS, ...self::TESTIMONIAL_KEYS, ...self::HERO_KEYS];
 
     /** Button parts (hero CTAs, case study card); each gets every BUTTON_* suffix as `{part}_{suffix}`. */
     private const BUTTON_PARTS = ['btn_primary', 'btn_secondary', 'btn_card'];

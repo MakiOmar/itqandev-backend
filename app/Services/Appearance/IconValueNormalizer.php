@@ -9,7 +9,7 @@ use App\Models\AppMedia;
  *
  * Accepted shapes (anything else becomes ''):
  * - legacy name string, e.g. "star"
- * - bundled set icon: {library: "lucide", name, body, view_box, color?} — body is inline SVG markup
+ * - bundled set icon: {library: "lucide"|"simple-icons", name, body, view_box, color?} — body is inline SVG markup
  *   rendered on the public site, so it must pass a strict element/attribute allowlist;
  *   color must be a hex value (it reaches a style attribute), anything else is dropped
  * - uploaded image: {library: "svg", media_id} — URL is always re-read from our media table,
@@ -17,7 +17,7 @@ use App\Models\AppMedia;
  */
 final class IconValueNormalizer
 {
-    public const LIBRARIES = ['lucide'];
+    public const LIBRARIES = ['lucide', 'simple-icons'];
 
     private const MAX_BODY_LENGTH = 20000;
 

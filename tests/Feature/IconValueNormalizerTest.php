@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Services\Appearance\ControlNormalizer;
 use App\Services\Appearance\IconValueNormalizer;
+use App\Services\Appearance\KitRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -104,6 +105,48 @@ class IconValueNormalizerTest extends TestCase
         $this->assertSame('', IconValueNormalizer::normalize([
             'library' => 'svg', 'media_id' => 999999, 'url' => 'https://third-party.test/icon.svg',
         ]));
+    }
+
+    public function test_keeps_a_simple_icons_brand_logo(): void
+    {
+        $body = '<path fill="currentColor" d="M0 0h24v24H0z"/>';
+        $out = IconValueNormalizer::normalize([
+            'library' => 'simple-icons', 'name' => 'react', 'body' => $body, 'view_box' => '0 0 24 24',
+        ]);
+
+        $this->assertSame(['library' => 'simple-icons', 'name' => 'react', 'body' => $body, 'view_box' => '0 0 24 24'], $out);
+        $this->assertSame('', IconValueNormalizer::normalize([
+            'library' => 'simple-icons', 'name' => 'x', 'body' => '<script>alert(1)</script>',
+        ]));
+    }
+
+    public function test_hero_tech_icons_repeater_sanitizes_each_row(): void
+    {
+        $hero = KitRegistry::all()['hero'] ?? null;
+        $this->assertNotNull($hero);
+
+        $out = ControlNormalizer::normalizeSettings([
+            'tech_icons' => [
+                ['id' => 'tech_ok', 'icon' => ['library' => 'simple-icons', 'name' => 'react', 'body' => self::STAR], 'label' => 'React'],
+                ['id' => 'tech_bad', 'icon' => ['library' => 'simple-icons', 'name' => 'x', 'body' => '<script>x</script>'], 'label' => 'Bad'],
+            ],
+        ], $hero['settings_fields']);
+
+        $this->assertSame('simple-icons', $out['tech_icons'][0]['icon']['library']);
+        $this->assertSame('React', $out['tech_icons'][0]['label']);
+        $this->assertSame('', $out['tech_icons'][1]['icon']);
+    }
+
+    public function test_hero_defaults_ship_safe_badge_and_tech_icons(): void
+    {
+        $hero = KitRegistry::all()['hero'] ?? null;
+        $defaults = $hero['default_settings'];
+
+        $this->assertSame($defaults['badge_icon'], IconValueNormalizer::normalize($defaults['badge_icon']));
+        $this->assertNotEmpty($defaults['tech_icons']);
+        foreach ($defaults['tech_icons'] as $row) {
+            $this->assertSame($row['icon'], IconValueNormalizer::normalize($row['icon']));
+        }
     }
 
     public function test_control_normalizer_applies_icon_rules(): void

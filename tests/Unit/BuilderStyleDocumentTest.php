@@ -249,6 +249,40 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertSame(['glow_primary_color' => '#0ea5e9', 'glow_secondary_color' => 'theme'], $out['dark']);
     }
 
+    public function test_hero_badge_highlight_and_tech_keys_are_kept_with_dark_colours_only(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => [
+                'badge_color' => '#075985',
+                'badge_radius' => ['value' => 8, 'unit' => 'px'],
+                'badge_transform' => 'uppercase',
+                'highlight_color' => '#0284C7',
+                'highlight_color_end' => 'red;}body{',
+                'highlight_font_style' => 'italic',
+                'tech_icon_size' => ['value' => 32, 'unit' => 'px'],
+                'tech_divider_color' => '#e2e8f0',
+                'tech_unknown' => '#000000',
+            ],
+            'dark' => [
+                'highlight_color_end' => '#22D3EE',
+                'tech_icon_hover_color' => 'theme',
+                'badge_font_weight' => '700',
+            ],
+        ]);
+
+        $bag = $out['desktop'];
+        $this->assertSame('#075985', $bag['badge_color']);
+        $this->assertSame(8.0, $bag['badge_radius']['value']);
+        $this->assertSame('uppercase', $bag['badge_transform']);
+        $this->assertSame('#0284c7', $bag['highlight_color']);
+        $this->assertArrayNotHasKey('highlight_color_end', $bag);
+        $this->assertSame('italic', $bag['highlight_font_style']);
+        $this->assertSame(32.0, $bag['tech_icon_size']['value']);
+        $this->assertSame('#e2e8f0', $bag['tech_divider_color']);
+        $this->assertArrayNotHasKey('tech_unknown', $bag);
+        $this->assertSame(['highlight_color_end' => '#22d3ee', 'tech_icon_hover_color' => 'theme'], $out['dark']);
+    }
+
     public function test_dark_bag_keeps_only_colour_and_shadow_keys(): void
     {
         $out = BuilderStyleDocument::normalize([
