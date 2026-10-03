@@ -396,6 +396,7 @@ final class KitRegistry
                     'secondary_cta_label' => 'View our portfolio',
                     'tech_enabled' => true,
                     'tech_label' => 'Tech ecosystem',
+                    'tech_layout' => 'stacked',
                     'tech_divider' => true,
                     'tech_icons' => $heroIcons['tech_icons'],
                     'image' => '/hero-banner.webp',
@@ -425,6 +426,18 @@ final class KitRegistry
                     ['key' => 'secondary_cta_label', 'type' => 'text', 'label' => 'Secondary CTA label', 'group' => 'content'],
                     ['key' => 'tech_enabled', 'type' => 'boolean', 'label' => 'Show tech ecosystem row', 'translatable' => false, 'group' => 'tech'],
                     ['key' => 'tech_label', 'type' => 'text', 'label' => 'Row label', 'translatable' => true, 'group' => 'tech', 'show_if' => 'tech_enabled'],
+                    [
+                        'key' => 'tech_layout',
+                        'type' => 'select',
+                        'label' => 'Label position',
+                        'translatable' => false,
+                        'group' => 'tech',
+                        'show_if' => 'tech_enabled',
+                        'options' => [
+                            ['value' => 'stacked', 'label' => 'Stacked (label above icons)'],
+                            ['value' => 'inline', 'label' => 'Inline (label beside icons)'],
+                        ],
+                    ],
                     ['key' => 'tech_divider', 'type' => 'boolean', 'label' => 'Divider line above the row', 'translatable' => false, 'group' => 'tech', 'show_if' => 'tech_enabled'],
                     [
                         'key' => 'tech_icons',

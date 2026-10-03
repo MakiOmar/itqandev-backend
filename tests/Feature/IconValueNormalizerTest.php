@@ -144,6 +144,9 @@ class IconValueNormalizerTest extends TestCase
 
         $this->assertSame($defaults['badge_icon'], IconValueNormalizer::normalize($defaults['badge_icon']));
         $this->assertNotEmpty($defaults['tech_icons']);
+        $this->assertSame('stacked', $defaults['tech_layout']);
+        $layoutField = collect($hero['settings_fields'])->firstWhere('key', 'tech_layout');
+        $this->assertSame(['stacked', 'inline'], array_column($layoutField['options'], 'value'));
         foreach ($defaults['tech_icons'] as $row) {
             $this->assertSame($row['icon'], IconValueNormalizer::normalize($row['icon']));
         }
