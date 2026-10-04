@@ -100,6 +100,19 @@ class TextLogoWidgetTest extends TestCase
         $this->assertSame(['logo_name_color' => '#ffffff'], $styles['dark']);
     }
 
+    public function test_style_document_keeps_only_known_logo_text_alignment(): void
+    {
+        $styles = BuilderStyleDocument::normalize([
+            'desktop' => ['logo_text_align' => 'center'],
+            'tablet' => ['logo_text_align' => 'right'],
+            'mobile' => ['logo_text_align' => 'justify;color:red'],
+        ]);
+
+        $this->assertSame('center', $styles['desktop']['logo_text_align']);
+        $this->assertSame('right', $styles['tablet']['logo_text_align']);
+        $this->assertArrayNotHasKey('logo_text_align', $styles['mobile'] ?? []);
+    }
+
     /**
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
