@@ -447,6 +447,7 @@ class SettingsController extends Controller
             'logo_light' => $settings['logo_light'] ?? null,
             'light_logo' => $settings['light_logo'] ?? null,
             'site_logo_light' => $settings['site_logo_light'] ?? null,
+            'favicon' => $settings['favicon'] ?? $settings['site_favicon'] ?? null,
             'site_languages' => is_array($settings['site_languages'] ?? null)
                 ? $settings['site_languages']
                 : [],
