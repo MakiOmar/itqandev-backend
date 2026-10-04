@@ -387,13 +387,13 @@ final class WidgetRegistry
             'icon' => [
                 'label' => 'Icon',
                 'category' => 'Media',
+                // Size lives on the icon value (picker "Icon size"); a saved legacy `size` is only a render fallback.
                 'default_settings' => [
                     'icon' => 'star',
                     'size' => 32,
                 ],
                 'settings_fields' => [
                     ['key' => 'icon', 'type' => 'icon', 'label' => 'Icon', 'translatable' => false],
-                    ['key' => 'size', 'type' => 'number', 'label' => 'Size (px)', 'min' => 16, 'max' => 96, 'translatable' => false],
                 ],
             ],
             'embed' => [

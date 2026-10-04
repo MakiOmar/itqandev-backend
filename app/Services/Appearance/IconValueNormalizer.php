@@ -9,15 +9,20 @@ use App\Models\AppMedia;
  *
  * Accepted shapes (anything else becomes ''):
  * - legacy name string, e.g. "star"
- * - bundled set icon: {library: "lucide"|"simple-icons", name, body, view_box, color?} — body is inline SVG markup
+ * - bundled set icon: {library: "lucide"|"simple-icons", name, body, view_box, color?, size?} — body is inline SVG markup
  *   rendered on the public site, so it must pass a strict element/attribute allowlist;
  *   color must be a hex value (it reaches a style attribute), anything else is dropped
- * - uploaded image: {library: "svg", media_id} — URL is always re-read from our media table,
+ * - uploaded image: {library: "svg", media_id, size?} — URL is always re-read from our media table,
  *   so an icon can never point at a third-party host
+ * - size: optional integer pixel size (clamped to SIZE_MIN..SIZE_MAX); empty keeps the widget's default size
  */
 final class IconValueNormalizer
 {
     public const LIBRARIES = ['lucide', 'simple-icons'];
+
+    public const SIZE_MIN = 8;
+
+    public const SIZE_MAX = 256;
 
     private const MAX_BODY_LENGTH = 20000;
 
@@ -95,6 +100,21 @@ final class IconValueNormalizer
             $icon['color'] = $color;
         }
 
+        return self::withSize($icon, $value);
+    }
+
+    /**
+     * @param  array<string, mixed>  $icon
+     * @param  array<string, mixed>  $value
+     * @return array<string, mixed>
+     */
+    private static function withSize(array $icon, array $value): array
+    {
+        $raw = $value['size'] ?? null;
+        if (is_numeric($raw)) {
+            $icon['size'] = max(self::SIZE_MIN, min(self::SIZE_MAX, (int) round((float) $raw)));
+        }
+
         return $icon;
     }
 
@@ -115,7 +135,7 @@ final class IconValueNormalizer
         }
         $url = (string) $media->getUrl();
 
-        return $url === '' ? '' : ['library' => 'svg', 'media_id' => $id, 'url' => $url];
+        return $url === '' ? '' : self::withSize(['library' => 'svg', 'media_id' => $id, 'url' => $url], $value);
     }
 
     private static function attributesAreSafe(string $attributes): bool

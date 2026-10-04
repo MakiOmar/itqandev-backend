@@ -59,6 +59,58 @@ class IconValueNormalizerTest extends TestCase
         ];
     }
 
+    /**
+     * @dataProvider iconSizes
+     */
+    public function test_clamps_icon_size_to_whole_pixels(mixed $size, int $expected): void
+    {
+        $out = IconValueNormalizer::normalize([
+            'library' => 'lucide', 'name' => 'star', 'body' => self::STAR, 'size' => $size,
+        ]);
+
+        $this->assertIsArray($out);
+        $this->assertSame($expected, $out['size']);
+    }
+
+    /**
+     * @return array<string, array{mixed, int}>
+     */
+    public static function iconSizes(): array
+    {
+        return [
+            'integer' => [40, 40],
+            'numeric string' => ['36.6', 37],
+            'too small' => [2, IconValueNormalizer::SIZE_MIN],
+            'too large' => [9000, IconValueNormalizer::SIZE_MAX],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidIconSizes
+     */
+    public function test_drops_non_numeric_icon_size(mixed $size): void
+    {
+        $out = IconValueNormalizer::normalize([
+            'library' => 'lucide', 'name' => 'star', 'body' => self::STAR, 'size' => $size,
+        ]);
+
+        $this->assertIsArray($out);
+        $this->assertArrayNotHasKey('size', $out);
+    }
+
+    /**
+     * @return array<string, array{mixed}>
+     */
+    public static function invalidIconSizes(): array
+    {
+        return [
+            'empty' => [''],
+            'css' => ['10px;color:red'],
+            'boolean' => [true],
+            'null' => [null],
+        ];
+    }
+
     public function test_keeps_grouped_markup_and_defaults_view_box(): void
     {
         $body = '<g fill="none" stroke="currentColor"><path d="m22 7l-9 5L2 7"/><rect width="20" height="16" x="2" y="4" rx="2"/></g>';
