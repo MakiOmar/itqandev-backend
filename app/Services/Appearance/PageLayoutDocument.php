@@ -761,6 +761,7 @@ final class PageLayoutDocument
         }
         if ($tagContext !== null) {
             $settings = DynamicTagResolver::apply($settings, $tagContext, $locale);
+            $settings = ThemeWidgetContent::fill($type, $settings, $tagContext, $locale);
         }
         if ($type === 'loop_grid') {
             $settings['items'] = LoopQueryService::items($settings, $locale);

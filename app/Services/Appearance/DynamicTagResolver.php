@@ -7,6 +7,7 @@ use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Support\ProjectSettingsStore;
+use App\Support\TranslatableContentPresenter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
@@ -85,6 +86,7 @@ final class DynamicTagResolver
      */
     public static function payloadFromModel(?Model $record, string $context, ?string $locale = null): array
     {
+        $record = self::localizedRecord($record, $locale);
         if ($record instanceof BlogPost) {
             return [
                 'title' => (string) $record->title,
@@ -136,5 +138,24 @@ final class DynamicTagResolver
             'archive_title' => $archiveTitle,
             'title' => $archiveTitle,
         ];
+    }
+
+    /** Copy of the record with the locale's translation applied; the caller's model stays untouched. */
+    private static function localizedRecord(?Model $record, ?string $locale): ?Model
+    {
+        $locale = strtolower(trim((string) $locale));
+        if ($record === null || $locale === '') {
+            return $record;
+        }
+        $copy = clone $record;
+        match (true) {
+            $copy instanceof BlogPost => TranslatableContentPresenter::applyBlogPost($copy, $locale),
+            $copy instanceof Project => TranslatableContentPresenter::applyProject($copy, $locale),
+            $copy instanceof Service => TranslatableContentPresenter::applyService($copy, $locale),
+            $copy instanceof Page => TranslatableContentPresenter::applyPage($copy, $locale),
+            default => null,
+        };
+
+        return $copy;
     }
 }

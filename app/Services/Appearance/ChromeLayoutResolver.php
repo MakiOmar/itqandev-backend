@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Schema;
  * Cascade per chrome kind: record FK → theme template slot → chrome_type_defaults
  * → published site default → builder defaultDocument.
  *
- * Body layouts apply only for homepage / not_found contexts (v1).
+ * Body layouts apply to the contexts in ThemeTemplateService::bodyAppliesForContext.
  */
 final class ChromeLayoutResolver
 {
@@ -200,7 +200,7 @@ final class ChromeLayoutResolver
             $post = BlogPost::query()
                 ->where('slug', $m[1])
                 ->where('status', 'published')
-                ->first(['id', 'header_layout_id', 'footer_layout_id']);
+                ->first();
 
             return ['blog_post', $post, 'blog_post'];
         }
@@ -209,7 +209,7 @@ final class ChromeLayoutResolver
             $project = Project::query()
                 ->where('slug', $m[2])
                 ->where('status', 'published')
-                ->first(['id', 'header_layout_id', 'footer_layout_id']);
+                ->first();
 
             return ['project', $project, 'project'];
         }
@@ -218,7 +218,7 @@ final class ChromeLayoutResolver
             $service = Service::query()
                 ->where('slug', $m[1])
                 ->where('is_published', true)
-                ->first(['id', 'header_layout_id', 'footer_layout_id']);
+                ->first();
 
             return ['service', $service, 'service'];
         }
@@ -227,7 +227,7 @@ final class ChromeLayoutResolver
             $page = Page::query()
                 ->where('slug', $m[1])
                 ->where('status', Page::STATUS_PUBLISHED)
-                ->first(['id', 'header_layout_id', 'footer_layout_id']);
+                ->first();
 
             return ['page', $page, 'page'];
         }
@@ -239,7 +239,7 @@ final class ChromeLayoutResolver
                 $page = Page::query()
                     ->where('slug', $slug)
                     ->where('status', Page::STATUS_PUBLISHED)
-                    ->first(['id', 'header_layout_id', 'footer_layout_id']);
+                    ->first();
 
                 $routeContext = match ($slug) {
                     'articles' => 'blog_index',
@@ -265,7 +265,7 @@ final class ChromeLayoutResolver
         return Page::query()
             ->where('slug', $slug)
             ->where('status', Page::STATUS_PUBLISHED)
-            ->first(['id', 'header_layout_id', 'footer_layout_id']);
+            ->first();
     }
 
     private function resolveFromRecord(string $kind, ?Model $record): ?int
