@@ -480,6 +480,142 @@ final class WidgetRegistry
                     ],
                 ],
             ],
+            'theme_switch' => self::themeSwitch(),
+            'contact_float' => self::contactFloat(),
+        ];
+    }
+
+    /**
+     * @param  array<string, string>  $options
+     * @return SettingsField
+     */
+    private static function selectField(string $key, string $label, array $options, array $extra = []): array
+    {
+        return [
+            'key' => $key,
+            'type' => 'select',
+            'label' => $label,
+            'translatable' => false,
+            'options' => array_map(static fn (string $v, string $l): array => ['value' => $v, 'label' => $l], array_keys($options), $options),
+            ...$extra,
+        ];
+    }
+
+    /**
+     * Corner + offset fields shared by widgets that can float over the page.
+     *
+     * @return list<SettingsField>
+     */
+    private static function floatingPositionFields(string $group, ?string $showIf): array
+    {
+        $extra = array_filter(['group' => $group, 'show_if' => $showIf]);
+
+        return [
+            self::selectField('corner', 'Corner', [
+                'bottom_end' => 'Bottom end (right in LTR)',
+                'bottom_start' => 'Bottom start (left in LTR)',
+                'top_end' => 'Top end',
+                'top_start' => 'Top start',
+            ], $extra),
+            ['key' => 'offset_x', 'type' => 'number', 'label' => 'Side offset (px)', 'min' => 0, 'max' => 200, 'translatable' => false, ...$extra],
+            ['key' => 'offset_y', 'type' => 'number', 'label' => 'Top / bottom offset (px)', 'min' => 0, 'max' => 200, 'translatable' => false, ...$extra],
+        ];
+    }
+
+    /**
+     * Light/dark theme switch: icon button or sliding switch, inline or floating in a corner.
+     *
+     * @return WidgetDef
+     */
+    private static function themeSwitch(): array
+    {
+        $icon = static fn (string $name, string $body): array => ['library' => 'lucide', 'name' => $name, 'body' => $body, 'view_box' => '0 0 24 24'];
+
+        return [
+            'label' => 'Theme switch',
+            'category' => 'Actions',
+            'default_settings' => [
+                'variant' => 'icon',
+                'light_icon' => $icon('moon', '<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>'),
+                'dark_icon' => $icon('sun', '<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></g>'),
+                'show_label' => false,
+                'light_label' => 'Dark mode',
+                'dark_label' => 'Light mode',
+                'floating' => false,
+                'corner' => 'bottom_end',
+                'offset_x' => 24,
+                'offset_y' => 24,
+                'translations' => [
+                    'ar' => ['light_label' => 'الوضع الداكن', 'dark_label' => 'الوضع الفاتح'],
+                ],
+            ],
+            'settings_fields' => [
+                self::selectField('variant', 'Style', ['icon' => 'Icon button', 'switch' => 'Sliding switch'], ['group' => 'content']),
+                ['key' => 'light_icon', 'type' => 'icon', 'label' => 'Icon in light mode', 'translatable' => false, 'group' => 'content'],
+                ['key' => 'dark_icon', 'type' => 'icon', 'label' => 'Icon in dark mode', 'translatable' => false, 'group' => 'content'],
+                ['key' => 'light_label', 'type' => 'text', 'label' => 'Label in light mode (also the screen reader text)', 'translatable' => true, 'group' => 'content'],
+                ['key' => 'dark_label', 'type' => 'text', 'label' => 'Label in dark mode (also the screen reader text)', 'translatable' => true, 'group' => 'content'],
+                ['key' => 'show_label', 'type' => 'boolean', 'label' => 'Show label next to the icon', 'translatable' => false, 'group' => 'content'],
+                ['key' => 'floating', 'type' => 'boolean', 'label' => 'Float in a screen corner', 'translatable' => false, 'group' => 'position'],
+                ...self::floatingPositionFields('position', 'floating'),
+            ],
+        ];
+    }
+
+    /**
+     * Floating contact launcher: opens a panel with a WhatsApp chat link and an optional builder form.
+     *
+     * @return WidgetDef
+     */
+    private static function contactFloat(): array
+    {
+        return [
+            'label' => 'Floating contact',
+            'category' => 'Actions',
+            'default_settings' => [
+                'launcher_icon' => [
+                    'library' => 'lucide',
+                    'name' => 'message-circle',
+                    'body' => '<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092a10 10 0 1 0-4.777-4.719"/>',
+                    'view_box' => '0 0 24 24',
+                ],
+                'launcher_label' => '',
+                'panel_title' => 'Contact us',
+                'panel_text' => 'We usually reply within a few hours.',
+                'whatsapp_enabled' => true,
+                'whatsapp_number' => '',
+                'whatsapp_label' => 'Chat on WhatsApp',
+                'whatsapp_message' => 'Hello! I would like to know more about your services.',
+                'message_enabled' => true,
+                'message_label' => 'Leave us a message',
+                'form_slug' => '',
+                'corner' => 'bottom_end',
+                'offset_x' => 24,
+                'offset_y' => 24,
+                'translations' => [
+                    'ar' => [
+                        'panel_title' => 'تواصل معنا',
+                        'panel_text' => 'نرد عادةً خلال ساعات قليلة.',
+                        'whatsapp_label' => 'تحدث معنا عبر واتساب',
+                        'whatsapp_message' => 'مرحباً! أود معرفة المزيد عن خدماتكم.',
+                        'message_label' => 'اترك لنا رسالة',
+                    ],
+                ],
+            ],
+            'settings_fields' => [
+                ['key' => 'launcher_icon', 'type' => 'icon', 'label' => 'Button icon', 'translatable' => false, 'group' => 'launcher'],
+                ['key' => 'launcher_label', 'type' => 'text', 'label' => 'Button text (optional)', 'translatable' => true, 'group' => 'launcher'],
+                ['key' => 'panel_title', 'type' => 'text', 'label' => 'Panel title', 'translatable' => true, 'group' => 'launcher'],
+                ['key' => 'panel_text', 'type' => 'textarea', 'label' => 'Panel intro', 'translatable' => true, 'group' => 'launcher'],
+                ['key' => 'whatsapp_enabled', 'type' => 'boolean', 'label' => 'Show WhatsApp', 'translatable' => false, 'group' => 'whatsapp'],
+                ['key' => 'whatsapp_number', 'type' => 'text', 'label' => 'WhatsApp number (international, digits only, e.g. 9665XXXXXXXX)', 'translatable' => false, 'group' => 'whatsapp', 'show_if' => 'whatsapp_enabled'],
+                ['key' => 'whatsapp_label', 'type' => 'text', 'label' => 'Button label', 'translatable' => true, 'group' => 'whatsapp', 'show_if' => 'whatsapp_enabled'],
+                ['key' => 'whatsapp_message', 'type' => 'textarea', 'label' => 'Pre-filled message', 'translatable' => true, 'group' => 'whatsapp', 'show_if' => 'whatsapp_enabled'],
+                ['key' => 'message_enabled', 'type' => 'boolean', 'label' => 'Show "leave a message"', 'translatable' => false, 'group' => 'message'],
+                ['key' => 'message_label', 'type' => 'text', 'label' => 'Button label', 'translatable' => true, 'group' => 'message', 'show_if' => 'message_enabled'],
+                ['key' => 'form_slug', 'type' => 'form', 'label' => 'Form (empty = link to the contact page)', 'translatable' => false, 'group' => 'message', 'show_if' => 'message_enabled'],
+                ...self::floatingPositionFields('position', null),
+            ],
         ];
     }
 

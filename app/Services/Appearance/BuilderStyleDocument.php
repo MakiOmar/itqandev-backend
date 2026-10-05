@@ -134,8 +134,23 @@ final class BuilderStyleDocument
         'logo_tagline_spacing' => 'length',
     ];
 
+    /** Theme switch button / track, floating contact launcher, its panel and the WhatsApp button. */
+    private const FLOATING_KEYS = [
+        'toggle_color' => 'color', 'toggle_bg' => 'color', 'toggle_hover_color' => 'color', 'toggle_hover_bg' => 'color',
+        'toggle_border_color' => 'color', 'toggle_active_bg' => 'color', 'toggle_knob_bg' => 'color',
+        'toggle_size' => 'length', 'toggle_icon_size' => 'length', 'toggle_radius' => 'length',
+        'toggle_font_size' => 'length', 'toggle_font_weight' => 'weight', 'toggle_shadow' => 'shadow',
+        'launcher_color' => 'color', 'launcher_bg' => 'color', 'launcher_hover_bg' => 'color',
+        'launcher_size' => 'length', 'launcher_icon_size' => 'length', 'launcher_radius' => 'length',
+        'launcher_font_size' => 'length', 'launcher_font_weight' => 'weight', 'launcher_shadow' => 'shadow',
+        'panel_bg' => 'color', 'panel_color' => 'color', 'panel_title_color' => 'color', 'panel_border_color' => 'color',
+        'panel_width' => 'length', 'panel_radius' => 'length', 'panel_shadow' => 'shadow',
+        'whatsapp_color' => 'color', 'whatsapp_bg' => 'color', 'whatsapp_hover_bg' => 'color', 'whatsapp_radius' => 'length',
+    ];
+
     private const PART_KEYS = [
         ...self::CASE_CARD_KEYS, ...self::TESTIMONIAL_KEYS, ...self::HERO_KEYS, ...self::LOGO_KEYS,
+        ...self::FLOATING_KEYS,
     ];
 
     /** Button parts (hero CTAs, case study card); each gets every BUTTON_* suffix as `{part}_{suffix}`. */

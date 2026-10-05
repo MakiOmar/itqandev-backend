@@ -46,6 +46,10 @@ final class ControlNormalizer
         if (isset($settings['rel'])) {
             $settings['rel'] = self::rel($settings['rel']);
         }
+        if (isset($settings['whatsapp_number'])) {
+            // wa.me accepts only the international number as digits (E.164 is at most 15).
+            $settings['whatsapp_number'] = substr((string) preg_replace('/\D+/', '', (string) $settings['whatsapp_number']), 0, 15);
+        }
         if (isset($settings['overlay_id'])) {
             $oid = (int) $settings['overlay_id'];
             $settings['overlay_id'] = $oid > 0 ? $oid : null;
