@@ -165,6 +165,13 @@ final class GlobalWidgetService
         }
         $doc['id'] = (string) ($block['id'] ?? $doc['id'] ?? ('glb_'.$id));
         $doc['global_source_id'] = $id;
+        // Visibility belongs to the placement, not the shared content.
+        if (array_key_exists('enabled', $block)) {
+            $doc['enabled'] = filter_var($block['enabled'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (isset($block['hide_on'])) {
+            $doc['hide_on'] = $block['hide_on'];
+        }
 
         return $doc;
     }

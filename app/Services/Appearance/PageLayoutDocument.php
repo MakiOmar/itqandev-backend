@@ -390,9 +390,10 @@ final class PageLayoutDocument
                 'enabled' => filter_var($block['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'settings' => [],
             ];
-            $normalized = LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
 
-            return BuilderStyleDocument::appendTo($normalized, $block['styles'] ?? null);
+            // The builder caches the global's type/settings/styles on the placement for editing;
+            // only the link and per-placement visibility are stored so pages never hold stale copies.
+            return LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
         }
 
         $type = strtolower(trim((string) ($block['type'] ?? '')));
