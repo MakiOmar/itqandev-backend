@@ -83,6 +83,24 @@ class PageLeafRegistryTest extends TestCase
         $this->assertNotContains('card_style', KitRegistry::translatableKeys('projects_list'));
     }
 
+    public function test_cta_kit_offers_whatsapp_button_off_by_default(): void
+    {
+        $defaults = KitRegistry::defaultSettings('cta');
+        $this->assertFalse($defaults['whatsapp_enabled']);
+        $this->assertSame('', $defaults['whatsapp_number']);
+
+        $fields = collect(collect(KitRegistry::forAdmin())->firstWhere('type', 'cta')['settings_fields'])->keyBy('key');
+        foreach (['whatsapp_number', 'whatsapp_label', 'whatsapp_message'] as $key) {
+            $this->assertSame('whatsapp', $fields[$key]['group']);
+            $this->assertSame('whatsapp_enabled', $fields[$key]['show_if']);
+        }
+
+        $translatable = KitRegistry::translatableKeys('cta');
+        $this->assertContains('whatsapp_label', $translatable);
+        $this->assertContains('whatsapp_message', $translatable);
+        $this->assertNotContains('whatsapp_number', $translatable);
+    }
+
     public function test_hero_kit_offers_watermark_motion_off_by_default(): void
     {
         $defaults = KitRegistry::defaultSettings('hero');
