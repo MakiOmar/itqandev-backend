@@ -333,6 +333,8 @@ final class ChromeLayoutResolver
             $parts = parse_url($raw);
             $raw = (string) ($parts['path'] ?? '/');
         }
+        // Qwik client navigation loads route data from `<route>/q-data.json`.
+        $raw = (string) preg_replace('#/q-data\.json$#i', '/', $raw);
         $path = '/'.trim($raw, '/');
 
         return $path === '/' ? '/' : rtrim($path, '/');

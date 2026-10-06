@@ -140,6 +140,20 @@ class PageThemeTemplateTest extends TestCase
         $this->assertSame('فريقنا', $this->blockById($sections, 'title')['settings']['text'] ?? null);
     }
 
+    public function test_client_navigation_data_path_resolves_as_the_page(): void
+    {
+        $this->pageTemplate([['include' => true, 'group' => 'singular', 'key' => 'page']]);
+        $this->page('team', 'Our team');
+
+        $response = $this->getJson('/api/public/shell?locale=en&path=/en/pages/team/q-data.json');
+
+        $response->assertOk()->assertJsonPath('data.theme_context', 'page');
+        $this->assertSame(
+            'Our team',
+            $this->blockById($response->json('data.theme_body.sections'), 'title')['settings']['text'] ?? null
+        );
+    }
+
     public function test_excluded_page_gets_no_template_body(): void
     {
         $this->pageTemplate([
