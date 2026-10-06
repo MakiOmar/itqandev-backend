@@ -87,6 +87,24 @@ final class PageLayoutDocument
     }
 
     /**
+     * Normalizes one saved builder template node with the same rules as a page layout.
+     *
+     * @param  'band'|'row'|'column'|'block'  $kind
+     * @param  array<string, mixed>  $node
+     * @return array<string, mixed>|null
+     */
+    public static function normalizeTemplateNode(string $kind, array $node): ?array
+    {
+        return match ($kind) {
+            'band' => self::normalizeBand($node),
+            'row' => self::normalizeRow($node, true),
+            'column' => self::normalizeColumn($node, true),
+            'block' => self::normalizeBlock($node, true),
+            default => null,
+        };
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $sections
      * @param  array<string, mixed>|null  $tagContext
      * @return list<array<string, mixed>>

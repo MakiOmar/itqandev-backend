@@ -164,6 +164,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('globals/{id}', [\App\Http\Controllers\Api\BuilderGlobalController::class, 'update']);
         Route::delete('globals/{id}', [\App\Http\Controllers\Api\BuilderGlobalController::class, 'destroy']);
 
+        Route::post('templates/bulk-delete', [\App\Http\Controllers\Api\BuilderTemplateController::class, 'bulkDelete'])->middleware('throttle:bulk');
+        Route::get('templates', [\App\Http\Controllers\Api\BuilderTemplateController::class, 'index']);
+        Route::post('templates', [\App\Http\Controllers\Api\BuilderTemplateController::class, 'store']);
+        Route::get('templates/{id}', [\App\Http\Controllers\Api\BuilderTemplateController::class, 'show'])->whereNumber('id');
+        Route::put('templates/{id}', [\App\Http\Controllers\Api\BuilderTemplateController::class, 'update'])->whereNumber('id');
+        Route::delete('templates/{id}', [\App\Http\Controllers\Api\BuilderTemplateController::class, 'destroy'])->whereNumber('id');
+
         Route::get('design-kit', [\App\Http\Controllers\Api\DesignKitController::class, 'show']);
         Route::put('design-kit', [\App\Http\Controllers\Api\DesignKitController::class, 'update']);
 

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\AppMedia;
 use App\Models\BlogPost;
+use App\Models\BuilderTemplate;
 use App\Models\Category;
 use App\Models\Font;
 use App\Models\Menu;
@@ -15,6 +16,7 @@ use App\Models\Skill;
 use App\Models\Testimonial;
 use App\Models\User;
 use App\Policies\BlogPostPolicy;
+use App\Policies\BuilderTemplatePolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\FontPolicy;
 use App\Policies\MediaPolicy;
@@ -53,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
         SeoMeta::class => SeoMetaPolicy::class,
         Menu::class => MenuPolicy::class,
         MenuItem::class => MenuItemPolicy::class,
+        BuilderTemplate::class => BuilderTemplatePolicy::class,
     ];
 
     /**
