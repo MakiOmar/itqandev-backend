@@ -71,6 +71,18 @@ class PageLeafRegistryTest extends TestCase
         $this->assertNotContains('card_style', KitRegistry::translatableKeys('case_studies'));
     }
 
+    public function test_projects_list_kit_offers_same_card_style_select_as_case_studies(): void
+    {
+        $this->assertSame('overlay', KitRegistry::defaultSettings('projects_list')['card_style']);
+
+        $kits = collect(KitRegistry::forAdmin());
+        $field = collect($kits->firstWhere('type', 'projects_list')['settings_fields'])->firstWhere('key', 'card_style');
+        $caseStudiesField = collect($kits->firstWhere('type', 'case_studies')['settings_fields'])->firstWhere('key', 'card_style');
+
+        $this->assertSame($caseStudiesField, $field);
+        $this->assertNotContains('card_style', KitRegistry::translatableKeys('projects_list'));
+    }
+
     public function test_hero_kit_offers_watermark_motion_off_by_default(): void
     {
         $defaults = KitRegistry::defaultSettings('hero');

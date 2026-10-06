@@ -503,16 +503,7 @@ final class KitRegistry
                 'settings_fields' => [
                     ['key' => 'title', 'type' => 'text', 'label' => 'Title'],
                     ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
-                    [
-                        'key' => 'card_style',
-                        'type' => 'select',
-                        'label' => 'Card style',
-                        'translatable' => false,
-                        'options' => [
-                            ['value' => 'overlay', 'label' => 'Overlay'],
-                            ['value' => 'detailed', 'label' => 'Detailed'],
-                        ],
-                    ],
+                    self::projectCardStyleField(),
                     [
                         'key' => 'category_ids',
                         'type' => 'category_multi',
@@ -604,8 +595,10 @@ final class KitRegistry
                 'default_settings' => [
                     'show_filters' => true,
                     'category_ids' => [],
+                    'card_style' => 'overlay',
                 ],
                 'settings_fields' => [
+                    self::projectCardStyleField(),
                     [
                         'key' => 'show_filters',
                         'type' => 'boolean',
@@ -1011,6 +1004,26 @@ final class KitRegistry
                         ],
                     ],
                 ],
+            ],
+        ];
+    }
+
+    /**
+     * Project card design shared by the case studies and projects list kits;
+     * values must match `CaseStudyCard` / `CaseStudyDetailedCard` on the website.
+     *
+     * @return SettingsField
+     */
+    private static function projectCardStyleField(): array
+    {
+        return [
+            'key' => 'card_style',
+            'type' => 'select',
+            'label' => 'Card style',
+            'translatable' => false,
+            'options' => [
+                ['value' => 'overlay', 'label' => 'Overlay'],
+                ['value' => 'detailed', 'label' => 'Detailed'],
             ],
         ];
     }
