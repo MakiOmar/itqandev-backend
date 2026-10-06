@@ -154,6 +154,28 @@ class PageThemeTemplateTest extends TestCase
         );
     }
 
+    public function test_page_template_wraps_index_pages_instead_of_replacing_them(): void
+    {
+        $this->pageTemplate([['include' => true, 'group' => 'singular', 'key' => 'page']]);
+
+        $this->getJson('/api/public/shell?locale=en&path=/en/pages/team')
+            ->assertOk()
+            ->assertJsonPath('data.theme_body_mode', 'wrap');
+        $this->getJson('/api/public/shell?locale=en&path=/en/portfolio')
+            ->assertOk()
+            ->assertJsonPath('data.theme_context', 'portfolio_index')
+            ->assertJsonPath('data.theme_body_mode', 'wrap');
+    }
+
+    public function test_archive_template_replaces_the_index_page(): void
+    {
+        $this->pageTemplate([['include' => true, 'group' => 'archive', 'key' => 'portfolio_index']]);
+
+        $this->getJson('/api/public/shell?locale=en&path=/en/portfolio')
+            ->assertOk()
+            ->assertJsonPath('data.theme_body_mode', 'replace');
+    }
+
     public function test_excluded_page_gets_no_template_body(): void
     {
         $this->pageTemplate([

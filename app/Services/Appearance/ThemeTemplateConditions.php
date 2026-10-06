@@ -131,6 +131,22 @@ final class ThemeTemplateConditions
     }
 
     /**
+     * True when an include rule from the Archive group matches — the template targets the listing itself.
+     *
+     * @param  array{context: string, content_type: string, record_id: int|null, ...}  $ctx
+     */
+    public static function matchesArchiveRule(ThemeTemplate $template, array $ctx): bool
+    {
+        foreach (self::normalize($template->conditions)['rules'] as $rule) {
+            if (($rule['include'] ?? true) === true && $rule['group'] === 'archive' && self::ruleMatches($rule, $ctx)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Higher score wins. Tie-break by template id elsewhere.
      *
      * @param  array{context: string, content_type: string, record_id: int|null, ...}  $ctx

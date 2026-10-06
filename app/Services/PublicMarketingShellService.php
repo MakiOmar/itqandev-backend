@@ -68,6 +68,7 @@ final class PublicMarketingShellService
      *   header: array{sections: list<array<string, mixed>>},
      *   footer: array{sections: list<array<string, mixed>>},
      *   theme_body: array{sections: list<array<string, mixed>>}|null,
+     *   theme_body_mode: 'replace'|'wrap'|null,
      *   theme_context: string|null,
      *   theme_template_id: int|null,
      *   overlays: list<array{id: int, delay_ms: int, once: bool, sitewide: bool}>
@@ -93,7 +94,7 @@ final class PublicMarketingShellService
             : 'auto';
         $cacheKey = 'public:shell:v'.self::shellVersion().':'.$locale.':loc:'.$present.':chrome:'.$pathKey.':ctx:'.$ctxKey;
 
-        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}, theme_body: array{sections: list<array<string, mixed>>}|null, theme_context: string|null, theme_template_id: int|null} $payload */
+        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}, theme_body: array{sections: list<array<string, mixed>>}|null, theme_body_mode: string|null, theme_context: string|null, theme_template_id: int|null} $payload */
         $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present, $documentPath, $request, $forcedContext) {
             $homepage = app(HomepageBuilderService::class);
             $chrome = app(ChromeLayoutResolver::class)->resolveForDocumentPath(
@@ -120,6 +121,7 @@ final class PublicMarketingShellService
                 'header' => $chrome['header'],
                 'footer' => $chrome['footer'],
                 'theme_body' => $themeBody,
+                'theme_body_mode' => $chrome['theme_body_mode'] ?? null,
                 'theme_context' => $chrome['context'] ?? null,
                 'theme_template_id' => $chrome['theme_template_id'] ?? null,
                 'overlays' => \App\Services\Appearance\ChromeLayoutSupport::delayedPublicOverlays(),

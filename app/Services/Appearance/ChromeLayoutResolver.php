@@ -103,7 +103,8 @@ final class ChromeLayoutResolver
      *   theme_template_id: int|null,
      *   header: array{sections: list<array<string, mixed>>},
      *   footer: array{sections: list<array<string, mixed>>},
-     *   theme_body: array{sections: list<array<string, mixed>>}|null
+     *   theme_body: array{sections: list<array<string, mixed>>}|null,
+     *   theme_body_mode: 'replace'|'wrap'|null
      * }
      */
     public function resolveForDocumentPath(
@@ -153,7 +154,24 @@ final class ChromeLayoutResolver
             'header' => $header,
             'footer' => $footer,
             'theme_body' => $themeBody,
+            'theme_body_mode' => $themeBody !== null ? $this->themeBodyMode($matched, $matcherCtx) : null,
         ];
+    }
+
+    /**
+     * `replace`: the template renders the whole listing (Archive rule or Archive layout).
+     * `wrap`: the template frames the CMS page, whose own content stays visible.
+     *
+     * @param  array<string, mixed>  $matcherCtx
+     */
+    private function themeBodyMode(ThemeTemplate $matched, array $matcherCtx): string
+    {
+        if (ThemeTemplateConditions::matchesArchiveRule($matched, $matcherCtx)) {
+            return 'replace';
+        }
+        $kind = ChromeLayout::query()->whereKey((int) $matched->body_layout_id)->value('kind');
+
+        return $kind === ChromeLayout::KIND_ARCHIVE ? 'replace' : 'wrap';
     }
 
     /**
