@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
+use App\Services\Appearance\DynamicTagResolver;
 use App\Services\Appearance\PageLayoutDocument;
 use App\Support\CmsPublicPaths;
 use App\Support\PageHierarchy;
@@ -27,7 +28,7 @@ class PublicPageController extends Controller
 
         $payload = Cache::remember($cacheKey, 300, function () use ($present) {
             $query = Page::query()
-                ->select(['id', 'title', 'slug', 'excerpt', 'content_locale', 'status', 'published_at', 'updated_at', 'parent_id', 'exclude_from_search'])
+                ->select(['id', 'title', 'subtitle', 'slug', 'excerpt', 'content_locale', 'status', 'published_at', 'updated_at', 'parent_id', 'exclude_from_search'])
                 ->with('translations')
                 ->where('status', Page::STATUS_PUBLISHED)
                 ->where('exclude_from_search', false)
@@ -54,6 +55,7 @@ class PublicPageController extends Controller
                 return [
                     'id' => $page->id,
                     'title' => $page->title,
+                    'subtitle' => $page->subtitle,
                     'slug' => $page->slug,
                     'excerpt' => $page->excerpt,
                     'parent_id' => $page->parent_id,
@@ -90,9 +92,11 @@ class PublicPageController extends Controller
                 return null;
             }
 
+            // `{{post.*}}` tags in the page's own layout resolve against this (already localized) page.
             $sections = PageLayoutDocument::presentPublicForPages(
                 is_array($page->sections) ? $page->sections : [],
                 $present,
+                DynamicTagResolver::payloadFromModel($page, 'page'),
             );
 
             $primary = SiteLanguages::primaryLocaleForContent($page->content_locale);
@@ -108,6 +112,7 @@ class PublicPageController extends Controller
             return [
                 'id' => $page->id,
                 'title' => $page->title,
+                'subtitle' => $page->subtitle,
                 'slug' => $page->slug,
                 'excerpt' => $page->excerpt,
                 'content_locale' => $page->content_locale,

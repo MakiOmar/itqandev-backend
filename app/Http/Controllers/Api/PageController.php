@@ -80,6 +80,7 @@ class PageController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:pages,slug'],
+            'subtitle' => ['nullable', 'string', 'max:255'],
             'excerpt' => ['nullable', 'string', 'max:512'],
             'status' => ['sometimes', 'string', Rule::in([Page::STATUS_DRAFT, Page::STATUS_PUBLISHED])],
             'published_at' => ['nullable', 'date'],
@@ -88,6 +89,7 @@ class PageController extends Controller
             'translations' => ['nullable', 'array'],
             'translations.*.locale' => ['required', 'string', 'max:16'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
+            'translations.*.subtitle' => ['nullable', 'string', 'max:255'],
             'translations.*.excerpt' => ['nullable', 'string', 'max:512'],
             'header_layout_id' => ['nullable', 'integer'],
             'footer_layout_id' => ['nullable', 'integer'],
@@ -138,6 +140,7 @@ class PageController extends Controller
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('pages')->ignore($page->id)],
+            'subtitle' => ['nullable', 'string', 'max:255'],
             'excerpt' => ['nullable', 'string', 'max:512'],
             'status' => ['sometimes', 'string', Rule::in([Page::STATUS_DRAFT, Page::STATUS_PUBLISHED])],
             'published_at' => ['nullable', 'date'],
@@ -146,6 +149,7 @@ class PageController extends Controller
             'translations' => ['nullable', 'array'],
             'translations.*.locale' => ['required', 'string', 'max:16'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
+            'translations.*.subtitle' => ['nullable', 'string', 'max:255'],
             'translations.*.excerpt' => ['nullable', 'string', 'max:512'],
             'header_layout_id' => ['nullable', 'integer'],
             'footer_layout_id' => ['nullable', 'integer'],
@@ -235,13 +239,16 @@ class PageController extends Controller
             if ($locale === '' || $locale === $primary || ! isset($enabled[$locale])) {
                 continue;
             }
-            $page->translations()->updateOrCreate(
-                ['locale' => $locale],
-                [
-                    'title' => isset($row['title']) ? trim((string) $row['title']) : null,
-                    'excerpt' => isset($row['excerpt']) ? trim((string) $row['excerpt']) : null,
-                ]
-            );
+            $attributes = [
+                'title' => isset($row['title']) ? trim((string) $row['title']) : null,
+                'excerpt' => isset($row['excerpt']) ? trim((string) $row['excerpt']) : null,
+            ];
+            // Rows saved by clients that do not edit subtitles must keep the stored value.
+            if (array_key_exists('subtitle', $row)) {
+                $subtitle = trim((string) ($row['subtitle'] ?? ''));
+                $attributes['subtitle'] = $subtitle !== '' ? $subtitle : null;
+            }
+            $page->translations()->updateOrCreate(['locale' => $locale], $attributes);
             $keep[] = $locale;
         }
 

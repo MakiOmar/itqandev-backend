@@ -328,6 +328,8 @@ final class TranslatableContentPresenter
         if (is_string($row->title) && $row->title !== '') {
             $page->setAttribute('title', $row->title);
         }
+        // Optional display text: never show the primary-language subtitle on a translated page.
+        $page->setAttribute('subtitle', is_string($row->subtitle) && $row->subtitle !== '' ? $row->subtitle : null);
         if (is_string($row->excerpt) && $row->excerpt !== '') {
             $page->setAttribute('excerpt', $row->excerpt);
         }

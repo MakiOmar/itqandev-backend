@@ -404,6 +404,9 @@ final class TranslatableLocaleImportService
         $excerpt = trim((string) ($row['excerpt'] ?? ''));
         $excerpt = $excerpt === '' ? null : $excerpt;
         $this->assertHasText($title, $excerpt, 'title');
+        $hasSubtitle = array_key_exists('subtitle', $row);
+        $subtitle = trim((string) ($row['subtitle'] ?? ''));
+        $subtitle = $subtitle === '' ? null : $subtitle;
 
         $hasSections = array_key_exists('sections', $row);
         $sections = $hasSections
@@ -433,6 +436,7 @@ final class TranslatableLocaleImportService
             $page = Page::create([
                 'slug' => UniqueContentSlug::suggest(Page::class, $slug),
                 'title' => $title !== '' ? $title : $slug,
+                'subtitle' => $subtitle,
                 'excerpt' => $excerpt,
                 'status' => $status,
                 'published_at' => $status === Page::STATUS_PUBLISHED ? now() : null,
@@ -455,6 +459,9 @@ final class TranslatableLocaleImportService
                 'title' => $title !== '' ? $title : $page->title,
                 'excerpt' => $excerpt,
             ];
+            if ($hasSubtitle) {
+                $update['subtitle'] = $subtitle;
+            }
             if ($hasStatus) {
                 $update['status'] = $status;
                 if ($status === Page::STATUS_PUBLISHED && $page->published_at === null) {
@@ -476,11 +483,11 @@ final class TranslatableLocaleImportService
             return 'updated';
         }
 
-        // Secondary locale: title/excerpt translations; builder layout stays on the main row.
+        // Secondary locale: title/subtitle/excerpt translations; builder layout stays on the main row.
         $this->translationSync->sync(
             $page,
-            [['locale' => $locale, 'title' => $title, 'excerpt' => $excerpt ?? '']],
-            ['title', 'excerpt'],
+            [['locale' => $locale, 'title' => $title, 'subtitle' => $subtitle ?? '', 'excerpt' => $excerpt ?? '']],
+            ['title', 'subtitle', 'excerpt'],
         );
 
         if ($mode === self::MODE_UPSERT && $hasSections) {
@@ -516,6 +523,7 @@ final class TranslatableLocaleImportService
             $rows[] = [
                 'locale' => $loc,
                 'title' => trim((string) ($tr['title'] ?? '')),
+                'subtitle' => trim((string) ($tr['subtitle'] ?? '')),
                 'excerpt' => trim((string) ($tr['excerpt'] ?? '')),
             ];
         }
@@ -524,7 +532,7 @@ final class TranslatableLocaleImportService
             return;
         }
 
-        $this->translationSync->sync($page, $rows, ['title', 'excerpt']);
+        $this->translationSync->sync($page, $rows, ['title', 'subtitle', 'excerpt']);
     }
 
     /**

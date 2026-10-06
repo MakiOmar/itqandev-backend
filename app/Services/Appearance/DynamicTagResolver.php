@@ -70,6 +70,7 @@ final class DynamicTagResolver
             'site.logo' => (string) ($settings['logo'] ?? $settings['site_logo'] ?? ''),
             'site.year' => (string) Carbon::now()->year,
             'post.title' => (string) ($record['title'] ?? $record['name'] ?? ''),
+            'post.subtitle' => (string) ($record['subtitle'] ?? ''),
             'post.excerpt' => (string) ($record['excerpt'] ?? $record['summary'] ?? $record['short_description'] ?? ''),
             'post.content' => (string) ($record['content'] ?? $record['description'] ?? ''),
             'post.url' => (string) ($record['url'] ?? ''),
@@ -119,6 +120,7 @@ final class DynamicTagResolver
         if ($record instanceof Page) {
             return [
                 'title' => (string) $record->title,
+                'subtitle' => (string) ($record->subtitle ?? ''),
                 'excerpt' => (string) ($record->excerpt ?? ''),
                 'content' => (string) ($record->content ?? ''),
                 'url' => '/pages/'.$record->slug,

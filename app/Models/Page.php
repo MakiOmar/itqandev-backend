@@ -24,6 +24,7 @@ class Page extends Model
         'exclude_from_search',
         'published_at',
         'title',
+        'subtitle',
         'excerpt',
         'sections',
         'header_layout_id',

@@ -178,6 +178,7 @@ final class TranslatableLocaleExportService
                 'id' => $model->id,
                 'slug' => $model->slug,
                 'title' => $model->title,
+                'subtitle' => $model->subtitle,
                 'excerpt' => $model->excerpt,
                 'status' => $model->status,
                 'parent_id' => $model->parent_id,

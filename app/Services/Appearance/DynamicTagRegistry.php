@@ -19,6 +19,7 @@ final class DynamicTagRegistry
             ['id' => 'site.logo', 'group' => 'site', 'label' => 'Site logo URL'],
             ['id' => 'site.year', 'group' => 'site', 'label' => 'Current year'],
             ['id' => 'post.title', 'group' => 'record', 'label' => 'Title'],
+            ['id' => 'post.subtitle', 'group' => 'record', 'label' => 'Subtitle'],
             ['id' => 'post.excerpt', 'group' => 'record', 'label' => 'Excerpt'],
             ['id' => 'post.content', 'group' => 'record', 'label' => 'Content'],
             ['id' => 'post.url', 'group' => 'record', 'label' => 'Permalink'],

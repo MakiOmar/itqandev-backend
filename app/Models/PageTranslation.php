@@ -10,6 +10,7 @@ class PageTranslation extends Model
         'page_id',
         'locale',
         'title',
+        'subtitle',
         'excerpt',
     ];
 
