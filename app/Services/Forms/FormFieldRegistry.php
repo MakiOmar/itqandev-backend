@@ -5,8 +5,8 @@ namespace App\Services\Forms;
 /**
  * Canonical form field types for the Forms builder.
  *
- * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, translatable?: bool}
- * @phpstan-type FieldTypeDef array{label: string, palette: bool, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
+ * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, translatable?: bool, options?: list<array{value: string, label: string}>}
+ * @phpstan-type FieldTypeDef array{label: string, palette: bool, collects?: bool, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
  */
 final class FormFieldRegistry
 {
@@ -105,6 +105,7 @@ final class FormFieldRegistry
             'html' => [
                 'label' => 'HTML block',
                 'palette' => true,
+                'collects' => false,
                 'default_settings' => [
                     'label' => 'HTML',
                     'html' => '',
@@ -114,6 +115,28 @@ final class FormFieldRegistry
                 'settings_fields' => [
                     ['key' => 'label', 'type' => 'text', 'label' => 'Admin label'],
                     ['key' => 'html', 'type' => 'richtext', 'label' => 'HTML'],
+                ],
+            ],
+            'submit' => [
+                'label' => 'Submit button',
+                'palette' => true,
+                'collects' => false,
+                'default_settings' => [
+                    'label' => 'Submit',
+                    'loading_label' => '',
+                    'align' => 'start',
+                    'name' => '',
+                    'required' => false,
+                ],
+                'settings_fields' => [
+                    ['key' => 'label', 'type' => 'text', 'label' => 'Button text'],
+                    ['key' => 'loading_label', 'type' => 'text', 'label' => 'Text while sending (optional)'],
+                    ['key' => 'align', 'type' => 'select', 'label' => 'Alignment', 'translatable' => false, 'options' => [
+                        ['value' => 'start', 'label' => 'Start'],
+                        ['value' => 'center', 'label' => 'Center'],
+                        ['value' => 'end', 'label' => 'End'],
+                        ['value' => 'full', 'label' => 'Full width'],
+                    ]],
                 ],
             ],
             'honeypot' => [
@@ -204,6 +227,14 @@ final class FormFieldRegistry
     public static function isPalette(string $type): bool
     {
         return (bool) (self::all()[$type]['palette'] ?? true);
+    }
+
+    /**
+     * Display-only types (HTML block, submit button) post no value and are skipped by validation and storage.
+     */
+    public static function collectsInput(string $type): bool
+    {
+        return (bool) (self::all()[$type]['collects'] ?? true);
     }
 
     /**

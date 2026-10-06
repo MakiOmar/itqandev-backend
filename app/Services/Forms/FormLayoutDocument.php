@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
  */
 final class FormLayoutDocument
 {
+    private const SUBMIT_ALIGNS = ['start', 'center', 'end', 'full'];
+
     /**
      * @return array{rows: list<array<string, mixed>>}
      */
@@ -49,6 +51,10 @@ final class FormLayoutDocument
                     : FormFieldRegistry::defaultSettings($type);
                 if ($type === 'html' && isset($settings['html'])) {
                     $settings['html'] = app(\App\Services\HtmlSanitizerService::class)->sanitize((string) $settings['html']);
+                }
+                if ($type === 'submit') {
+                    $align = (string) ($settings['align'] ?? 'start');
+                    $settings['align'] = in_array($align, self::SUBMIT_ALIGNS, true) ? $align : 'start';
                 }
                 $conditions = FormConditionDocument::normalize($settings['conditions'] ?? null);
                 if ($conditions !== null) {

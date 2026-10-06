@@ -53,7 +53,7 @@ final class FormSubmissionPipeline
         foreach ($fields as $field) {
             $id = (string) $field['id'];
             $type = (string) $field['type'];
-            if ($type === 'html') {
+            if (! FormFieldRegistry::collectsInput($type)) {
                 continue;
             }
             $resolved = AppearanceLocalizedSettings::resolveForLocale(
@@ -89,7 +89,7 @@ final class FormSubmissionPipeline
         foreach ($fields as $field) {
             $id = (string) $field['id'];
             $type = (string) $field['type'];
-            if ($type === 'html' || ! isset($visibleIds[$id])) {
+            if (! FormFieldRegistry::collectsInput($type) || ! isset($visibleIds[$id])) {
                 continue;
             }
             $resolved = AppearanceLocalizedSettings::resolveForLocale(
@@ -150,7 +150,10 @@ final class FormSubmissionPipeline
                 );
 
                 return $field;
-            }, $fields),
+            }, array_values(array_filter(
+                $fields,
+                static fn (array $field): bool => FormFieldRegistry::collectsInput((string) $field['type'])
+            ))),
             locale: $locale,
             ip: $request->ip(),
             userAgent: substr((string) $request->userAgent(), 0, 512),
