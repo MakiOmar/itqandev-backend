@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\JsonWithAppMediaUrls;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -50,7 +51,7 @@ class ChromeLayout extends Model
     protected function casts(): array
     {
         return [
-            'document' => 'array',
+            'document' => JsonWithAppMediaUrls::class,
             'is_site_default' => 'boolean',
         ];
     }

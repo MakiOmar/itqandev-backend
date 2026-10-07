@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\JsonWithAppMediaUrls;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -34,7 +35,7 @@ class BuilderTemplate extends Model
     protected function casts(): array
     {
         return [
-            'document' => 'array',
+            'document' => JsonWithAppMediaUrls::class,
         ];
     }
 }

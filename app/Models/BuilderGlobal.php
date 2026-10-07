@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\JsonWithAppMediaUrls;
 use Illuminate\Database\Eloquent\Model;
 
 class BuilderGlobal extends Model
@@ -20,7 +21,7 @@ class BuilderGlobal extends Model
     protected function casts(): array
     {
         return [
-            'document' => 'array',
+            'document' => JsonWithAppMediaUrls::class,
         ];
     }
 

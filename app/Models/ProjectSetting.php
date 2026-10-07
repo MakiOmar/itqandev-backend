@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\JsonWithAppMediaUrls;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -21,7 +22,7 @@ class ProjectSetting extends Model
     protected function casts(): array
     {
         return [
-            'payload' => 'array',
+            'payload' => JsonWithAppMediaUrls::class,
         ];
     }
 }

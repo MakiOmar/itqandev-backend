@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\JsonWithAppMediaUrls;
 use App\Concerns\InvalidatesCache;
 use App\Concerns\RefreshesCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -47,7 +48,7 @@ class Page extends Model
     {
         return [
             'published_at' => 'datetime',
-            'sections' => 'array',
+            'sections' => JsonWithAppMediaUrls::class,
             'exclude_from_search' => 'boolean',
         ];
     }
