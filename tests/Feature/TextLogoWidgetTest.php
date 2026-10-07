@@ -113,6 +113,19 @@ class TextLogoWidgetTest extends TestCase
         $this->assertArrayNotHasKey('logo_text_align', $styles['mobile'] ?? []);
     }
 
+    public function test_style_document_keeps_direction_aware_logo_text_alignment(): void
+    {
+        $styles = BuilderStyleDocument::normalize([
+            'desktop' => ['logo_text_align' => 'start'],
+            'tablet' => ['logo_text_align' => 'end'],
+            'mobile' => ['align' => 'start'],
+        ]);
+
+        $this->assertSame('start', $styles['desktop']['logo_text_align']);
+        $this->assertSame('end', $styles['tablet']['logo_text_align']);
+        $this->assertArrayNotHasKey('align', $styles['mobile'] ?? []);
+    }
+
     /**
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>

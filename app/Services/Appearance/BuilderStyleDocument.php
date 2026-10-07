@@ -18,6 +18,9 @@ final class BuilderStyleDocument
 
     public const ALIGN = ['left', 'center', 'right'];
 
+    /** Logical start/end follow the page direction (LTR/RTL); physical left/right stay valid for saved styles. */
+    public const TEXT_ALIGN = ['start', 'center', 'end', 'left', 'right'];
+
     public const OVERFLOW = ['visible', 'hidden', 'auto', 'clip'];
 
     public const BORDER_STYLE = ['none', 'solid', 'dashed', 'dotted', 'double'];
@@ -126,7 +129,7 @@ final class BuilderStyleDocument
         'logo_mark_bg' => 'color', 'logo_mark_bg_end' => 'color', 'logo_mark_color' => 'color',
         'logo_mark_size' => 'length', 'logo_mark_radius' => 'length', 'logo_mark_font_size' => 'length',
         'logo_mark_font_weight' => 'weight', 'logo_mark_icon_size' => 'length', 'logo_mark_shadow' => 'shadow',
-        'logo_gap' => 'length', 'logo_text_align' => 'align',
+        'logo_gap' => 'length', 'logo_text_align' => 'text_align',
         'logo_name_color' => 'color', 'logo_name_font_size' => 'length', 'logo_name_font_weight' => 'weight',
         'logo_name_letter_spacing' => 'length', 'logo_name_transform' => 'transform',
         'logo_tagline_color' => 'color', 'logo_tagline_font_size' => 'length', 'logo_tagline_font_weight' => 'weight',
@@ -321,6 +324,7 @@ final class BuilderStyleDocument
                 'transform' => self::enum($value, self::TEXT_TRANSFORM),
                 'font_style' => self::enum($value, self::FONT_STYLE),
                 'align' => self::enum($value, self::ALIGN),
+                'text_align' => self::enum($value, self::TEXT_ALIGN),
             };
         }
 
