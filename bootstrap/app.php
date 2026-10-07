@@ -66,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => EnsureEmailIsVerified::class,
             'large.uploads' => \App\Http\Middleware\HandleLargeFileUploads::class,
             'feature.module' => \App\Http\Middleware\EnsureFeatureModuleEnabled::class,
+            'active.user' => \App\Http\Middleware\EnsureUserIsActive::class,
         ]);
 
         /**

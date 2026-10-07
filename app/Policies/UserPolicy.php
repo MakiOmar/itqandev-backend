@@ -52,4 +52,14 @@ class UserPolicy
     {
         return $this->create($auth);
     }
+
+    public function bulkDelete(User $auth): bool
+    {
+        return $this->create($auth);
+    }
+
+    public function bulkUpdate(User $auth): bool
+    {
+        return $this->create($auth);
+    }
 }

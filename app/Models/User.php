@@ -19,11 +19,30 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_INACTIVE = 'inactive';
+
+    public const STATUSES = [self::STATUS_ACTIVE, self::STATUS_INACTIVE];
+
     protected $fillable = [
         'name',
         'email',
         'password',
+        'status',
     ];
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'status' => self::STATUS_ACTIVE,
+    ];
+
+    public function isActive(): bool
+    {
+        return $this->status !== self::STATUS_INACTIVE;
+    }
 
     /**
      * The attributes that should be hidden for serialization.

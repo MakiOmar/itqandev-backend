@@ -82,7 +82,7 @@ Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request 
     return $resp;
 })->where('media', '[0-9]+');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
     Route::get('/me', [MeController::class, 'show']);
     Route::patch('/me', [MeController::class, 'update']);
     Route::put('/me/password', [MeController::class, 'updatePassword'])->middleware('throttle:login');
@@ -250,6 +250,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::middleware('feature.module:users')->group(function () {
+            Route::post('users/bulk-delete', [\App\Http\Controllers\Api\UserController::class, 'bulkDelete'])->middleware('throttle:bulk');
+            Route::post('users/bulk-status', [\App\Http\Controllers\Api\UserController::class, 'bulkStatus'])->middleware('throttle:bulk');
             Route::apiResource('users', \App\Http\Controllers\Api\UserController::class);
             Route::get('roles', [\App\Http\Controllers\Api\RoleController::class, 'index']);
         });

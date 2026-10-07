@@ -23,6 +23,13 @@ class AuthController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
+        if (! $user->isActive()) {
+            Auth::guard('web')->logout();
+            throw ValidationException::withMessages([
+                'email' => __('This account is inactive. Contact an administrator.'),
+            ]);
+        }
+
         $token = $user->createToken('api')->plainTextToken;
 
         ActivityLogService::record('auth.login', $user, [], $request);
