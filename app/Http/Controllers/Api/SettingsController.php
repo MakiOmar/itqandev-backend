@@ -23,6 +23,10 @@ use Illuminate\Support\Facades\Schema;
 
 class SettingsController extends Controller
 {
+    public const DEFAULT_THEME_SYSTEM = 'system';
+
+    public const DEFAULT_THEMES = [self::DEFAULT_THEME_SYSTEM, 'light', 'dark'];
+
 
     private function settingsCacheTtlSeconds(): int
     {
@@ -98,6 +102,9 @@ class SettingsController extends Controller
 
             // SEO — when false, public site sends noindex and robots.txt disallows all URLs
             'search_engine_indexing' => true,
+
+            // Theme for visitors who never toggled light/dark: system follows prefers-color-scheme
+            'default_theme' => self::DEFAULT_THEME_SYSTEM,
 
             // WordPress-style front page: Appearance homepage, or a published CMS page at `/`
             'show_on_front' => StaticHomepage::SHOW_BUILDER,
@@ -248,6 +255,11 @@ class SettingsController extends Controller
                 FILTER_VALIDATE_BOOL
             );
         }
+
+        $defaultTheme = $this->resolveFirst($input, ['default_theme'], $settings['default_theme'] ?? null);
+        $settings['default_theme'] = in_array($defaultTheme, self::DEFAULT_THEMES, true)
+            ? $defaultTheme
+            : self::DEFAULT_THEME_SYSTEM;
 
         $showOnFront = StaticHomepage::normalizeShowOnFront(
             $this->resolveFirst($input, ['show_on_front'], $settings['show_on_front'] ?? StaticHomepage::SHOW_BUILDER)
@@ -462,6 +474,9 @@ class SettingsController extends Controller
                 $settings['search_engine_indexing'] ?? true,
                 FILTER_VALIDATE_BOOL
             ),
+            'default_theme' => in_array($settings['default_theme'] ?? null, self::DEFAULT_THEMES, true)
+                ? $settings['default_theme']
+                : self::DEFAULT_THEME_SYSTEM,
             'show_on_front' => $front['show_on_front'],
             'page_on_front' => $front['page_on_front'],
             'front_page_slug' => $front['slug'],
@@ -555,6 +570,7 @@ class SettingsController extends Controller
             'upload_max_size' => 'sometimes|nullable|integer|min:1|max:1000',
             'media_convert_to_webp' => 'sometimes|boolean',
             'search_engine_indexing' => 'sometimes|boolean',
+            'default_theme' => ['sometimes', 'string', Rule::in(self::DEFAULT_THEMES)],
             'show_on_front' => ['sometimes', 'string', Rule::in([StaticHomepage::SHOW_BUILDER, StaticHomepage::SHOW_PAGE])],
             'page_on_front' => ['sometimes', 'nullable'],
             'site_languages' => 'sometimes|array',
