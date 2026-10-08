@@ -36,6 +36,30 @@ class HttpCacheHeadersTest extends TestCase
         $this->assertStringContainsString('X-Content-Locale', $vary);
     }
 
+    public function test_locale_header_without_matching_query_is_not_shared_cacheable(): void
+    {
+        foreach (['/api/public/shell', '/api/public/shell?locale=en'] as $url) {
+            $response = $this->getJson($url, ['X-Content-Locale' => 'ar']);
+
+            $response->assertOk();
+            $cache = (string) $response->headers->get('Cache-Control');
+            $this->assertStringContainsString('private', $cache, $url);
+            $this->assertStringNotContainsString('s-maxage', $cache, $url);
+        }
+    }
+
+    public function test_locale_header_with_matching_query_is_shared_cacheable(): void
+    {
+        config(['http-cache.public_api_s_maxage' => 300]);
+
+        $response = $this->getJson('/api/public/shell?locale=ar', ['X-Content-Locale' => 'ar']);
+
+        $response->assertOk();
+        $cache = (string) $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('public', $cache);
+        $this->assertStringContainsString('s-maxage=300', $cache);
+    }
+
     public function test_authenticated_request_to_public_api_is_not_publicly_cached(): void
     {
         $user = \App\Models\User::factory()->create();

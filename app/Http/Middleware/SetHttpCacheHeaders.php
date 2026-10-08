@@ -30,6 +30,11 @@ class SetHttpCacheHeaders
         }
 
         if ($request->is('api/public/*') && ! $this->shouldBypassPublicCache($request)) {
+            if ($this->localeOnlyInHeader($request)) {
+                $this->setPrivateApiCache($response);
+
+                return $response;
+            }
             $this->setPublicMarketingApiCache($response);
 
             return $response;
@@ -60,6 +65,20 @@ class SetHttpCacheHeaders
         $user = $request->user();
 
         return $user !== null;
+    }
+
+    /**
+     * Shared caches (Hostinger CDN) key on the URL and ignore `Vary: X-Content-Locale`, so a
+     * localized response is only shareable when the URL also carries `?locale=` for that language.
+     */
+    private function localeOnlyInHeader(Request $request): bool
+    {
+        $header = strtolower(trim((string) $request->header('X-Content-Locale', '')));
+        if ($header === '') {
+            return false;
+        }
+
+        return strtolower(trim((string) $request->query('locale', ''))) !== $header;
     }
 
     private function setNoCache(Response $response): void
