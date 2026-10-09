@@ -38,6 +38,29 @@ class ChromeLayout extends Model
         self::KIND_OVERLAY,
     ];
 
+    /** API path segment (e.g. `/appearance/loop-items`) for each kind. */
+    public const ROUTE_SEGMENTS = [
+        self::KIND_HEADER => 'headers',
+        self::KIND_FOOTER => 'footers',
+        self::KIND_BODY => 'bodies',
+        self::KIND_SINGLE => 'singles',
+        self::KIND_ARCHIVE => 'archives',
+        self::KIND_LOOP_ITEM => 'loop-items',
+        self::KIND_OVERLAY => 'overlays',
+    ];
+
+    /**
+     * Accepts a kind (`loop_item`) or its route segment (`loop-items`).
+     */
+    public static function kindFromRouteSegment(string $segment): ?string
+    {
+        if (in_array($segment, self::KINDS, true)) {
+            return $segment;
+        }
+        $kind = array_search($segment, self::ROUTE_SEGMENTS, true);
+
+        return is_string($kind) ? $kind : null;
+    }
 
     protected $fillable = [
         'kind',

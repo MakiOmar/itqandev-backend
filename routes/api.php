@@ -102,6 +102,19 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('footer', [\App\Http\Controllers\Api\AppearanceController::class, 'showFooter']);
         Route::put('footer', [\App\Http\Controllers\Api\AppearanceController::class, 'updateFooter']);
 
+        // Theme Builder layout listings: export/import + bulk actions (before `{kind}/{id}` routes).
+        $chromeLayoutTransferRoutes = function (string $segment): void {
+            $c = \App\Http\Controllers\Api\ChromeLayoutTransferController::class;
+            Route::get($segment.'/export', [$c, 'export'])->defaults('kind', $segment);
+            Route::post($segment.'/import', [$c, 'import'])->defaults('kind', $segment)->middleware('throttle:bulk');
+            Route::post($segment.'/bulk-delete', [$c, 'bulkDelete'])->defaults('kind', $segment)->middleware('throttle:bulk');
+            Route::post($segment.'/bulk-status', [$c, 'bulkStatus'])->defaults('kind', $segment)->middleware('throttle:bulk');
+        };
+        foreach (['headers', 'footers', 'bodies', 'singles', 'archives', 'loop-items'] as $segment) {
+            $chromeLayoutTransferRoutes($segment);
+        }
+        Route::middleware('feature.module:overlays')->group(fn () => $chromeLayoutTransferRoutes('overlays'));
+
         Route::get('headers', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'indexHeaders']);
         Route::post('headers', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'storeHeader']);
         Route::get('headers/{id}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'showHeader']);

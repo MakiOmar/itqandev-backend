@@ -9,8 +9,8 @@ use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Services\ActivityLogService;
-use App\Services\Appearance\ChromeLayoutSupport;
 use App\Services\Appearance\ChromeLayoutService;
+use App\Services\Appearance\ChromeLayoutSupport;
 use App\Services\Appearance\DynamicTagResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -393,20 +393,7 @@ class ChromeLayoutController extends Controller
 
     private function kindFromSlug(string $kind): string
     {
-        if (in_array($kind, ChromeLayout::KINDS, true)) {
-            return $kind;
-        }
-
-        return match ($kind) {
-            'headers' => ChromeLayout::KIND_HEADER,
-            'footers' => ChromeLayout::KIND_FOOTER,
-            'bodies' => ChromeLayout::KIND_BODY,
-            'singles' => ChromeLayout::KIND_SINGLE,
-            'archives' => ChromeLayout::KIND_ARCHIVE,
-            'loop-items' => ChromeLayout::KIND_LOOP_ITEM,
-            'overlays' => ChromeLayout::KIND_OVERLAY,
-            default => $kind,
-        };
+        return ChromeLayout::kindFromRouteSegment($kind) ?? $kind;
     }
 
     private function previewRecord(string $contentType, int $id): ?\Illuminate\Database\Eloquent\Model
