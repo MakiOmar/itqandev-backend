@@ -778,7 +778,11 @@ final class PageLayoutDocument
                 : [];
         }
         if ($tagContext !== null) {
-            $settings = DynamicTagResolver::apply($settings, $tagContext, $locale);
+            $richTextKeys = array_values(array_map(
+                static fn (array $f) => (string) $f['key'],
+                array_filter($fields, static fn ($f) => is_array($f) && ($f['type'] ?? null) === 'richtext' && isset($f['key'])),
+            ));
+            $settings = DynamicTagResolver::apply($settings, $tagContext, $locale, $richTextKeys);
             $settings = ThemeWidgetContent::fill($type, $settings, $tagContext, $locale);
         } elseif ($type === 'list') {
             // Dynamic Lists outside a record context render empty instead of their manual items.

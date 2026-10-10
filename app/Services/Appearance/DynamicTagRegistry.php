@@ -61,7 +61,7 @@ final class DynamicTagRegistry
         'site.year' => ['Current year', 'number'],
     ];
 
-    /** @var array<string, array<string, true>> enabled-type signature => id index */
+    /** @var array<string, array<string, string>> enabled-type signature => id => kind */
     private static array $idIndex = [];
 
     /**
@@ -124,6 +124,12 @@ final class DynamicTagRegistry
         return isset(self::idIndex()[$id]);
     }
 
+    /** Value kind (`text`, `html`, …) of an allowed tag, or null when unknown. */
+    public static function kind(string $id): ?string
+    {
+        return self::idIndex()[$id] ?? null;
+    }
+
     /**
      * Dynamic List sources of enabled content types (`{type}.{relation}:{field}`).
      *
@@ -169,10 +175,15 @@ final class DynamicTagRegistry
     {
         $signature = implode(',', self::contentTypes()->keys());
 
-        return self::$idIndex[$signature] ??= array_fill_keys(
-            array_map(static fn (TagDefinition $t) => $t->id, self::definitions()),
-            true
-        );
+        if (! isset(self::$idIndex[$signature])) {
+            $index = [];
+            foreach (self::definitions() as $tag) {
+                $index[$tag->id] = $tag->kind;
+            }
+            self::$idIndex[$signature] = $index;
+        }
+
+        return self::$idIndex[$signature];
     }
 
     private static function contentTypes(): ContentTypeRegistry
