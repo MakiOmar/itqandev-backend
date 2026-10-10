@@ -153,6 +153,55 @@ final class RelationTags
     }
 
     /**
+     * Every related record as field suffix => value (plus `url` when a URL builder exists), for dynamic List widgets.
+     *
+     * @return list<array<string, string>>
+     */
+    public function listItems(Model $record, ?string $locale): array
+    {
+        if (! $this->many) {
+            return [];
+        }
+
+        return $this->related($record, $locale)->map(function (Model $m): array {
+            $row = [];
+            foreach ($this->fields as $suffix => $spec) {
+                $row[$suffix] = TagDefinition::read($m, $spec[2] ?? $suffix);
+            }
+            if ($this->url !== null) {
+                $row['url'] = TagDefinition::stringify(($this->url)($m));
+            }
+
+            return $row;
+        })->all();
+    }
+
+    /**
+     * Dynamic List sources: one option per text field of a many-relation, valued `{type}.{relation}:{field}`.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public function listSourceOptions(string $type, string $typeLabel): array
+    {
+        if (! $this->many) {
+            return [];
+        }
+
+        $options = [];
+        foreach ($this->fields as $suffix => $spec) {
+            if (($spec[1] ?? 'text') !== 'text') {
+                continue;
+            }
+            $options[] = [
+                'value' => $this->prefix($type).':'.$suffix,
+                'label' => $typeLabel.' / '.$this->label.' / '.$spec[0],
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
      * Localised related records as a list (one-relations give zero or one item).
      *
      * @return Collection<int, Model>

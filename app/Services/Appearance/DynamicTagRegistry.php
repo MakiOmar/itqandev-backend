@@ -38,6 +38,9 @@ final class DynamicTagRegistry
 
     public const ARCHIVE_TITLE = 'archive.title';
 
+    /** Record payload key for many-relation rows; `@` keeps it outside the `{{tag}}` id syntax. */
+    public const LISTS_KEY = '@lists';
+
     /** Generic record tags: `post.{suffix}` => [label, kind]. */
     public const POST_FIELDS = [
         'title' => ['Title', 'text'],
@@ -119,6 +122,44 @@ final class DynamicTagRegistry
     public static function isAllowed(string $id): bool
     {
         return isset(self::idIndex()[$id]);
+    }
+
+    /**
+     * Dynamic List sources of enabled content types (`{type}.{relation}:{field}`).
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public static function listSourceOptions(): array
+    {
+        $options = [];
+        foreach (self::contentTypes()->all() as $definition) {
+            foreach ($definition->relations() as $relation) {
+                array_push($options, ...$relation->listSourceOptions($definition->key(), $definition->label()));
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Allowlisted List source split into the `@lists` key and the row field, or null when unknown.
+     * An unset source means the first option, matching what the inspector select shows.
+     *
+     * @return array{source: string, field: string}|null
+     */
+    public static function parseListSource(string $value): ?array
+    {
+        $allowed = array_column(self::listSourceOptions(), 'value');
+        $value = strtolower(trim($value));
+        if ($value === '') {
+            $value = (string) ($allowed[0] ?? '');
+        }
+        if ($value === '' || ! in_array($value, $allowed, true)) {
+            return null;
+        }
+        [$source, $field] = explode(':', $value, 2);
+
+        return ['source' => $source, 'field' => $field];
     }
 
     /**

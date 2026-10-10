@@ -7,7 +7,7 @@ use App\Services\ContentTypes\ContentTypeRegistry;
 /**
  * Atomic page Widgets for the page builder.
  *
- * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, options?: list<array{value: string, label: string}>, item_fields?: list<SettingsField>, translatable?: bool}
+ * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, options?: list<array{value: string, label: string}>, item_fields?: list<SettingsField>, translatable?: bool, show_if?: string, hide_if?: string}
  * @phpstan-type WidgetDef array{label: string, category: string, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
  */
 final class WidgetRegistry
@@ -231,6 +231,9 @@ final class WidgetRegistry
                         ['text' => 'Item one'],
                         ['text' => 'Item two'],
                     ],
+                    'dynamic_items' => false,
+                    'items_source' => '',
+                    'link_items' => true,
                 ],
                 'settings_fields' => [
                     [
@@ -243,10 +246,22 @@ final class WidgetRegistry
                             ['value' => 'ol', 'label' => 'Numbered'],
                         ],
                     ],
+                    ['key' => 'dynamic_items', 'type' => 'boolean', 'label' => 'Dynamic items (from the current item)', 'translatable' => false],
+                    [
+                        'key' => 'items_source',
+                        'type' => 'select',
+                        'label' => 'Source',
+                        'translatable' => false,
+                        'show_if' => 'dynamic_items',
+                        // Filled from the content type relations in forAdmin().
+                        'options' => [],
+                    ],
+                    ['key' => 'link_items', 'type' => 'boolean', 'label' => 'Link items', 'translatable' => false, 'show_if' => 'dynamic_items'],
                     [
                         'key' => 'items',
                         'type' => 'repeater',
                         'label' => 'Items',
+                        'hide_if' => 'dynamic_items',
                         'translatable' => true,
                         'item_fields' => [
                             ['key' => 'text', 'type' => 'text', 'label' => 'Text'],
@@ -924,12 +939,18 @@ final class WidgetRegistry
      */
     private static function withRuntimeOptions(string $type, array $fields): array
     {
-        if ($type !== 'loop_grid') {
+        $runtime = match ($type) {
+            'loop_grid' => ['source' => static fn () => app(ContentTypeRegistry::class)->loopSourceOptions()],
+            'list' => ['items_source' => static fn () => DynamicTagRegistry::listSourceOptions()],
+            default => [],
+        };
+        if ($runtime === []) {
             return $fields;
         }
         foreach ($fields as &$field) {
-            if (($field['key'] ?? '') === 'source') {
-                $field['options'] = app(ContentTypeRegistry::class)->loopSourceOptions();
+            $options = $runtime[$field['key'] ?? ''] ?? null;
+            if ($options !== null) {
+                $field['options'] = $options();
             }
         }
         unset($field);

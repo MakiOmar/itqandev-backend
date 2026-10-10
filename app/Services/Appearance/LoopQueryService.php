@@ -80,7 +80,7 @@ final class LoopQueryService
     }
 
     /**
-     * @param  array<string, string>  $values
+     * @param  array<string, mixed>  $values
      * @return list<array<string, mixed>>
      */
     private static function loopItemSections(int $loopItemId, string $locale, array $values): array

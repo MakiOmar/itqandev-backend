@@ -50,8 +50,9 @@ interface ContentTypeDefinition
 
     /**
      * Tag id => value (generic `post.*` plus this type's own tags), localised when a locale is given.
+     * `DynamicTagRegistry::LISTS_KEY` holds many-relation rows (`{type}.{relation}` => list of field => value) for dynamic Lists.
      *
-     * @return array<string, string>
+     * @return array<string, mixed>
      */
     public function values(Model $record, ?string $locale = null): array;
 

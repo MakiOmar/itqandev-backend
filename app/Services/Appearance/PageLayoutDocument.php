@@ -780,6 +780,9 @@ final class PageLayoutDocument
         if ($tagContext !== null) {
             $settings = DynamicTagResolver::apply($settings, $tagContext, $locale);
             $settings = ThemeWidgetContent::fill($type, $settings, $tagContext, $locale);
+        } elseif ($type === 'list') {
+            // Dynamic Lists outside a record context render empty instead of their manual items.
+            $settings = ThemeWidgetContent::fill($type, $settings, [], $locale);
         }
         if ($type === 'loop_grid') {
             $settings['items'] = LoopQueryService::items($settings, $locale);

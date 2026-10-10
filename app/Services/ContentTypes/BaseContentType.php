@@ -159,9 +159,14 @@ abstract class BaseContentType implements ContentTypeDefinition
         foreach ($this->fields() as $suffix => $spec) {
             $values[$this->key().'.'.$suffix] = TagDefinition::read($record, $spec[2] ?? $suffix);
         }
+        $lists = [];
         foreach ($this->relations() as $relation) {
             $values += $relation->values($record, $this->key(), $locale);
+            if ($relation->many) {
+                $lists[$this->key().'.'.$relation->relation] = $relation->listItems($record, $locale);
+            }
         }
+        $values[DynamicTagRegistry::LISTS_KEY] = $lists;
         $terms = $this->termsRelation();
         if ($terms !== null) {
             $values[DynamicTagRegistry::POST_TERMS] = $values[$this->key().'.'.$terms] ?? '';

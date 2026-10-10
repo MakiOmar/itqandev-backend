@@ -75,7 +75,7 @@ final class DynamicTagResolver
     /**
      * Tag payload for a record (via its content type) or, without one, the listing context's archive title.
      *
-     * @return array<string, string>
+     * @return array<string, mixed>
      */
     public static function payloadFromModel(?Model $record, string $context, ?string $locale = null): array
     {

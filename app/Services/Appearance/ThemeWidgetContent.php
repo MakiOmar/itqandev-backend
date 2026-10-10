@@ -26,6 +26,9 @@ final class ThemeWidgetContent
      */
     public static function fill(string $type, array $settings, array $tagContext, ?string $locale = null): array
     {
+        if ($type === 'list') {
+            return self::fillList($settings, $tagContext);
+        }
         foreach (self::SLOTS[$type] ?? [] as $key => $tag) {
             $current = $settings[$key] ?? null;
             if (is_string($current) && trim($current) !== '') {
@@ -36,6 +39,37 @@ final class ThemeWidgetContent
                 $settings[$key] = $value;
             }
         }
+
+        return $settings;
+    }
+
+    /**
+     * Dynamic List: one `{text, url}` item per related record of the allowlisted source; manual items otherwise.
+     *
+     * @param  array<string, mixed>  $settings
+     * @param  array<string, mixed>  $tagContext
+     * @return array<string, mixed>
+     */
+    private static function fillList(array $settings, array $tagContext): array
+    {
+        if (! filter_var($settings['dynamic_items'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return $settings;
+        }
+
+        $source = DynamicTagRegistry::parseListSource((string) ($settings['items_source'] ?? ''));
+        $lists = is_array($tagContext[DynamicTagRegistry::LISTS_KEY] ?? null) ? $tagContext[DynamicTagRegistry::LISTS_KEY] : [];
+        $rows = $source !== null && is_array($lists[$source['source']] ?? null) ? $lists[$source['source']] : [];
+        $linked = filter_var($settings['link_items'] ?? true, FILTER_VALIDATE_BOOLEAN);
+
+        $items = [];
+        foreach ($rows as $row) {
+            $text = trim((string) ($row[$source['field']] ?? ''));
+            if ($text !== '') {
+                $items[] = ['text' => $text, 'url' => $linked ? (string) ($row['url'] ?? '') : ''];
+            }
+        }
+        $settings['items'] = $items;
+        $settings['items_resolved'] = true;
 
         return $settings;
     }
