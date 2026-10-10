@@ -155,9 +155,7 @@ class ProjectController extends Controller
             'categories:id,name',
             'skills:id,name',
             'translations',
-            'testimonials' => function ($query) {
-                $query->with('media');
-            },
+            'testimonials',
             'seoMetas',
             'media' => function ($query) {
                 $query->whereIn('collection_name', ['hero', 'video', 'gallery']);
