@@ -18,6 +18,15 @@ final class DesignKitResolver
     private const PAGE_SELECTOR = '[data-public-page]';
 
     /**
+     * Nearest `.light` / `.dark` scope wins (same rule as the site's Tailwind `dark`/`light` variants), so the
+     * builder canvas previews light inside a dark admin and vice versa.
+     */
+    private const LIGHT_PAGE_SELECTOR = ':root '.self::PAGE_SELECTOR.':not(:where(.dark,.dark *)),'
+        .':root '.self::PAGE_SELECTOR.':where(.dark .light,.dark .light *)';
+
+    private const DARK_PAGE_SELECTOR = ':root '.self::PAGE_SELECTOR.':where(.dark,.dark *):not(:where(.dark .light,.dark .light *))';
+
+    /**
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
      */
@@ -125,8 +134,8 @@ final class DesignKitResolver
     }
 
     /**
-     * Page background rules. Light is scoped to `:root:not(.dark)` so a light-only value never
-     * leaks into dark mode; each mode left on `theme` keeps the layout's built-in gradient.
+     * Page background rules, each scoped to its theme so a light-only value never leaks into dark mode;
+     * each mode left on `theme` keeps the layout's built-in gradient.
      */
     private static function backgroundCss(mixed $raw): string
     {
@@ -134,11 +143,11 @@ final class DesignKitResolver
         $css = '';
         $light = self::backgroundValue(self::background($bg['light'] ?? null));
         if ($light !== null) {
-            $css .= ':root:not(.dark) '.self::PAGE_SELECTOR.'{background:'.$light.'}';
+            $css .= self::LIGHT_PAGE_SELECTOR.'{background:'.$light.'}';
         }
         $dark = self::backgroundValue(self::background($bg['dark'] ?? null));
         if ($dark !== null) {
-            $css .= '.dark '.self::PAGE_SELECTOR.'{background:'.$dark.'}';
+            $css .= self::DARK_PAGE_SELECTOR.'{background:'.$dark.'}';
         }
 
         return $css;

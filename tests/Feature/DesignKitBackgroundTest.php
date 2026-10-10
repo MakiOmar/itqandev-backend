@@ -15,6 +15,11 @@ class DesignKitBackgroundTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const LIGHT = ':root [data-public-page]:not(:where(.dark,.dark *)),'
+        .':root [data-public-page]:where(.dark .light,.dark .light *)';
+
+    private const DARK = ':root [data-public-page]:where(.dark,.dark *):not(:where(.dark .light,.dark .light *))';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -48,11 +53,19 @@ class DesignKitBackgroundTest extends TestCase
             ->assertJsonPath('data.background.dark.angle', 180);
 
         $css = $this->getJson('/api/public/site-meta')->assertOk()->json('data.design_kit_css');
-        $this->assertStringContainsString(':root:not(.dark) [data-public-page]{background:#f8fafc}', $css);
+        $this->assertStringContainsString(self::LIGHT.'{background:#f8fafc}', $css);
         $this->assertStringContainsString(
-            '.dark [data-public-page]{background:linear-gradient(180deg,#020617,#0f172acc)}',
+            self::DARK.'{background:linear-gradient(180deg,#020617,#0f172acc)}',
             $css,
         );
+    }
+
+    public function test_background_rules_follow_the_nearest_theme_scope(): void
+    {
+        // The builder canvas sets its own `.light` / `.dark` inside the admin's root theme.
+        $this->assertStringContainsString(':where(.dark .light,.dark .light *)', self::LIGHT);
+        $this->assertStringContainsString(':not(:where(.dark .light,.dark .light *))', self::DARK);
+        $this->assertStringNotContainsString(':root:not(.dark)', self::LIGHT);
     }
 
     public function test_dark_only_background_leaves_light_mode_on_the_theme_gradient(): void
@@ -61,8 +74,8 @@ class DesignKitBackgroundTest extends TestCase
             'background' => ['dark' => ['type' => 'color', 'color' => '#000000']],
         ]));
 
-        $this->assertStringContainsString('.dark [data-public-page]{background:#000000}', $css);
-        $this->assertStringNotContainsString(':root:not(.dark) [data-public-page]', $css);
+        $this->assertStringContainsString(self::DARK.'{background:#000000}', $css);
+        $this->assertStringNotContainsString(self::LIGHT, $css);
     }
 
     public function test_theme_type_and_missing_colours_emit_no_background_rules(): void
