@@ -294,17 +294,40 @@ final class ChromeLayoutService
      */
     public function presentById(int $id, ?string $locale = null, ?array $tagContext = null): array
     {
+        return $this->presentCached($id, $locale, $tagContext, 't', null);
+    }
+
+    /**
+     * A published loop item layout filled with one record's tags (loop_grid per-item rendering).
+     *
+     * Cached apart from presentById so a body render of the same layout never reuses this
+     * depth-guarded copy (nested loop grids are empty inside a loop item).
+     *
+     * @param  array<string, string>  $tags
+     * @return array{sections: list<array<string, mixed>>}
+     */
+    public function presentLoopItem(int $id, ?string $locale, array $tags): array
+    {
+        return $this->presentCached($id, $locale, $tags, 'loop', ChromeLayout::KIND_LOOP_ITEM);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $tagContext
+     * @return array{sections: list<array<string, mixed>>}
+     */
+    private function presentCached(int $id, ?string $locale, ?array $tagContext, string $variant, ?string $requiredKind): array
+    {
         $locale = $locale !== null && $locale !== ''
             ? strtolower(trim($locale))
             : SiteLanguages::defaultCode();
 
         $tagKey = $tagContext ? substr(sha1((string) json_encode($tagContext)), 0, 12) : 'none';
-        $cacheKey = $this->layoutCacheKey($id, $locale).':t:'.$tagKey;
+        $cacheKey = $this->layoutCacheKey($id, $locale).':'.$variant.':'.$tagKey;
 
         /** @var array{sections: list<array<string, mixed>>} $presented */
-        $presented = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($id, $locale, $tagContext) {
+        $presented = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($id, $locale, $tagContext, $requiredKind) {
             $layout = ChromeLayout::query()->find($id);
-            if ($layout === null || ! $layout->isPublished()) {
+            if ($layout === null || ! $layout->isPublished() || ($requiredKind !== null && $layout->kind !== $requiredKind)) {
                 return ['sections' => []];
             }
             $document = is_array($layout->document) ? $layout->document : ['sections' => []];

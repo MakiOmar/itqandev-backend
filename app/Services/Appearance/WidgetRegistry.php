@@ -784,6 +784,7 @@ final class WidgetRegistry
                 'category' => 'Theme',
                 'default_settings' => [
                     'source' => 'blog',
+                    'loop_item_id' => null,
                     'count' => 6,
                     'order' => 'latest',
                     'pagination' => 'numbers',
@@ -799,6 +800,7 @@ final class WidgetRegistry
                         // Filled from the content type registry in forAdmin().
                         'options' => [],
                     ],
+                    ['key' => 'loop_item_id', 'type' => 'loop_item', 'label' => 'Loop item layout', 'translatable' => false],
                     ['key' => 'count', 'type' => 'number', 'label' => 'Count', 'min' => 1, 'max' => 24, 'translatable' => false],
                     [
                         'key' => 'order',
