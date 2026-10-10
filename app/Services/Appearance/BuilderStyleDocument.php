@@ -154,9 +154,31 @@ final class BuilderStyleDocument
         'whatsapp_color' => 'color', 'whatsapp_bg' => 'color', 'whatsapp_hover_bg' => 'color', 'whatsapp_radius' => 'length',
     ];
 
+    public const LIST_LAYOUT = ['stacked', 'inline'];
+
+    public const LIST_ALIGN = ['start', 'center', 'end', 'between'];
+
+    public const LIST_MARKER = ['default', 'disc', 'circle', 'square', 'decimal', 'none'];
+
+    public const LIST_HOVER_EFFECT = ['none', 'lift', 'grow', 'slide'];
+
+    /** List widget: layout row, marker and per-item box (with hover state). */
+    private const LIST_KEYS = [
+        'list_layout' => 'list_layout', 'list_align' => 'list_align', 'list_gap' => 'length',
+        'list_divider_width' => 'length', 'list_divider_color' => 'color',
+        'list_marker' => 'list_marker', 'list_marker_color' => 'color', 'list_marker_size' => 'length',
+        'list_marker_gap' => 'length',
+        'list_item_bg' => 'color', 'list_item_color' => 'color', 'list_item_padding_x' => 'length',
+        'list_item_padding_y' => 'length', 'list_item_radius' => 'length', 'list_item_border_width' => 'length',
+        'list_item_border_color' => 'color', 'list_item_shadow' => 'shadow',
+        'list_item_hover_bg' => 'color', 'list_item_hover_color' => 'color',
+        'list_item_hover_border_color' => 'color', 'list_item_hover_shadow' => 'shadow',
+        'list_item_hover_effect' => 'list_hover_effect',
+    ];
+
     private const PART_KEYS = [
         ...self::CASE_CARD_KEYS, ...self::TESTIMONIAL_KEYS, ...self::HERO_KEYS, ...self::LOGO_KEYS,
-        ...self::FLOATING_KEYS,
+        ...self::FLOATING_KEYS, ...self::LIST_KEYS,
     ];
 
     /** Button parts (hero CTAs, case study card); each gets every BUTTON_* suffix as `{part}_{suffix}`. */
@@ -328,6 +350,10 @@ final class BuilderStyleDocument
                 'font_style' => self::enum($value, self::FONT_STYLE),
                 'align' => self::enum($value, self::ALIGN),
                 'text_align' => self::enum($value, self::TEXT_ALIGN),
+                'list_layout' => self::enum($value, self::LIST_LAYOUT),
+                'list_align' => self::enum($value, self::LIST_ALIGN),
+                'list_marker' => self::enum($value, self::LIST_MARKER),
+                'list_hover_effect' => self::enum($value, self::LIST_HOVER_EFFECT),
             };
         }
 

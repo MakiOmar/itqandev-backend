@@ -234,6 +234,7 @@ final class WidgetRegistry
                     'dynamic_items' => false,
                     'items_source' => '',
                     'link_items' => true,
+                    'marker_icon' => '',
                 ],
                 'settings_fields' => [
                     [
@@ -246,6 +247,7 @@ final class WidgetRegistry
                             ['value' => 'ol', 'label' => 'Numbered'],
                         ],
                     ],
+                    ['key' => 'marker_icon', 'type' => 'icon', 'label' => 'Marker icon (replaces bullets)', 'translatable' => false],
                     ['key' => 'dynamic_items', 'type' => 'boolean', 'label' => 'Dynamic items (from the current item)', 'translatable' => false],
                     [
                         'key' => 'items_source',
