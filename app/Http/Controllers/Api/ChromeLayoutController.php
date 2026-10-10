@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PreviewChromeLayoutRequest;
 use App\Models\ChromeLayout;
 use App\Services\ActivityLogService;
 use App\Services\Appearance\ChromeLayoutService;
@@ -372,20 +373,42 @@ class ChromeLayoutController extends Controller
         $this->authorize('manageSettings');
         $kind = $this->kindFromSlug($kind);
         $layout = $this->findForKind($id, $kind);
-        $contentType = strtolower(trim((string) $request->query('content_type', 'blog_post')));
-        $recordId = (int) $request->query('record_id', 0);
-        $record = $this->previewRecord($contentType, $recordId);
-        $locale = strtolower(trim((string) ($request->header('X-Content-Locale') ?? '')));
-        $payload = DynamicTagResolver::payloadFromModel($record, $contentType, $locale !== '' ? $locale : null);
-        $presented = ChromeLayoutSupport::presentPublic(
+
+        return $this->presentPreview(
             is_array($layout->document) ? $layout->document : ['sections' => []],
-            $locale !== '' ? $locale : null,
-            $payload
+            strtolower(trim((string) $request->query('content_type', 'blog_post'))),
+            (int) $request->query('record_id', 0),
+            (string) ($request->header('X-Content-Locale') ?? ''),
         );
+    }
+
+    /** Same as `previewAs`, but for the unsaved sections currently in the builder. */
+    public function previewDraft(PreviewChromeLayoutRequest $request, string $kind, int $id): JsonResponse
+    {
+        $this->findForKind($id, $request->layoutKind());
+        $validated = $request->validated();
+
+        return $this->presentPreview(
+            $this->layouts->normalizeDocument(['sections' => $validated['sections']]),
+            $validated['content_type'],
+            (int) $validated['record_id'],
+            (string) ($validated['locale'] ?? $request->header('X-Content-Locale') ?? ''),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $document
+     */
+    private function presentPreview(array $document, string $contentType, int $recordId, string $locale): JsonResponse
+    {
+        $locale = strtolower(trim($locale));
+        $locale = $locale !== '' ? $locale : null;
+        $record = $this->previewRecord($contentType, $recordId);
+        $payload = DynamicTagResolver::payloadFromModel($record, $contentType, $locale);
 
         return response()->json([
             'success' => true,
-            'data' => $presented,
+            'data' => ChromeLayoutSupport::presentPublic($document, $locale, $payload),
         ]);
     }
 

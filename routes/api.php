@@ -191,6 +191,8 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
             ->where('contentType', '[a-z_]+');
         Route::get('{kind}/{id}/preview-as', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'previewAs'])
             ->where('kind', 'headers|footers|bodies|singles|archives|loop-items|overlays');
+        Route::post('{kind}/{id}/preview-as', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'previewDraft'])
+            ->where('kind', 'headers|footers|bodies|singles|archives|loop-items|overlays');
         Route::get('{kind}/{id}/revisions', [\App\Http\Controllers\Api\BuilderRevisionController::class, 'indexChrome'])
             ->where('kind', 'headers|footers|bodies|singles|archives|loop-items|overlays');
         Route::post('{kind}/{id}/revisions/{revisionId}/restore', [\App\Http\Controllers\Api\BuilderRevisionController::class, 'restoreChrome'])
