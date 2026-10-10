@@ -2,12 +2,9 @@
 
 namespace App\Services\Appearance;
 
-use App\Models\BlogPost;
 use App\Models\ChromeLayout;
-use App\Models\Page;
-use App\Models\Project;
-use App\Models\Service;
 use App\Models\ThemeTemplate;
+use App\Services\ContentTypes\ContentTypeRegistry;
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
 use App\Support\SiteLanguages;
@@ -25,8 +22,15 @@ final class ChromeLayoutService
 
     public const CACHE_SECONDS = 300;
 
-    /** @var list<string> */
-    public const CONTENT_TYPES = ['homepage', 'page', 'project', 'blog_post', 'service'];
+    /**
+     * Chrome content types: `homepage` plus the enabled registry types.
+     *
+     * @return list<string>
+     */
+    public static function contentTypes(): array
+    {
+        return ['homepage', ...app(ContentTypeRegistry::class)->keys()];
+    }
 
     public function defaultDocument(string $kind): array
     {
@@ -420,15 +424,9 @@ final class ChromeLayoutService
         $footerCol = 'footer_layout_id';
         $col = $layout->kind === ChromeLayout::KIND_FOOTER ? $footerCol : $headerCol;
 
-        foreach (
-            [
-                'pages' => Page::class,
-                'projects' => Project::class,
-                'blog posts' => BlogPost::class,
-                'services' => Service::class,
-            ] as $label => $modelClass
-        ) {
-            /** @var class-string<\Illuminate\Database\Eloquent\Model> $modelClass */
+        foreach (app(ContentTypeRegistry::class)->configured() as $definition) {
+            $label = strtolower($definition->pluralLabel());
+            $modelClass = $definition->modelClass();
             if (! Schema::hasTable((new $modelClass)->getTable())) {
                 continue;
             }
@@ -514,7 +512,9 @@ final class ChromeLayoutService
     private function normalizeTypeDefaults(array $raw): array
     {
         $out = [];
-        foreach (self::CONTENT_TYPES as $type) {
+        // Every configured type, so turning a module off does not drop its saved defaults.
+        $types = ['homepage', ...array_keys(app(ContentTypeRegistry::class)->configured())];
+        foreach ($types as $type) {
             $row = is_array($raw[$type] ?? null) ? $raw[$type] : [];
             $headerId = $row['header_id'] ?? null;
             $footerId = $row['footer_id'] ?? null;

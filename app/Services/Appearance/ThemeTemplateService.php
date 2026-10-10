@@ -4,6 +4,7 @@ namespace App\Services\Appearance;
 
 use App\Models\ChromeLayout;
 use App\Models\ThemeTemplate;
+use App\Services\ContentTypes\ContentTypeRegistry;
 use App\Services\PublicMarketingShellService;
 use App\Support\MarketingSettingsCache;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -215,16 +216,13 @@ final class ThemeTemplateService
      */
     public static function bodyAppliesForContext(string $context): bool
     {
+        $registry = app(ContentTypeRegistry::class);
+
         return in_array($context, [
             'homepage',
             'not_found',
-            'page',
-            'blog_post',
-            'project',
-            'service',
-            'blog_index',
-            'portfolio_index',
-            'services_index',
+            ...$registry->keys(),
+            ...$registry->archiveContexts(),
         ], true);
     }
 

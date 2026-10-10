@@ -3,6 +3,7 @@
 namespace App\Services\Appearance;
 
 use App\Models\ThemeTemplate;
+use App\Services\ContentTypes\ContentTypeRegistry;
 use Illuminate\Http\Request;
 
 /**
@@ -185,7 +186,7 @@ final class ThemeTemplateConditions
                     $score = max($score, 90);
                 } elseif ($key === 'homepage') {
                     $score = max($score, 80);
-                } elseif (in_array($key, ['page', 'blog_post', 'project', 'service'], true)) {
+                } elseif (in_array($key, self::contentTypes()->keys(), true)) {
                     if ($value !== null && $value !== '' && (int) $value > 0) {
                         $score = max($score, 100);
                     } else {
@@ -239,7 +240,7 @@ final class ThemeTemplateConditions
             if ($key === 'not_found') {
                 return $context === 'not_found';
             }
-            if (in_array($key, ['page', 'blog_post', 'project', 'service'], true)) {
+            if (in_array($key, self::contentTypes()->keys(), true)) {
                 if ($contentType !== $key && $context !== $key) {
                     return false;
                 }
@@ -254,12 +255,7 @@ final class ThemeTemplateConditions
         }
 
         if ($group === 'archive') {
-            return match ($key) {
-                'blog_index' => $context === 'blog_index',
-                'portfolio_index' => $context === 'portfolio_index',
-                'services_index' => $context === 'services_index',
-                default => false,
-            };
+            return $context === $key && in_array($key, self::contentTypes()->archiveContexts(), true);
         }
 
         if ($group === 'advanced') {
@@ -376,5 +372,10 @@ final class ThemeTemplateConditions
             'role' => $role,
             'authenticated' => $authenticated,
         ];
+    }
+
+    private static function contentTypes(): ContentTypeRegistry
+    {
+        return app(ContentTypeRegistry::class);
     }
 }

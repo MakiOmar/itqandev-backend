@@ -2,12 +2,10 @@
 
 namespace App\Services\Appearance;
 
-use App\Models\BlogPost;
 use App\Models\ChromeLayout;
 use App\Models\Page;
-use App\Models\Project;
-use App\Models\Service;
 use App\Models\ThemeTemplate;
+use App\Services\ContentTypes\ContentTypeRegistry;
 use App\Support\CmsPublicPaths;
 use App\Support\SiteLanguages;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +25,7 @@ final class ChromeLayoutResolver
     public function __construct(
         private readonly ChromeLayoutService $layouts,
         private readonly ThemeTemplateService $themeTemplates,
+        private readonly ContentTypeRegistry $contentTypes,
     ) {}
 
     /**
@@ -198,75 +197,27 @@ final class ChromeLayoutResolver
         }
 
         // Archive / listing indexes (before slug singles)
-        if (preg_match('#^/blog/?$#i', $path)) {
-            $page = $this->publishedPageBySlug('articles');
+        $archiveType = $this->contentTypes->forArchivePath($path);
+        if ($archiveType !== null) {
+            $archive = $archiveType->archive();
 
-            return ['page', $page, 'blog_index'];
-        }
-        if (preg_match('#^/(portfolio|work)/?$#i', $path)) {
-            $page = $this->publishedPageBySlug('portfolio');
-
-            return ['page', $page, 'portfolio_index'];
-        }
-        if (preg_match('#^/services/?$#i', $path)) {
-            $page = $this->publishedPageBySlug('services');
-
-            return ['page', $page, 'services_index'];
+            return ['page', $this->publishedPageBySlug($archive['page_slug']), $archive['context']];
         }
 
-        if (preg_match('#^/blog/([^/]+)/?$#i', $path, $m)) {
-            $post = BlogPost::query()
-                ->where('slug', $m[1])
-                ->where('status', 'published')
-                ->first();
+        $single = $this->contentTypes->forPath($path);
+        if ($single !== null) {
+            [$definition, $slug] = $single;
 
-            return ['blog_post', $post, 'blog_post'];
-        }
-
-        if (preg_match('#^/(portfolio|work)/([^/]+)/?$#i', $path, $m)) {
-            $project = Project::query()
-                ->where('slug', $m[2])
-                ->where('status', 'published')
-                ->first();
-
-            return ['project', $project, 'project'];
-        }
-
-        if (preg_match('#^/services/([^/]+)/?$#i', $path, $m)) {
-            $service = Service::query()
-                ->where('slug', $m[1])
-                ->where('is_published', true)
-                ->first();
-
-            return ['service', $service, 'service'];
-        }
-
-        if (preg_match('#^/pages/([^/]+)/?$#i', $path, $m)) {
-            $page = Page::query()
-                ->where('slug', $m[1])
-                ->where('status', Page::STATUS_PUBLISHED)
-                ->first();
-
-            return ['page', $page, 'page'];
+            return [$definition->key(), $definition->findPublishedBySlug($slug), $definition->key()];
         }
 
         $pretty = CmsPublicPaths::prettyPathsBySlug();
         foreach ($pretty as $slug => $prettyPath) {
             $normalizedPretty = '/'.trim((string) $prettyPath, '/');
             if ($normalizedPretty === $path) {
-                $page = Page::query()
-                    ->where('slug', $slug)
-                    ->where('status', Page::STATUS_PUBLISHED)
-                    ->first();
+                $routeContext = $this->contentTypes->forArchivePageSlug((string) $slug)?->archive()['context'] ?? 'page';
 
-                $routeContext = match ($slug) {
-                    'articles' => 'blog_index',
-                    'portfolio' => 'portfolio_index',
-                    'services' => 'services_index',
-                    default => 'page',
-                };
-
-                return ['page', $page, $routeContext];
+                return ['page', $this->publishedPageBySlug((string) $slug), $routeContext];
             }
         }
 
@@ -304,7 +255,7 @@ final class ChromeLayoutResolver
     private function resolveFromTypeDefaults(string $kind, string $contentType): ?int
     {
         $contentType = strtolower(trim($contentType));
-        if (! in_array($contentType, ChromeLayoutService::CONTENT_TYPES, true)) {
+        if (! in_array($contentType, ChromeLayoutService::contentTypes(), true)) {
             return null;
         }
 

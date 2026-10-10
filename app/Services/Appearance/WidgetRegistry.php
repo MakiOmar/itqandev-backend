@@ -2,6 +2,8 @@
 
 namespace App\Services\Appearance;
 
+use App\Services\ContentTypes\ContentTypeRegistry;
+
 /**
  * Atomic page Widgets for the page builder.
  *
@@ -794,11 +796,8 @@ final class WidgetRegistry
                         'type' => 'select',
                         'label' => 'Source',
                         'translatable' => false,
-                        'options' => [
-                            ['value' => 'blog', 'label' => 'Blog'],
-                            ['value' => 'projects', 'label' => 'Projects'],
-                            ['value' => 'services', 'label' => 'Services'],
-                        ],
+                        // Filled from the content type registry in forAdmin().
+                        'options' => [],
                     ],
                     ['key' => 'count', 'type' => 'number', 'label' => 'Count', 'min' => 1, 'max' => 24, 'translatable' => false],
                     [
@@ -908,11 +907,32 @@ final class WidgetRegistry
                 'label' => $def['label'],
                 'category' => $def['category'],
                 'default_settings' => $def['default_settings'],
-                'settings_fields' => self::fieldsForAdmin($def['settings_fields']),
+                'settings_fields' => self::fieldsForAdmin(self::withRuntimeOptions($type, $def['settings_fields'])),
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * Select options that depend on configuration (kept out of all(), which must work without the container).
+     *
+     * @param  list<SettingsField>  $fields
+     * @return list<SettingsField>
+     */
+    private static function withRuntimeOptions(string $type, array $fields): array
+    {
+        if ($type !== 'loop_grid') {
+            return $fields;
+        }
+        foreach ($fields as &$field) {
+            if (($field['key'] ?? '') === 'source') {
+                $field['options'] = app(ContentTypeRegistry::class)->loopSourceOptions();
+            }
+        }
+        unset($field);
+
+        return $fields;
     }
 
     /**

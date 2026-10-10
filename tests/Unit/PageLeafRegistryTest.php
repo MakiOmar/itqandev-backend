@@ -6,7 +6,7 @@ use App\Services\Appearance\PageLayoutDocument;
 use App\Services\Appearance\PageLeafRegistry;
 use App\Services\Appearance\WidgetRegistry;
 use App\Services\Appearance\KitRegistry;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class PageLeafRegistryTest extends TestCase
 {

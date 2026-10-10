@@ -2,17 +2,15 @@
 
 namespace App\Services\Appearance;
 
-use App\Models\BlogPost;
-use App\Models\Page;
-use App\Models\Project;
-use App\Models\Service;
+use App\Services\ContentTypes\ContentTypeRegistry;
 use App\Support\ProjectSettingsStore;
-use App\Support\TranslatableContentPresenter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
  * Server-side, locale-aware replacement of {{tag}} tokens in builder strings.
+ *
+ * The record payload is a tag id => value map built by the record's content type definition.
  */
 final class DynamicTagResolver
 {
@@ -60,8 +58,48 @@ final class DynamicTagResolver
      */
     public static function resolve(string $id, ?array $recordPayload, ?string $locale = null): string
     {
-        $settings = ProjectSettingsStore::load();
         $record = is_array($recordPayload) ? $recordPayload : [];
+
+        if (str_starts_with($id, 'site.')) {
+            return self::siteValue($id);
+        }
+        if ($id === DynamicTagRegistry::ARCHIVE_TITLE) {
+            return (string) ($record[DynamicTagRegistry::ARCHIVE_TITLE] ?? $record[DynamicTagRegistry::POST_TITLE] ?? '');
+        }
+
+        $value = $record[$id] ?? '';
+
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
+     * Tag payload for a record (via its content type) or, without one, the listing context's archive title.
+     *
+     * @return array<string, string>
+     */
+    public static function payloadFromModel(?Model $record, string $context, ?string $locale = null): array
+    {
+        $registry = app(ContentTypeRegistry::class);
+        $definition = $record !== null ? $registry->forModel($record) : null;
+        if ($definition !== null) {
+            return $definition->values($record, $locale);
+        }
+
+        $archiveTitle = match ($context) {
+            'not_found' => 'Not found',
+            'homepage' => (string) (ProjectSettingsStore::load()['site_name'] ?? ''),
+            default => (string) ($registry->forArchiveContext($context)?->archive()['label'] ?? ''),
+        };
+
+        return [
+            DynamicTagRegistry::ARCHIVE_TITLE => $archiveTitle,
+            DynamicTagRegistry::POST_TITLE => $archiveTitle,
+        ];
+    }
+
+    private static function siteValue(string $id): string
+    {
+        $settings = ProjectSettingsStore::load();
 
         return match ($id) {
             'site.name' => (string) ($settings['site_name'] ?? $settings['name'] ?? ''),
@@ -69,95 +107,7 @@ final class DynamicTagResolver
             'site.url' => rtrim((string) config('app.url'), '/'),
             'site.logo' => (string) ($settings['logo'] ?? $settings['site_logo'] ?? ''),
             'site.year' => (string) Carbon::now()->year,
-            'post.title' => (string) ($record['title'] ?? $record['name'] ?? ''),
-            'post.subtitle' => (string) ($record['subtitle'] ?? ''),
-            'post.excerpt' => (string) ($record['excerpt'] ?? $record['summary'] ?? $record['short_description'] ?? ''),
-            'post.content' => (string) ($record['content'] ?? $record['description'] ?? ''),
-            'post.url' => (string) ($record['url'] ?? ''),
-            'post.image' => (string) ($record['image'] ?? $record['featured_image'] ?? ''),
-            'post.date' => (string) ($record['date'] ?? $record['published_at'] ?? ''),
-            'post.terms' => (string) ($record['terms'] ?? ''),
-            'archive.title' => (string) ($record['archive_title'] ?? $record['title'] ?? ''),
             default => '',
         };
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function payloadFromModel(?Model $record, string $context, ?string $locale = null): array
-    {
-        $record = self::localizedRecord($record, $locale);
-        if ($record instanceof BlogPost) {
-            return [
-                'title' => (string) $record->title,
-                'excerpt' => (string) ($record->excerpt ?? ''),
-                'content' => (string) ($record->content ?? ''),
-                'url' => '/blog/'.$record->slug,
-                'image' => (string) ($record->featured_image ?? $record->cover_image ?? ''),
-                'date' => optional($record->published_at)->toDateString() ?? '',
-            ];
-        }
-        if ($record instanceof Project) {
-            return [
-                'title' => (string) $record->title,
-                'excerpt' => (string) ($record->summary ?? ''),
-                'content' => (string) ($record->description ?? ''),
-                'url' => '/work/'.$record->slug,
-                'image' => (string) ($record->cover_image ?? ''),
-                'date' => optional($record->published_at)->toDateString() ?? '',
-            ];
-        }
-        if ($record instanceof Service) {
-            return [
-                'title' => (string) $record->name,
-                'excerpt' => (string) ($record->short_description ?? ''),
-                'content' => (string) ($record->description ?? ''),
-                'url' => '/services/'.$record->slug,
-                'image' => (string) ($record->icon ?? ''),
-            ];
-        }
-        if ($record instanceof Page) {
-            return [
-                'title' => (string) $record->title,
-                'subtitle' => (string) ($record->subtitle ?? ''),
-                'excerpt' => (string) ($record->excerpt ?? ''),
-                'content' => (string) ($record->content ?? ''),
-                'url' => '/pages/'.$record->slug,
-            ];
-        }
-
-        $archiveTitle = match ($context) {
-            'blog_index' => 'Blog',
-            'portfolio_index' => 'Portfolio',
-            'services_index' => 'Services',
-            'not_found' => 'Not found',
-            'homepage' => (string) (ProjectSettingsStore::load()['site_name'] ?? ''),
-            default => '',
-        };
-
-        return [
-            'archive_title' => $archiveTitle,
-            'title' => $archiveTitle,
-        ];
-    }
-
-    /** Copy of the record with the locale's translation applied; the caller's model stays untouched. */
-    private static function localizedRecord(?Model $record, ?string $locale): ?Model
-    {
-        $locale = strtolower(trim((string) $locale));
-        if ($record === null || $locale === '') {
-            return $record;
-        }
-        $copy = clone $record;
-        match (true) {
-            $copy instanceof BlogPost => TranslatableContentPresenter::applyBlogPost($copy, $locale),
-            $copy instanceof Project => TranslatableContentPresenter::applyProject($copy, $locale),
-            $copy instanceof Service => TranslatableContentPresenter::applyService($copy, $locale),
-            $copy instanceof Page => TranslatableContentPresenter::applyPage($copy, $locale),
-            default => null,
-        };
-
-        return $copy;
     }
 }

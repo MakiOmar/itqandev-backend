@@ -3,15 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\BlogPost;
 use App\Models\ChromeLayout;
-use App\Models\Page;
-use App\Models\Project;
-use App\Models\Service;
 use App\Services\ActivityLogService;
 use App\Services\Appearance\ChromeLayoutService;
 use App\Services\Appearance\ChromeLayoutSupport;
 use App\Services\Appearance\DynamicTagResolver;
+use App\Services\ContentTypes\ContentTypeRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -21,6 +18,7 @@ class ChromeLayoutController extends Controller
 {
     public function __construct(
         private readonly ChromeLayoutService $layouts,
+        private readonly ContentTypeRegistry $contentTypes,
     ) {}
 
     public function indexHeaders(Request $request): JsonResponse
@@ -223,7 +221,7 @@ class ChromeLayoutController extends Controller
         $this->authorize('manageSettings');
 
         $rules = [];
-        foreach (ChromeLayoutService::CONTENT_TYPES as $type) {
+        foreach (ChromeLayoutService::contentTypes() as $type) {
             $rules[$type] = ['sometimes', 'array'];
             $rules[$type.'.header_id'] = ['nullable', 'integer'];
             $rules[$type.'.footer_id'] = ['nullable', 'integer'];
@@ -391,6 +389,21 @@ class ChromeLayoutController extends Controller
         ]);
     }
 
+    /** Latest records of a content type for the builder "Preview as" picker. */
+    public function previewRecords(string $contentType): JsonResponse
+    {
+        $this->authorize('manageSettings');
+        $definition = $this->contentTypes->get($contentType);
+        if ($definition === null) {
+            abort(404, 'Unknown content type.');
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $definition->previewOptions(50),
+        ]);
+    }
+
     private function kindFromSlug(string $kind): string
     {
         return ChromeLayout::kindFromRouteSegment($kind) ?? $kind;
@@ -398,17 +411,7 @@ class ChromeLayoutController extends Controller
 
     private function previewRecord(string $contentType, int $id): ?\Illuminate\Database\Eloquent\Model
     {
-        if ($id < 1) {
-            return null;
-        }
-
-        return match ($contentType) {
-            'blog_post' => BlogPost::query()->find($id),
-            'project' => Project::query()->find($id),
-            'service' => Service::query()->find($id),
-            'page' => Page::query()->find($id),
-            default => null,
-        };
+        return $this->contentTypes->get($contentType)?->findForPreview($id);
     }
 
     private function wantsDocument(Request $request): bool

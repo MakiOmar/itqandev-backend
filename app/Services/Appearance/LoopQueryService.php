@@ -2,88 +2,79 @@
 
 namespace App\Services\Appearance;
 
-use App\Models\BlogPost;
-use App\Models\Project;
-use App\Models\Service;
-use App\Support\FeatureModules;
+use App\Services\ContentTypes\ContentTypeDefinition;
+use App\Services\ContentTypes\ContentTypeRegistry;
+use App\Support\TranslatableContentPresenter;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 /**
- * Query published records for the loop_grid widget (eager-loaded, capped).
+ * Query published records for the loop_grid widget (eager-loaded, capped, localised).
  */
 final class LoopQueryService
 {
+    private const DEFAULT_SOURCE = 'blog';
+
     /**
      * @param  array<string, mixed>  $settings
      * @return list<array<string, mixed>>
      */
     public static function items(array $settings, ?string $locale = null): array
     {
-        $source = strtolower(trim((string) ($settings['source'] ?? 'blog')));
+        $source = strtolower(trim((string) ($settings['source'] ?? self::DEFAULT_SOURCE)));
         $count = max(1, min(24, (int) ($settings['count'] ?? 6)));
         $order = strtolower(trim((string) ($settings['order'] ?? 'latest')));
+        $locale = strtolower(trim((string) $locale));
 
-        return match ($source) {
-            'projects' => FeatureModules::enabled('projects') ? self::projects($count, $order) : [],
-            'services' => FeatureModules::enabled('services') ? self::services($count, $order) : [],
-            default => FeatureModules::enabled('blog') ? self::posts($count, $order) : [],
-        };
+        $registry = app(ContentTypeRegistry::class);
+        if (! self::isConfiguredSource($registry, $source)) {
+            $source = self::DEFAULT_SOURCE;
+        }
+        // Null when the source's module is disabled.
+        $definition = $registry->forLoopSource($source);
+        if ($definition === null) {
+            return [];
+        }
+
+        $query = $definition->publishedQuery()->with($definition->eagerLoads())->limit($count);
+        TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $locale !== '' ? $locale : null);
+
+        return self::order($query, $order, $definition)
+            ->get()
+            ->map(fn (Model $record) => self::item($definition, $record, $locale))
+            ->all();
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return array<string, mixed>
      */
-    private static function posts(int $count, string $order): array
+    private static function item(ContentTypeDefinition $definition, Model $record, string $locale): array
     {
-        $q = BlogPost::query()->where('status', 'published')->limit($count);
-        $q = self::order($q, $order, 'title');
+        $values = $definition->values($record, $locale !== '' ? $locale : null);
 
-        return $q->get(['id', 'title', 'slug', 'excerpt', 'published_at'])->map(fn (BlogPost $p) => [
-            'id' => $p->id,
-            'title' => $p->title,
-            'excerpt' => $p->excerpt,
-            'url' => '/blog/'.$p->slug,
-            'date' => optional($p->published_at)->toDateString(),
-        ])->all();
+        return [
+            'id' => $record->getKey(),
+            'title' => $values[DynamicTagRegistry::POST_TITLE] ?? '',
+            'excerpt' => $values[DynamicTagRegistry::POST_EXCERPT] ?? '',
+            'url' => $values[DynamicTagRegistry::POST_URL] ?? '',
+            'date' => $values[DynamicTagRegistry::POST_DATE] ?? '',
+        ];
+    }
+
+    private static function isConfiguredSource(ContentTypeRegistry $registry, string $source): bool
+    {
+        return in_array($source, array_column($registry->loopSourceOptions(), 'value'), true);
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
      */
-    private static function projects(int $count, string $order): array
-    {
-        $q = Project::query()->where('status', 'published')->limit($count);
-        $q = self::order($q, $order, 'title');
-
-        return $q->get(['id', 'title', 'slug', 'summary', 'published_at'])->map(fn (Project $p) => [
-            'id' => $p->id,
-            'title' => $p->title,
-            'excerpt' => $p->summary,
-            'url' => '/work/'.$p->slug,
-            'date' => optional($p->published_at)->toDateString(),
-        ])->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private static function services(int $count, string $order): array
-    {
-        $q = Service::query()->where('is_published', true)->limit($count);
-        $q = self::order($q, $order, 'name');
-
-        return $q->get(['id', 'name', 'slug', 'short_description'])->map(fn (Service $s) => [
-            'id' => $s->id,
-            'title' => $s->name,
-            'excerpt' => $s->short_description,
-            'url' => '/services/'.$s->slug,
-        ])->all();
-    }
-
-    private static function order($query, string $order, string $titleCol)
+    private static function order(Builder $query, string $order, ContentTypeDefinition $definition): Builder
     {
         return match ($order) {
             'oldest' => $query->orderBy('id'),
-            'title' => $query->orderBy($titleCol),
+            'title' => $query->orderBy($definition->titleColumn()),
             default => $query->orderByDesc('id'),
         };
     }

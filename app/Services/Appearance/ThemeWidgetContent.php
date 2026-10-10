@@ -11,12 +11,12 @@ final class ThemeWidgetContent
 {
     /** Widget type => [settings key => dynamic tag id]. */
     private const SLOTS = [
-        'post_title' => ['text' => 'post.title'],
-        'post_excerpt' => ['text' => 'post.excerpt'],
-        'post_content' => ['html' => 'post.content'],
-        'post_featured_image' => ['image' => 'post.image'],
-        'post_info' => ['date' => 'post.date', 'terms' => 'post.terms'],
-        'archive_title' => ['text' => 'archive.title'],
+        'post_title' => ['text' => DynamicTagRegistry::POST_TITLE],
+        'post_excerpt' => ['text' => DynamicTagRegistry::POST_EXCERPT],
+        'post_content' => ['html' => DynamicTagRegistry::POST_CONTENT],
+        'post_featured_image' => ['image' => DynamicTagRegistry::POST_IMAGE],
+        'post_info' => ['date' => DynamicTagRegistry::POST_DATE, 'terms' => DynamicTagRegistry::POST_TERMS],
+        'archive_title' => ['text' => DynamicTagRegistry::ARCHIVE_TITLE],
     ];
 
     /**

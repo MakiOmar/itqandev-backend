@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\ActivityLogService;
+use App\Services\Appearance\DynamicTagRegistry;
 use App\Services\Appearance\FooterBuilderService;
 use App\Services\Appearance\HeaderBuilderService;
 use App\Services\Appearance\HomepageBuilderService;
 use App\Services\Appearance\HomepageSectionRegistry;
 use App\Services\Appearance\KitRegistry;
 use App\Services\Appearance\WidgetRegistry;
+use App\Services\ContentTypes\ContentTypeRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,6 +21,7 @@ class AppearanceController extends Controller
         private readonly HomepageBuilderService $homepage,
         private readonly FooterBuilderService $footer,
         private readonly HeaderBuilderService $header,
+        private readonly ContentTypeRegistry $contentTypes,
     ) {}
 
     public function registries(): JsonResponse
@@ -33,7 +36,9 @@ class AppearanceController extends Controller
                 'homepage_sections' => HomepageSectionRegistry::forAdmin(),
                 'form_fields' => \App\Services\Forms\FormFieldRegistry::forAdmin(),
                 'form_actions' => \App\Services\Forms\FormActionRegistry::forAdmin(),
-                'dynamic_tags' => \App\Services\Appearance\DynamicTagRegistry::all(),
+                'dynamic_tags' => DynamicTagRegistry::all(),
+                'dynamic_tag_groups' => DynamicTagRegistry::groups(),
+                'content_types' => $this->contentTypes->toAdminArray(),
             ],
         ]);
     }
