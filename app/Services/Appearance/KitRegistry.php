@@ -510,6 +510,8 @@ final class KitRegistry
                         'label' => 'Categories in filter',
                         'translatable' => false,
                     ],
+                    // Empty keeps the UI-language "All" label.
+                    ['key' => 'all_label', 'type' => 'text', 'label' => '"All" tab label'],
                     ['key' => 'limit', 'type' => 'number', 'label' => 'Limit per tab', 'min' => 1, 'max' => 24],
                     [
                         'key' => 'columns',
