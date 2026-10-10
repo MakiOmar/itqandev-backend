@@ -122,6 +122,46 @@ class LoopGridLayoutTest extends TestCase
         $this->assertSame([], $this->firstBlock($items[0])['settings']['items']);
     }
 
+    public function test_media_fields_resolve_image_dynamic_tags(): void
+    {
+        $tags = [
+            'post.image' => 'https://example.test/hero.jpg',
+            'project.categories.first.image' => 'https://example.test/cat.jpg',
+        ];
+        $blocks = [
+            ['id' => 'blk_img', 'kind' => 'widget', 'type' => 'image', 'enabled' => true, 'settings' => ['image' => '{{post.image}}']],
+            [
+                'id' => 'blk_gallery',
+                'kind' => 'widget',
+                'type' => 'gallery',
+                'enabled' => true,
+                'settings' => ['images' => [['image' => '{{ project.categories.first.image }}', 'alt' => '']]],
+            ],
+        ];
+
+        $saved = $this->layout(ChromeLayout::KIND_LOOP_ITEM, $blocks)->fresh();
+        $savedBlocks = $saved->document['sections'][0]['rows'][0]['columns'][0]['blocks'];
+        $this->assertSame('{{post.image}}', $savedBlocks[0]['settings']['image']);
+
+        $sections = PageLayoutDocument::presentPublicForPages([[
+            'id' => 'band_media',
+            'type' => PageLayoutDocument::TYPE_LAYOUT,
+            'enabled' => true,
+            'rows' => [[
+                'id' => 'row_media',
+                'columns' => [[
+                    'id' => 'col_media',
+                    'span' => ['mobile' => 12, 'tablet' => 12, 'desktop' => 12],
+                    'blocks' => $blocks,
+                ]],
+            ]],
+        ]], 'en', $tags);
+
+        $presented = $sections[0]['rows'][0]['columns'][0]['blocks'];
+        $this->assertSame('https://example.test/hero.jpg', $presented[0]['settings']['image']);
+        $this->assertSame('https://example.test/cat.jpg', $presented[1]['settings']['images'][0]['image']);
+    }
+
     public function test_page_layout_presents_loop_grid_items_with_layouts(): void
     {
         $this->project();
