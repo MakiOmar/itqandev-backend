@@ -139,6 +139,8 @@ class ContentTypeRegistryTest extends TestCase
         $this->assertSame('/work/registry-shop-build', $values['post.url']);
         $this->assertSame('2025-04-01', $values['post.date']);
         $this->assertSame('E-commerce', $values['post.terms']);
+        $this->assertSame('A shop', $values['project.summary']);
+        $this->assertSame('<p>Body</p>', $values['project.description']);
         $this->assertSame('https://demo.shop.test', $values['project.demo_url']);
         $this->assertSame('1', $values['project.featured']);
         $this->assertSame('1', $values['project.categories.count']);
@@ -157,6 +159,7 @@ class ContentTypeRegistryTest extends TestCase
 
         $this->assertSame('متجر', $values['post.title']);
         $this->assertSame('ملخص', $values['post.excerpt']);
+        $this->assertSame('ملخص', $values['project.summary']);
         $this->assertSame('متاجر', $values['project.categories.first.name']);
         $this->assertSame('متاجر', $values['post.terms']);
         $this->assertSame('عمل رائع', $values['project.testimonials.first.quote']);

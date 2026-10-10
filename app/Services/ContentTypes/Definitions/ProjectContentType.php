@@ -77,6 +77,8 @@ final class ProjectContentType extends BaseContentType
     protected function fields(): array
     {
         return [
+            'summary' => ['Summary'],
+            'description' => ['Description', 'html'],
             'link_url' => ['Link URL', 'url'],
             'repo_url' => ['Repository URL', 'url'],
             'demo_url' => ['Demo URL', 'url'],
