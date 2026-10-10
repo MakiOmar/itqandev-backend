@@ -40,6 +40,7 @@ class BuilderStyleDocumentTest extends TestCase
         $out = BuilderStyleDocument::normalize([
             'desktop' => [
                 'tab_active_color' => '#ef4444',
+                'tab_align' => 'center',
                 'tab_bg' => 'url(javascript:alert(1))',
                 'tab_font_weight' => 700,
                 'nav_size' => ['value' => 48, 'unit' => 'px'],
@@ -56,6 +57,7 @@ class BuilderStyleDocumentTest extends TestCase
 
         $bag = $out['desktop'];
         $this->assertSame('#ef4444', $bag['tab_active_color']);
+        $this->assertSame('center', $bag['tab_align']);
         $this->assertArrayNotHasKey('tab_bg', $bag);
         $this->assertSame('700', $bag['tab_font_weight']);
         $this->assertSame(48.0, $bag['nav_size']['value']);
@@ -67,6 +69,13 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertSame(48.0, $bag['title_font_size']['value']);
         $this->assertArrayNotHasKey('subtitle_transform', $bag);
         $this->assertArrayNotHasKey('subtitle_color', $bag);
+    }
+
+    public function test_drops_unknown_tab_alignment(): void
+    {
+        $out = BuilderStyleDocument::normalize(['desktop' => ['tab_align' => 'end']]);
+
+        $this->assertArrayNotHasKey('tab_align', $out['desktop'] ?? []);
     }
 
     public function test_keeps_valid_button_part_keys_and_drops_invalid_ones(): void

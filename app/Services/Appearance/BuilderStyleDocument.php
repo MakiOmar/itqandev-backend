@@ -21,6 +21,9 @@ final class BuilderStyleDocument
     /** Logical start/end follow the page direction (LTR/RTL); physical left/right stay valid for saved styles. */
     public const TEXT_ALIGN = ['start', 'center', 'end', 'left', 'right'];
 
+    /** Filter tabs row: logical start (right in RTL) or centred. */
+    public const TAB_ALIGN = ['start', 'center'];
+
     public const OVERFLOW = ['visible', 'hidden', 'auto', 'clip'];
 
     public const BORDER_STYLE = ['none', 'solid', 'dashed', 'dotted', 'double'];
@@ -56,7 +59,7 @@ final class BuilderStyleDocument
         'type_role',
         'icon_color',
         'glow_primary_color', 'glow_secondary_color', 'glow_opacity',
-        'tab_font_size', 'tab_font_weight', 'tab_color', 'tab_bg', 'tab_hover_color', 'tab_hover_bg',
+        'tab_align', 'tab_font_size', 'tab_font_weight', 'tab_color', 'tab_bg', 'tab_hover_color', 'tab_hover_bg',
         'tab_active_color', 'tab_active_bg', 'tab_indicator_color', 'tab_radius',
         'nav_size', 'nav_icon_size', 'nav_color', 'nav_bg', 'nav_border_color', 'nav_hover_color',
         'nav_hover_bg', 'nav_radius',
@@ -337,6 +340,7 @@ final class BuilderStyleDocument
 
         return match ($key) {
             'align', 'caption_align' => self::enum($value, self::ALIGN),
+            'tab_align' => self::enum($value, self::TAB_ALIGN),
             'object_fit' => self::enum($value, self::OBJECT_FIT),
             'object_position' => self::enum($value, self::OBJECT_POSITION),
             'overflow' => self::enum($value, self::OVERFLOW),
