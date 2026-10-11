@@ -29,7 +29,8 @@ final class ControlNormalizer
             $settings[$key] = self::normalizeValue($settings[$key], $type, $field, $html);
         }
 
-        if (isset($settings['html']) && is_string($settings['html'])) {
+        // Embed `html` is iframe-only; rich text (also keyed `html`) was already sanitised above.
+        if (isset($settings['html']) && is_string($settings['html']) && self::fieldType($fields, 'html') !== 'richtext') {
             $settings['html'] = EmbedHostAllowlist::sanitizeIframeHtml($settings['html']);
         }
         if (isset($settings['embed_url'])) {
@@ -56,6 +57,20 @@ final class ControlNormalizer
         }
 
         return $settings;
+    }
+
+    /**
+     * @param  list<mixed>  $fields
+     */
+    private static function fieldType(array $fields, string $key): ?string
+    {
+        foreach ($fields as $field) {
+            if (is_array($field) && ($field['key'] ?? null) === $key) {
+                return strtolower(trim((string) ($field['type'] ?? 'text')));
+            }
+        }
+
+        return null;
     }
 
     /**
