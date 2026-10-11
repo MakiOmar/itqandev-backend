@@ -95,6 +95,16 @@ final class ProjectContentType extends BaseContentType
         ];
     }
 
+    public function galleries(): array
+    {
+        return ['gallery' => 'Gallery'];
+    }
+
+    public function galleryMediaIds(Model $record, string $suffix): array
+    {
+        return $suffix === 'gallery' && $record instanceof Project ? $record->galleryMediaIds() : [];
+    }
+
     protected function extraEagerLoads(): array
     {
         return ['media'];

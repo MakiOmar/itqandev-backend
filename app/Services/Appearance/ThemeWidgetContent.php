@@ -29,6 +29,9 @@ final class ThemeWidgetContent
         if ($type === 'list') {
             return self::fillList($settings, $tagContext);
         }
+        if ($type === 'gallery') {
+            return self::fillGallery($settings, $tagContext, $locale);
+        }
         foreach (self::SLOTS[$type] ?? [] as $key => $tag) {
             $current = $settings[$key] ?? null;
             if (is_string($current) && trim($current) !== '') {
@@ -70,6 +73,39 @@ final class ThemeWidgetContent
         }
         $settings['items'] = $items;
         $settings['items_resolved'] = true;
+
+        return $settings;
+    }
+
+    /**
+     * Dynamic Gallery: the record's gallery images (URL + localised alt) replace the manual images.
+     *
+     * @param  array<string, mixed>  $settings
+     * @param  array<string, mixed>  $tagContext
+     * @return array<string, mixed>
+     */
+    private static function fillGallery(array $settings, array $tagContext, ?string $locale): array
+    {
+        if (! filter_var($settings['dynamic_images'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return $settings;
+        }
+
+        $source = DynamicTagRegistry::parseGallerySource((string) ($settings['images_source'] ?? ''));
+        $galleries = is_array($tagContext[DynamicTagRegistry::GALLERIES_KEY] ?? null) ? $tagContext[DynamicTagRegistry::GALLERIES_KEY] : [];
+        $ids = $source !== null && is_array($galleries[$source] ?? null) ? array_values(array_filter($galleries[$source], 'is_int')) : [];
+
+        $settings['images'] = AppearanceMediaResolver::withPrimed($ids, static function () use ($ids, $locale): array {
+            $images = [];
+            foreach ($ids as $id) {
+                $resolved = AppearanceMediaResolver::resolve($id, $locale);
+                if ($resolved['url'] !== '') {
+                    $images[] = ['image' => $resolved['url'], 'alt' => (string) ($resolved['alt'] ?? '')];
+                }
+            }
+
+            return $images;
+        });
+        $settings['images_resolved'] = true;
 
         return $settings;
     }

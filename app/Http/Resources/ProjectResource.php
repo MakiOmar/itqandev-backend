@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Models\AppMedia;
+use App\Services\Appearance\AppearanceMediaResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -65,7 +67,34 @@ class ProjectResource extends JsonResource
                 ])->values();
             }),
             'media' => $this->getMediaData(),
+            'gallery_media_ids' => $this->galleryMediaIds(),
+            // Thumbnails for the admin editor; single-project responses only (lists would query per row).
+            'gallery_items' => $this->when($request->route('project') !== null, fn () => $this->galleryItems()),
         ];
+    }
+
+    /**
+     * @return list<array{id: int, url: string, name: string, alt_text: ?string}>
+     */
+    protected function galleryItems(): array
+    {
+        $ids = $this->galleryMediaIds();
+        $rows = AppMedia::query()->whereIn('id', $ids)->get()->keyBy('id');
+
+        $items = [];
+        foreach ($ids as $id) {
+            $media = $rows->get($id);
+            if ($media) {
+                $items[] = [
+                    'id' => $id,
+                    'url' => AppearanceMediaResolver::urlFor($media),
+                    'name' => (string) ($media->name ?: $media->file_name),
+                    'alt_text' => $media->alt_text ?? null,
+                ];
+            }
+        }
+
+        return $items;
     }
 
     /**

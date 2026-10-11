@@ -41,6 +41,9 @@ final class DynamicTagRegistry
     /** Record payload key for many-relation rows; `@` keeps it outside the `{{tag}}` id syntax. */
     public const LISTS_KEY = '@lists';
 
+    /** Record payload key for image galleries (`{type}.{gallery}` => ordered media ids). */
+    public const GALLERIES_KEY = '@galleries';
+
     /** Generic record tags: `post.{suffix}` => [label, kind]. */
     public const POST_FIELDS = [
         'title' => ['Title', 'text'],
@@ -166,6 +169,38 @@ final class DynamicTagRegistry
         [$source, $field] = explode(':', $value, 2);
 
         return ['source' => $source, 'field' => $field];
+    }
+
+    /**
+     * Dynamic Gallery sources, valued `{type}.{gallery}`.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public static function gallerySourceOptions(): array
+    {
+        $options = [];
+        foreach (self::contentTypes()->all() as $definition) {
+            foreach ($definition->galleries() as $suffix => $label) {
+                $options[] = [
+                    'value' => $definition->key().'.'.$suffix,
+                    'label' => $definition->label().' / '.$label,
+                ];
+            }
+        }
+
+        return $options;
+    }
+
+    /** Allowlisted Gallery source (`@galleries` key), or null when unknown; unset means the first option. */
+    public static function parseGallerySource(string $value): ?string
+    {
+        $allowed = array_column(self::gallerySourceOptions(), 'value');
+        $value = strtolower(trim($value));
+        if ($value === '') {
+            $value = (string) ($allowed[0] ?? '');
+        }
+
+        return $value !== '' && in_array($value, $allowed, true) ? $value : null;
     }
 
     /**

@@ -126,6 +126,16 @@ abstract class BaseContentType implements ContentTypeDefinition
         return [];
     }
 
+    public function galleries(): array
+    {
+        return [];
+    }
+
+    public function galleryMediaIds(Model $record, string $suffix): array
+    {
+        return [];
+    }
+
     public function eagerLoads(): array
     {
         $paths = $this->extraEagerLoads();
@@ -199,6 +209,11 @@ abstract class BaseContentType implements ContentTypeDefinition
             }
         }
         $values[DynamicTagRegistry::LISTS_KEY] = $lists;
+        $galleries = [];
+        foreach (array_keys($this->galleries()) as $suffix) {
+            $galleries[$this->key().'.'.$suffix] = $this->galleryMediaIds($record, $suffix);
+        }
+        $values[DynamicTagRegistry::GALLERIES_KEY] = $galleries;
         $terms = $this->termsRelation();
         if ($terms !== null) {
             $values[DynamicTagRegistry::POST_TERMS] = $values[$this->key().'.'.$terms] ?? '';

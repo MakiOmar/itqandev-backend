@@ -59,6 +59,17 @@ interface ContentTypeDefinition
     public function eagerLoads(): array;
 
     /**
+     * Image galleries the Gallery widget can use as a dynamic source (suffix => label).
+     * Their ordered media ids are published in `values()` under `DynamicTagRegistry::GALLERIES_KEY`.
+     *
+     * @return array<string, string>
+     */
+    public function galleries(): array;
+
+    /** @return list<int> Media ids of one gallery from `galleries()`, in display order. */
+    public function galleryMediaIds(Model $record, string $suffix): array;
+
+    /**
      * Tag id => value (generic `post.*` plus this type's own tags), localised when a locale is given.
      * `DynamicTagRegistry::LISTS_KEY` holds many-relation rows (`{type}.{relation}` => list of field => value) for dynamic Lists.
      *

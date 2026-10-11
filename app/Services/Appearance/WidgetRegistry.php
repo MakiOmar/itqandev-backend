@@ -367,12 +367,25 @@ final class WidgetRegistry
                 'category' => 'Media',
                 'default_settings' => [
                     'images' => [],
+                    'dynamic_images' => false,
+                    'images_source' => '',
                 ],
                 'settings_fields' => [
+                    ['key' => 'dynamic_images', 'type' => 'boolean', 'label' => 'Dynamic images (from the current item)', 'translatable' => false],
+                    [
+                        'key' => 'images_source',
+                        'type' => 'select',
+                        'label' => 'Source',
+                        'translatable' => false,
+                        'show_if' => 'dynamic_images',
+                        // Filled from the content type galleries in forAdmin().
+                        'options' => [],
+                    ],
                     [
                         'key' => 'images',
                         'type' => 'repeater',
                         'label' => 'Images',
+                        'hide_if' => 'dynamic_images',
                         'translatable' => false,
                         'item_fields' => [
                             ['key' => 'image', 'type' => 'media', 'label' => 'Image', 'accept' => 'image/*'],
@@ -944,6 +957,7 @@ final class WidgetRegistry
         $runtime = match ($type) {
             'loop_grid' => ['source' => static fn () => app(ContentTypeRegistry::class)->loopSourceOptions()],
             'list' => ['items_source' => static fn () => DynamicTagRegistry::listSourceOptions()],
+            'gallery' => ['images_source' => static fn () => DynamicTagRegistry::gallerySourceOptions()],
             default => [],
         };
         if ($runtime === []) {

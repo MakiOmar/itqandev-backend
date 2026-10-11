@@ -19,6 +19,7 @@ class Project extends Model implements HasMedia
         'content_locale',
         'summary',
         'description',
+        'gallery_media_ids',
         'status',
         'link_url',
         'repo_url',
@@ -29,10 +30,21 @@ class Project extends Model implements HasMedia
         'footer_layout_id',
     ];
 
+    public const GALLERY_MAX = 100;
+
     protected $casts = [
         'featured' => 'boolean',
         'published_at' => 'datetime',
+        'gallery_media_ids' => 'array',
     ];
+
+    /** @return list<int> Gallery media ids in display order. */
+    public function galleryMediaIds(): array
+    {
+        $ids = array_map('intval', is_array($this->gallery_media_ids) ? $this->gallery_media_ids : []);
+
+        return array_values(array_unique(array_filter($ids, static fn (int $id) => $id > 0)));
+    }
 
     public function categories()
     {

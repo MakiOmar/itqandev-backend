@@ -4,9 +4,23 @@ namespace App\Http\Requests\Concerns;
 
 use App\Models\Project;
 use App\Support\UniqueContentSlug;
+use Illuminate\Validation\Rule;
 
 trait PreparesProjectPayload
 {
+    /** Ordered gallery: existing media library images only. */
+    protected function galleryRules(): array
+    {
+        return [
+            'gallery_media_ids' => ['nullable', 'array', 'max:'.Project::GALLERY_MAX],
+            'gallery_media_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('media', 'id')->where(fn ($q) => $q->where('mime_type', 'like', 'image/%')),
+            ],
+        ];
+    }
+
     protected function mergeProjectAliases(): void
     {
         $this->merge([

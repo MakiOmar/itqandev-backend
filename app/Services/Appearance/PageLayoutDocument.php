@@ -784,8 +784,8 @@ final class PageLayoutDocument
             ));
             $settings = DynamicTagResolver::apply($settings, $tagContext, $locale, $richTextKeys);
             $settings = ThemeWidgetContent::fill($type, $settings, $tagContext, $locale);
-        } elseif ($type === 'list') {
-            // Dynamic Lists outside a record context render empty instead of their manual items.
+        } elseif ($type === 'list' || $type === 'gallery') {
+            // Dynamic Lists/Galleries outside a record context render empty instead of their manual items.
             $settings = ThemeWidgetContent::fill($type, $settings, [], $locale);
         }
         if ($type === 'loop_grid') {

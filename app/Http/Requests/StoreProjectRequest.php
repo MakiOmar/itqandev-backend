@@ -43,6 +43,7 @@ class StoreProjectRequest extends FormRequest
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'skill_ids' => ['array'],
             'skill_ids.*' => ['integer', 'exists:skills,id'],
+            ...$this->galleryRules(),
             'translations' => ['nullable', 'array'],
             'translations.*.locale' => ['required', 'string', 'max:16'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
