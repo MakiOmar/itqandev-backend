@@ -43,6 +43,14 @@ final class ProjectContentType extends BaseContentType
         return ['work', 'portfolio'];
     }
 
+    /** `/work/` only redirects; links go straight to the canonical portfolio route. */
+    public function linkPath(Model $record): string
+    {
+        $slug = trim((string) $record->getAttribute('slug'));
+
+        return $slug === '' ? '' : '/portfolio/'.$slug.'/';
+    }
+
     public function loopSource(): ?string
     {
         return 'projects';

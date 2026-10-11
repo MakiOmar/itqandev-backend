@@ -5,6 +5,7 @@ namespace App\Services\ContentTypes\Definitions;
 use App\Models\Page;
 use App\Services\ContentTypes\BaseContentType;
 use App\Services\ContentTypes\RelationTags;
+use App\Support\CmsPublicPaths;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -44,6 +45,12 @@ final class PageContentType extends BaseContentType
     public function publicPathPrefixes(): array
     {
         return ['pages'];
+    }
+
+    /** Home page `/`, pretty marketing paths, or nested `/pages/parent/child/` (same as menus). */
+    public function linkPath(Model $record): string
+    {
+        return $record instanceof Page && trim((string) $record->slug) !== '' ? CmsPublicPaths::pathForPage($record) : '';
     }
 
     protected function applyTranslation(Model $record, string $locale): void

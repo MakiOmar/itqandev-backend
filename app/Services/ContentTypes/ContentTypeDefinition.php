@@ -33,6 +33,16 @@ interface ContentTypeDefinition
 
     public function publicUrl(Model $record): string;
 
+    /** Canonical public path without the UI locale (`/portfolio/{slug}/`); the site prefixes the locale. */
+    public function linkPath(Model $record): string;
+
+    /**
+     * Published records whose title or slug matches, for the builder link picker.
+     *
+     * @return list<array{id: int, title: string, path: string}>
+     */
+    public function searchLinks(string $query, int $limit): array;
+
     /** Copy of the record with the locale's translation applied; the given model stays untouched. */
     public function localize(Model $record, string $locale): Model;
 

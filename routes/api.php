@@ -187,6 +187,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('design-kit', [\App\Http\Controllers\Api\DesignKitController::class, 'show']);
         Route::put('design-kit', [\App\Http\Controllers\Api\DesignKitController::class, 'update']);
 
+        Route::get('link-search', \App\Http\Controllers\Api\BuilderLinkSearchController::class);
         Route::get('preview-records/{contentType}', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'previewRecords'])
             ->where('contentType', '[a-z_]+');
         Route::get('{kind}/{id}/preview-as', [\App\Http\Controllers\Api\ChromeLayoutController::class, 'previewAs'])

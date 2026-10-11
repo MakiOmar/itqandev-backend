@@ -49,6 +49,38 @@ abstract class BaseContentType implements ContentTypeDefinition
         return '/'.$this->publicPathPrefixes()[0].'/'.$record->getAttribute('slug');
     }
 
+    public function linkPath(Model $record): string
+    {
+        $slug = trim((string) $record->getAttribute('slug'));
+
+        return $slug === '' ? '' : '/'.$this->publicPathPrefixes()[0].'/'.$slug.'/';
+    }
+
+    public function searchLinks(string $query, int $limit): array
+    {
+        $title = $this->titleColumn();
+        $builder = $this->publishedQuery();
+        $term = trim($query);
+        if ($term !== '') {
+            $like = '%'.addcslashes($term, '\\%_').'%';
+            $builder->where(static fn (Builder $q) => $q->where($title, 'like', $like)->orWhere('slug', 'like', $like));
+        }
+
+        $links = [];
+        foreach ($builder->orderBy($title)->limit($limit)->get() as $record) {
+            $path = $this->linkPath($record);
+            if ($path !== '') {
+                $links[] = [
+                    'id' => (int) $record->getKey(),
+                    'title' => (string) ($record->getAttribute($title) ?: $record->getAttribute('slug')),
+                    'path' => $path,
+                ];
+            }
+        }
+
+        return $links;
+    }
+
     public function localize(Model $record, string $locale): Model
     {
         $copy = clone $record;
