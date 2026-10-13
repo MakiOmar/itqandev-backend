@@ -3,7 +3,7 @@
 namespace App\Services\Appearance;
 
 /**
- * Allow only http(s), site-relative, or in-page hash URLs on builder attributes.
+ * Allow only http(s), mailto:, tel:, site-relative, or in-page hash URLs on builder attributes.
  */
 final class BuilderUrlSanitizer
 {
@@ -23,6 +23,12 @@ final class BuilderUrlSanitizer
             return $url;
         }
         if (preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        }
+        if (preg_match('#^mailto:[^\s<>"]+$#i', $url) === 1) {
+            return $url;
+        }
+        if (preg_match('#^tel:\+?[0-9().\- ]+$#i', $url) === 1) {
             return $url;
         }
 

@@ -22,6 +22,14 @@ class BuilderEngineTest extends TestCase
         $this->assertSame('https://example.com', BuilderUrlSanitizer::sanitize('https://example.com'));
     }
 
+    public function test_url_sanitizer_allows_mailto_and_tel(): void
+    {
+        $this->assertSame('mailto:hello@example.com', BuilderUrlSanitizer::sanitize('mailto:hello@example.com'));
+        $this->assertSame('tel:+201026795795', BuilderUrlSanitizer::sanitize('tel:+201026795795'));
+        $this->assertSame('', BuilderUrlSanitizer::sanitize('mailto:<script>'));
+        $this->assertSame('', BuilderUrlSanitizer::sanitize('tel:javascript'));
+    }
+
     public function test_shape_divider_allows_presets_only(): void
     {
         $out = ShapeDividerDocument::normalize([
