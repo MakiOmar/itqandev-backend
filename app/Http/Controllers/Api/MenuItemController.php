@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class MenuItemController extends Controller
 {
@@ -80,13 +81,14 @@ class MenuItemController extends Controller
             $parentId = array_key_exists('parent_id', $row) && $row['parent_id'] !== null
                 ? (int) $row['parent_id']
                 : null;
+            $this->assertDropdownParent($menu, $parentId, $id);
+        }
 
-            if ($parentId === $id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'A menu item cannot be its own parent.',
-                ], 422);
-            }
+        foreach ($validated['items'] as $row) {
+            $id = (int) $row['id'];
+            $parentId = array_key_exists('parent_id', $row) && $row['parent_id'] !== null
+                ? (int) $row['parent_id']
+                : null;
 
             MenuItem::query()->where('menu_id', $menu->id)->whereKey($id)->update([
                 'parent_id' => $parentId,
@@ -198,8 +200,9 @@ class MenuItemController extends Controller
         }
 
         $parentId = array_key_exists('parent_id', $base)
-            ? $base['parent_id']
-            : ($existing?->parent_id);
+            ? ($base['parent_id'] !== null ? (int) $base['parent_id'] : null)
+            : ($existing?->parent_id !== null ? (int) $existing->parent_id : null);
+        $this->assertDropdownParent($menu, $parentId, $existing?->id);
         $sortOrder = array_key_exists('sort_order', $base)
             ? (int) $base['sort_order']
             : ($existing !== null ? (int) $existing->sort_order : null);
@@ -240,5 +243,35 @@ class MenuItemController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * Dropdowns are one level: the parent is a top-level link, and a link that
+     * already has subitems stays at the top level.
+     */
+    private function assertDropdownParent(Menu $menu, ?int $parentId, ?int $itemId): void
+    {
+        if ($parentId === null) {
+            return;
+        }
+
+        if ($itemId !== null && $parentId === $itemId) {
+            throw ValidationException::withMessages([
+                'parent_id' => ['A menu item cannot be its own parent.'],
+            ]);
+        }
+
+        $parent = MenuItem::query()->where('menu_id', $menu->id)->whereKey($parentId)->first();
+        if ($parent === null || $parent->parent_id !== null) {
+            throw ValidationException::withMessages([
+                'parent_id' => ['Choose a top-level menu item as the parent.'],
+            ]);
+        }
+
+        if ($itemId !== null && MenuItem::query()->where('parent_id', $itemId)->exists()) {
+            throw ValidationException::withMessages([
+                'parent_id' => ['Move this link’s subitems out before placing it under another link.'],
+            ]);
+        }
     }
 }

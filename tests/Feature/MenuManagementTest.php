@@ -107,4 +107,58 @@ class MenuManagementTest extends TestCase
         $this->assertSame(0, MenuItem::query()->find($b->id)?->sort_order);
         $this->assertSame(1, MenuItem::query()->find($a->id)?->sort_order);
     }
+
+    public function test_admin_can_nest_a_dropdown_under_a_top_level_link(): void
+    {
+        $admin = User::query()->where('email', 'admin@credocode.test')->first();
+        $this->assertNotNull($admin);
+
+        $menu = Menu::query()->where('slug', 'primary')->first();
+        $this->assertNotNull($menu);
+
+        $parent = MenuItem::query()->create([
+            'menu_id' => $menu->id,
+            'parent_id' => null,
+            'sort_order' => 20,
+            'label' => 'Company',
+            'item_type' => MenuItem::TYPE_CUSTOM_LINK,
+            'url' => '/about/',
+            'open_in_new_tab' => false,
+        ]);
+
+        $this->withHeaders($this->bearerHeaders($admin))
+            ->postJson("/api/v1/menus/{$menu->id}/items", [
+                'item_type' => 'custom_link',
+                'url' => '/contact/',
+                'label' => 'Contact us',
+                'parent_id' => $parent->id,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.parent_id', $parent->id);
+
+        $this->withHeaders($this->bearerHeaders($admin))
+            ->getJson("/api/v1/menus/{$menu->id}")
+            ->assertOk()
+            ->assertJsonFragment(['label' => 'Contact us', 'parent_id' => $parent->id]);
+
+        $child = MenuItem::query()->where('menu_id', $menu->id)->where('label', 'Contact us')->first();
+        $this->assertNotNull($child);
+
+        $this->withHeaders($this->bearerHeaders($admin))
+            ->postJson("/api/v1/menus/{$menu->id}/items", [
+                'item_type' => 'custom_link',
+                'url' => '/pricing/',
+                'label' => 'Pricing',
+                'parent_id' => $child->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['parent_id']);
+
+        $this->withHeaders($this->bearerHeaders($admin))
+            ->putJson("/api/v1/menu-items/{$parent->id}", [
+                'parent_id' => $parent->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['parent_id']);
+    }
 }
