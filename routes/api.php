@@ -59,6 +59,11 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
         Route::get('overlays/{id}', [\App\Http\Controllers\Api\PublicOverlayController::class, 'show'])
             ->whereNumber('id');
     });
+    /** Content-type singles without a dedicated website route (addon types); module gating lives in the registry. */
+    Route::get('content-sitemap', [\App\Http\Controllers\Api\PublicContentController::class, 'sitemap']);
+    Route::get('content/{prefix}/{slug}', [\App\Http\Controllers\Api\PublicContentController::class, 'show'])
+        ->where('prefix', '[a-z0-9][a-z0-9-]*')
+        ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
     /** Resolved nav tree for marketing header (locale query matches UI locale). */
     Route::get('menus/{slug}', [\App\Http\Controllers\Api\PublicMenuController::class, 'show'])
         ->where('slug', '[a-z0-9_-]+');
@@ -84,6 +89,7 @@ Route::options('/v1/media/{media}/download', function (\Illuminate\Http\Request 
 
 Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
     Route::get('/me', [MeController::class, 'show']);
+    Route::get('/me/addon-nav', [\App\Http\Controllers\Api\AddonNavController::class, 'index']);
     Route::patch('/me', [MeController::class, 'update']);
     Route::put('/me/password', [MeController::class, 'updatePassword'])->middleware('throttle:login');
     Route::post('/auth/logout', [AuthController::class, 'logout']);

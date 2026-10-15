@@ -2,17 +2,21 @@
 
 namespace App\Services\ContentTypes;
 
+use App\Addons\AddonRegistry;
 use App\Support\FeatureModules;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
- * The content types listed in config/content-types.php. Disabled feature modules are skipped.
+ * The content types listed in config/content-types.php plus those of installed addons. Disabled feature modules are skipped.
  *
  * Bound as a singleton; definitions are built once, module gating is re-checked per call.
  */
 final class ContentTypeRegistry
 {
+    /** First URL segments the website already routes; addon types may not claim them. */
+    public const RESERVED_PREFIXES = ['admin', 'about', 'api-check', 'blog', 'contact', 'forms', 'pages', 'portfolio', 'pricing', 'services', 'work'];
+
     /** @var array<string, ContentTypeDefinition>|null */
     private ?array $configured = null;
 
@@ -29,19 +33,48 @@ final class ContentTypeRegistry
 
         $out = [];
         foreach ((array) config('content-types.types', []) as $class) {
-            if (! is_string($class) || ! is_subclass_of($class, ContentTypeDefinition::class)) {
-                throw new InvalidArgumentException('config/content-types.php: ['.(is_string($class) ? $class : gettype($class)).'] must implement '.ContentTypeDefinition::class.'.');
+            $this->add($out, $class, 'config/content-types.php');
+        }
+        foreach (AddonRegistry::contentTypeClasses() as $class => $module) {
+            $definition = $this->add($out, $class, "Addon [{$module}]");
+            if ($definition->module() !== $module) {
+                throw new InvalidArgumentException("Addon [{$module}]: content type [{$definition->key()}] must return module() [{$module}].");
             }
-            /** @var ContentTypeDefinition $definition */
-            $definition = app($class);
-            $key = $definition->key();
-            if (isset($out[$key])) {
-                throw new InvalidArgumentException("config/content-types.php: duplicate content type key [{$key}].");
+            foreach ($definition->publicPathPrefixes() as $prefix) {
+                if (! preg_match('/^[a-z0-9][a-z0-9-]*$/', $prefix) || in_array($prefix, self::RESERVED_PREFIXES, true)) {
+                    throw new InvalidArgumentException("Addon [{$module}]: public prefix [{$prefix}] is reserved or invalid.");
+                }
             }
-            $out[$key] = $definition;
+        }
+        $owners = [];
+        foreach ($out as $key => $definition) {
+            foreach ($definition->publicPathPrefixes() as $prefix) {
+                if (isset($owners[$prefix])) {
+                    throw new InvalidArgumentException("Content types [{$owners[$prefix]}] and [{$key}] share public prefix [{$prefix}].");
+                }
+                $owners[$prefix] = $key;
+            }
         }
 
         return $this->configured = $out;
+    }
+
+    /**
+     * @param  array<string, ContentTypeDefinition>  $out
+     */
+    private function add(array &$out, mixed $class, string $source): ContentTypeDefinition
+    {
+        if (! is_string($class) || ! is_subclass_of($class, ContentTypeDefinition::class)) {
+            throw new InvalidArgumentException($source.': ['.(is_string($class) ? $class : gettype($class)).'] must implement '.ContentTypeDefinition::class.'.');
+        }
+        /** @var ContentTypeDefinition $definition */
+        $definition = app($class);
+        $key = $definition->key();
+        if (isset($out[$key])) {
+            throw new InvalidArgumentException("{$source}: duplicate content type key [{$key}].");
+        }
+
+        return $out[$key] = $definition;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Addons\AddonRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\Font;
 use App\Models\Page;
@@ -44,6 +45,7 @@ class SettingsController extends Controller
     private function withResolvedFeatures(array $settings): array
     {
         $settings['features'] = FeatureModules::all();
+        $settings['addons'] = AddonRegistry::adminNav();
 
         return $settings;
     }

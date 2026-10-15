@@ -2,6 +2,8 @@
 
 namespace App\Services\Appearance;
 
+use App\Addons\AddonRegistry;
+
 /**
  * Predesigned page Kits (composite section widgets).
  *
@@ -11,9 +13,19 @@ namespace App\Services\Appearance;
 final class KitRegistry
 {
     /**
+     * Built-in kits plus those of enabled addons.
+     *
      * @return array<string, KitDef>
      */
     public static function all(): array
+    {
+        return AddonRegistry::mergeLeaves(PageLeafRegistry::KIND_KIT, self::builtIn());
+    }
+
+    /**
+     * @return array<string, KitDef>
+     */
+    public static function builtIn(): array
     {
         return array_merge(self::marketingKits(), self::contentKits(), self::chromeKits());
     }

@@ -2,8 +2,10 @@
 
 namespace App\Support;
 
+use App\Addons\AddonRegistry;
+
 /**
- * Canonical module toggles from config/features.php (no .env).
+ * Module toggles from config/features.php. Built-in modules default on; installed addon modules default off.
  */
 final class FeatureModules
 {
@@ -12,7 +14,7 @@ final class FeatureModules
      *
      * @return list<string>
      */
-    public static function canonicalKeys(): array
+    public static function builtInKeys(): array
     {
         return [
             'projects',
@@ -31,6 +33,16 @@ final class FeatureModules
     }
 
     /**
+     * Built-in keys plus the module key of every installed addon.
+     *
+     * @return list<string>
+     */
+    public static function canonicalKeys(): array
+    {
+        return array_values(array_unique(array_merge(self::builtInKeys(), AddonRegistry::moduleKeys())));
+    }
+
+    /**
      * Effective enabled flags for API payloads (unknown keys ignored).
      *
      * @return array<string, bool>
@@ -40,8 +52,14 @@ final class FeatureModules
         /** @var array<string, mixed> $configured */
         $configured = config('features.modules', []);
         $out = [];
-        foreach (self::canonicalKeys() as $key) {
+        foreach (self::builtInKeys() as $key) {
             $out[$key] = self::coerceBool($configured[$key] ?? true);
+        }
+        $addonsOn = self::enabledAddonKeys();
+        foreach (AddonRegistry::moduleKeys() as $key) {
+            $out[$key] = array_key_exists($key, $configured)
+                ? self::coerceBool($configured[$key])
+                : in_array($key, $addonsOn, true);
         }
 
         return $out;
@@ -50,6 +68,18 @@ final class FeatureModules
     public static function enabled(string $module): bool
     {
         return self::all()[$module] ?? false;
+    }
+
+    /** @return list<string> */
+    private static function enabledAddonKeys(): array
+    {
+        $raw = config('features.addons', []);
+        $list = is_string($raw) ? explode(',', $raw) : (is_array($raw) ? $raw : []);
+
+        return array_values(array_filter(array_map(
+            static fn ($k) => strtolower(trim((string) $k)),
+            $list,
+        )));
     }
 
     private static function coerceBool(mixed $value): bool

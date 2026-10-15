@@ -2,6 +2,7 @@
 
 namespace App\Services\Appearance;
 
+use App\Addons\AddonRegistry;
 use App\Services\ContentTypes\ContentTypeRegistry;
 
 /**
@@ -13,9 +14,19 @@ use App\Services\ContentTypes\ContentTypeRegistry;
 final class WidgetRegistry
 {
     /**
+     * Built-in widgets plus those of enabled addons.
+     *
      * @return array<string, WidgetDef>
      */
     public static function all(): array
+    {
+        return AddonRegistry::mergeLeaves(PageLeafRegistry::KIND_WIDGET, self::builtIn());
+    }
+
+    /**
+     * @return array<string, WidgetDef>
+     */
+    public static function builtIn(): array
     {
         return array_merge(
             self::typography(),

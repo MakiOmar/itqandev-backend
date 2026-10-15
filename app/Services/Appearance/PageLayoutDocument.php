@@ -2,6 +2,7 @@
 
 namespace App\Services\Appearance;
 
+use App\Addons\AddonRegistry;
 use App\Support\SiteLanguages;
 use Illuminate\Support\Str;
 
@@ -426,9 +427,19 @@ final class PageLayoutDocument
             return null;
         }
 
-        $kind = PageLeafRegistry::inferKind($type, isset($block['kind']) ? (string) $block['kind'] : null);
-        if ($kind === null) {
-            return null;
+        $kindHint = isset($block['kind']) ? (string) $block['kind'] : null;
+        $kind = PageLeafRegistry::inferKind($type, $kindHint);
+        if ($kind !== null) {
+            $entry = $kind === PageLeafRegistry::KIND_WIDGET
+                ? (WidgetRegistry::all()[$type] ?? null)
+                : (KitRegistry::all()[$type] ?? null);
+        } else {
+            // Installed addon whose module is off: keep the block so re-enabling restores it.
+            $dormant = AddonRegistry::dormantLeaf($type, $kindHint);
+            if ($dormant === null) {
+                return null;
+            }
+            [$kind, $entry] = $dormant;
         }
 
         $id = trim((string) ($block['id'] ?? ''));
@@ -436,17 +447,14 @@ final class PageLayoutDocument
             $id = 'blk_'.Str::lower(Str::random(10));
         }
 
+        $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
         $settings = is_array($block['settings'] ?? null) ? $block['settings'] : [];
         $settings = AppearanceLocalizedSettings::normalize(
             $settings,
-            PageLeafRegistry::defaultSettings($kind, $type),
-            PageLeafRegistry::translatableKeys($kind, $type),
-            PageLeafRegistry::sharedRepeaterKeys($kind, $type),
+            is_array($entry['default_settings'] ?? null) ? $entry['default_settings'] : [],
+            AppearanceLocalizedSettings::translatableKeysFromFields($fields),
+            SharedRepeaterTranslations::fromFields($fields),
         );
-        $entry = $kind === PageLeafRegistry::KIND_WIDGET
-            ? (WidgetRegistry::all()[$type] ?? null)
-            : (KitRegistry::all()[$type] ?? null);
-        $fields = is_array($entry['settings_fields'] ?? null) ? $entry['settings_fields'] : [];
         $settings = ControlNormalizer::normalizeSettings($settings, $fields);
         // Layout/widget Style → Background lives on settings.background (not kit fields).
         $incomingBg = is_array($block['settings'] ?? null)
