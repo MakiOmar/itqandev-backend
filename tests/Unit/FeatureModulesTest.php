@@ -18,11 +18,13 @@ class FeatureModulesTest extends TestCase
 
     public function test_all_canonical_keys_are_present(): void
     {
-        config(['features.modules' => []]);
+        config(['features.modules' => [], 'features.addons' => '']);
 
         $all = FeatureModules::all();
         foreach (FeatureModules::canonicalKeys() as $key) {
             $this->assertArrayHasKey($key, $all);
+        }
+        foreach (FeatureModules::builtInKeys() as $key) {
             $this->assertTrue($all[$key]);
         }
     }

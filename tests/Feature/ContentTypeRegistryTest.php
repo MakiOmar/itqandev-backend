@@ -302,7 +302,8 @@ class ContentTypeRegistryTest extends TestCase
         $this->assertSame(['page', 'project', 'blog_post', 'service'], array_column($response->json('data.content_types'), 'key'));
         $loop = collect($response->json('data.widgets'))->firstWhere('type', 'loop_grid');
         $source = collect($loop['settings_fields'])->firstWhere('key', 'source');
-        $this->assertSame(['projects', 'blog', 'services'], array_column($source['options'], 'value'));
+        // Installed addons append their sources after the built-in ones.
+        $this->assertSame(['projects', 'blog', 'services'], array_slice(array_column($source['options'], 'value'), 0, 3));
     }
 
     public function test_preview_records_endpoint(): void
