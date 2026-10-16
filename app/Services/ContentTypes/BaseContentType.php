@@ -222,6 +222,11 @@ abstract class BaseContentType implements ContentTypeDefinition
         return $values;
     }
 
+    public function seo(Model $record, string $locale): array
+    {
+        return [];
+    }
+
     public function findPublishedBySlug(string $slug): ?Model
     {
         return $this->publishedQuery()->where('slug', $slug)->first();

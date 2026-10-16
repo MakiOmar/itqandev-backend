@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Addons\AddonRegistry;
 use App\Addons\AddonServiceProvider;
+use App\Models\Page;
 use App\Models\User;
 use App\Services\Appearance\PageLayoutDocument;
 use App\Services\Appearance\WidgetRegistry;
@@ -115,6 +116,7 @@ class AddonHostTest extends TestCase
 
         $public = PageLayoutDocument::presentPublicForPages($saved, 'en');
         $this->assertNull($this->firstBlock($public));
+        $this->assertSame([], WidgetRegistry::canonicalQueryKeys($saved));
     }
 
     public function test_enabled_addon_is_wired_through_registries_routes_and_settings(): void
@@ -133,7 +135,11 @@ class AddonHostTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.type', 'sample_item')
             ->assertJsonPath('data.title', 'Blue mug')
-            ->assertJsonPath('data.path', '/sample-items/blue-mug/');
+            ->assertJsonPath('data.path', '/sample-items/blue-mug/')
+            ->assertJsonPath('data.seo.title', 'Blue mug deal')
+            ->assertJsonPath('data.seo.description', null)
+            ->assertJsonPath('data.seo.image', null)
+            ->assertJsonPath('data.seo.json_ld.name', 'Blue mug</script>');
         $this->getJson('/api/public/content/no-such-prefix/blue-mug')->assertNotFound();
         $this->getJson('/api/public/content-sitemap')->assertOk()->assertJsonPath('data', ['/sample-items/blue-mug/']);
 
@@ -152,6 +158,14 @@ class AddonHostTest extends TestCase
             'en',
         );
         $this->assertSame('Keep me', $this->firstBlock($public)['settings']['text'] ?? null);
+
+        Page::query()->create([
+            'slug' => 'sample-list', 'title' => 'Sample list', 'status' => Page::STATUS_PUBLISHED,
+            'published_at' => now(), 'sections' => PageLayoutDocument::normalizeSectionsForPages($this->layoutWithSampleNote()),
+        ]);
+        $this->getJson('/api/public/pages/sample-list', ['X-Content-Locale' => 'en'])
+            ->assertOk()
+            ->assertJsonPath('canonical_query', ['tag']);
     }
 
     public function test_module_can_be_pinned_in_config_over_the_env_list(): void

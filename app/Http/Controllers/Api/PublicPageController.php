@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Services\Appearance\DynamicTagResolver;
 use App\Services\Appearance\PageLayoutDocument;
+use App\Services\Appearance\WidgetRegistry;
 use App\Support\CmsPublicPaths;
 use App\Support\PageHierarchy;
 use App\Support\SeoMetaPresenter;
@@ -122,6 +123,7 @@ class PublicPageController extends Controller
                 'exclude_from_search' => (bool) $page->exclude_from_search,
                 'published_at' => $page->published_at?->toIso8601String(),
                 'sections' => $sections,
+                'canonical_query' => WidgetRegistry::canonicalQueryKeys($sections),
                 'seo_meta' => SeoMetaPresenter::toPublicSnippet($picked),
             ];
         });

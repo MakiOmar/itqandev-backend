@@ -17,7 +17,7 @@ final class PublicContentService
     /**
      * Head data for a published single at `/{prefix}/{slug}`, or null when nothing matches.
      *
-     * @return array{type: string, id: int, title: string, excerpt: string, image: string, path: string}|null
+     * @return array{type: string, id: int, title: string, excerpt: string, image: string, path: string, seo: array<string, mixed>}|null
      */
     public function single(string $prefix, string $slug, ?string $locale): ?array
     {
@@ -40,6 +40,30 @@ final class PublicContentService
             'excerpt' => trim(strip_tags($text(DynamicTagRegistry::POST_EXCERPT))),
             'image' => $text(DynamicTagRegistry::POST_IMAGE),
             'path' => $definition->linkPath($record),
+            'seo' => self::cleanSeo($definition->seo($locale ? $definition->localize($record, $locale) : $record, (string) $locale)),
+        ];
+    }
+
+    /**
+     * Plain-text title/description, a same-site or http(s) image, and JSON-LD as data only (the website escapes it).
+     *
+     * @param  array<string, mixed>  $seo
+     * @return array{title: ?string, description: ?string, image: ?string, json_ld: array<mixed>|null}
+     */
+    private static function cleanSeo(array $seo): array
+    {
+        $text = static function (mixed $value, int $max): ?string {
+            $plain = is_string($value) ? trim(preg_replace('/\s+/u', ' ', strip_tags($value)) ?? '') : '';
+
+            return $plain === '' ? null : mb_substr($plain, 0, $max);
+        };
+        $image = is_string($seo['image'] ?? null) ? trim($seo['image']) : '';
+
+        return [
+            'title' => $text($seo['title'] ?? null, 190),
+            'description' => $text($seo['description'] ?? null, 320),
+            'image' => preg_match('#^(https?://|/(?!/))#i', $image) === 1 ? $image : null,
+            'json_ld' => is_array($seo['json_ld'] ?? null) && $seo['json_ld'] !== [] ? $seo['json_ld'] : null,
         ];
     }
 

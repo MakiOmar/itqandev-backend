@@ -24,6 +24,39 @@ final class WidgetRegistry
     }
 
     /**
+     * Query keys that change what a page lists (a widget declares them as `canonical_query`, e.g. a listing
+     * filter), so the page canonical keeps them instead of folding every filtered view into one URL.
+     *
+     * @param  array<mixed>  $sections  Presented public sections (disabled and dormant blocks already removed)
+     * @return list<string>
+     */
+    public static function canonicalQueryKeys(array $sections): array
+    {
+        $definitions = self::all();
+        $keys = [];
+        $walk = static function (mixed $node) use (&$walk, &$keys, $definitions): void {
+            if (! is_array($node)) {
+                return;
+            }
+            if (($node['kind'] ?? null) === 'widget' && is_string($node['type'] ?? null)) {
+                foreach ((array) ($definitions[$node['type']]['canonical_query'] ?? []) as $key) {
+                    if (is_string($key) && preg_match('/^[a-z][a-z0-9_]{0,39}$/', $key) === 1) {
+                        $keys[$key] = true;
+                    }
+                }
+            }
+            foreach ($node as $child) {
+                $walk($child);
+            }
+        };
+        $walk($sections);
+        $list = array_keys($keys);
+        sort($list);
+
+        return $list;
+    }
+
+    /**
      * @return array<string, WidgetDef>
      */
     public static function builtIn(): array

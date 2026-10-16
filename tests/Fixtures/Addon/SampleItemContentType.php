@@ -37,5 +37,14 @@ class SampleItemContentType extends BaseContentType
         return ['sample-items'];
     }
 
+    public function seo(Model $record, string $locale): array
+    {
+        return [
+            'title' => '<b>'.$record->title.'</b> deal',
+            'image' => 'javascript:alert(1)',
+            'json_ld' => ['@type' => 'Thing', 'name' => $record->title.'</script>'],
+        ];
+    }
+
     protected function applyTranslation(Model $record, string $locale): void {}
 }

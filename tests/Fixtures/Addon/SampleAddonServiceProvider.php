@@ -29,6 +29,7 @@ class SampleAddonServiceProvider extends AddonServiceProvider
                 'label' => 'Sample note',
                 'category' => 'Sample addon',
                 'default_settings' => ['text' => 'Hello from the sample addon'],
+                'canonical_query' => ['tag', 'Bad key!'],
                 'settings_fields' => [
                     ['key' => 'text', 'type' => 'text', 'label' => 'Text', 'translatable' => true],
                 ],

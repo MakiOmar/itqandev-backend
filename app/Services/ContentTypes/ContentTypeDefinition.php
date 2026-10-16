@@ -88,6 +88,14 @@ interface ContentTypeDefinition
 
     public function findPublishedBySlug(string $slug): ?Model;
 
+    /**
+     * SEO for the generic `/{prefix}/{slug}` single, from an already localised record: optional `title`,
+     * `description` and `image` overrides plus `json_ld` (one schema.org object or a list of them).
+     *
+     * @return array{title?: string, description?: string, image?: string, json_ld?: array<mixed>}
+     */
+    public function seo(Model $record, string $locale): array;
+
     public function findForPreview(int $id): ?Model;
 
     /** @return list<array{id: int, title: string}> Latest records (any status) for the builder preview picker. */
