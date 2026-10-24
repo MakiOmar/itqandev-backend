@@ -21,7 +21,7 @@ final class SiteSettingsPresenter
     {
         return array_merge(
             self::SCALAR_KEYS,
-            ['marketing_site_content'],
+            ['marketing_site_content', SeoDefaults::SETTINGS_KEY],
         );
     }
 
@@ -43,11 +43,15 @@ final class SiteSettingsPresenter
             : [];
         $overlay = is_array($translations[$locale] ?? null) ? $translations[$locale] : [];
 
-        if ($overlay === []) {
-            return self::stripInternalKeys($settings);
-        }
-
         $localized = $settings;
+        $localized[SeoDefaults::SETTINGS_KEY] = SeoDefaults::localize(
+            SeoDefaults::normalize($settings[SeoDefaults::SETTINGS_KEY] ?? null),
+            SeoDefaults::normalizeTranslation($overlay[SeoDefaults::SETTINGS_KEY] ?? null),
+        );
+
+        if ($overlay === []) {
+            return self::stripInternalKeys($localized);
+        }
 
         foreach (self::SCALAR_KEYS as $key) {
             if (isset($overlay[$key]) && is_string($overlay[$key]) && trim($overlay[$key]) !== '') {
@@ -107,6 +111,11 @@ final class SiteSettingsPresenter
                 );
             }
 
+            if (is_array($row[SeoDefaults::SETTINGS_KEY] ?? null)) {
+                $baseSeo = is_array($merged[SeoDefaults::SETTINGS_KEY] ?? null) ? $merged[SeoDefaults::SETTINGS_KEY] : [];
+                $merged[SeoDefaults::SETTINGS_KEY] = array_replace_recursive($baseSeo, $row[SeoDefaults::SETTINGS_KEY]);
+            }
+
             $existing[$code] = $merged;
         }
 
@@ -162,6 +171,11 @@ final class SiteSettingsPresenter
 
         if (isset($row['marketing_site_content']) && is_array($row['marketing_site_content'])) {
             $out['marketing_site_content'] = $row['marketing_site_content'];
+        }
+
+        $seo = SeoDefaults::normalizeTranslation($row[SeoDefaults::SETTINGS_KEY] ?? null);
+        if ($seo !== []) {
+            $out[SeoDefaults::SETTINGS_KEY] = $seo;
         }
 
         return $out;

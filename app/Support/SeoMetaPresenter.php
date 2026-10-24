@@ -11,6 +11,10 @@ use Illuminate\Support\Collection;
 final class SeoMetaPresenter
 {
     /**
+     * Only the presentation locale's row: another language's title or description must never
+     * appear in this locale's head (empty fields fall back to the SEO defaults instead).
+     * Rows saved without a locale belong to the record's primary content locale.
+     *
      * @param  Collection<int, SeoMeta>|null  $metas
      */
     public static function pickLocalized(?Collection $metas, ?string $presentationLocale, string $primaryContentLocale): ?SeoMeta
@@ -19,22 +23,18 @@ final class SeoMetaPresenter
             return null;
         }
 
-        $attempts = [];
-        foreach ([$presentationLocale, $primaryContentLocale] as $code) {
-            $c = is_string($code) ? strtolower(trim($code)) : '';
-            if ($c !== '') {
-                $attempts[$c] = true;
-            }
+        $primary = strtolower(trim($primaryContentLocale));
+        $present = is_string($presentationLocale) ? strtolower(trim($presentationLocale)) : '';
+        if ($present === '') {
+            $present = $primary;
         }
 
-        foreach (array_keys($attempts) as $code) {
-            $found = $metas->first(fn (SeoMeta $m) => strtolower((string) $m->locale) === $code);
-            if ($found) {
-                return $found;
-            }
+        $exact = $metas->first(fn (SeoMeta $m) => strtolower(trim((string) $m->locale)) === $present);
+        if ($exact !== null || $present !== $primary) {
+            return $exact;
         }
 
-        return $metas->first();
+        return $metas->first(fn (SeoMeta $m) => trim((string) $m->locale) === '');
     }
 
     /** @return array<string, mixed>|null */

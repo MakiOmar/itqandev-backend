@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\AuthorizesResolvedModel;
 use App\Http\Controllers\Controller;
-use App\Models\SeoMeta;
+use App\Http\Requests\UpdateSeoMetaRequest;
 use App\Services\ModelResolverService;
-use App\Support\SiteLanguages;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use App\Support\PublicSeoCache;
 
 class SeoMetaController extends Controller
 {
@@ -21,33 +19,19 @@ class SeoMetaController extends Controller
         $this->modelResolver = $modelResolver;
     }
 
-    public function update(Request $request, string $type, int $id)
+    public function update(UpdateSeoMetaRequest $request, string $type, int $id)
     {
-        $this->authorize('update', new SeoMeta);
-
         $model = $this->modelResolver->resolveModel($type, $id);
         $this->authorizeParentUpdate($model);
 
-        $enabledLocales = array_values(array_map(static fn (array $row) => $row['code'], SiteLanguages::all()));
-
-        $data = $request->validate([
-            'locale' => ['required', 'string', 'max:16', Rule::in($enabledLocales)],
-            'meta_title' => ['nullable', 'string', 'max:255'],
-            'meta_description' => ['nullable', 'string', 'max:512'],
-            'canonical_url' => ['nullable', 'string', 'max:2048'],
-            'og_title' => ['nullable', 'string', 'max:255'],
-            'og_description' => ['nullable', 'string', 'max:512'],
-            'og_image' => ['nullable', 'string', 'max:2048'],
-            'twitter_card' => ['nullable', 'string', 'max:50'],
-            'schema' => ['nullable', 'array'],
-        ]);
-
-        $locale = strtolower(trim((string) ($data['locale'] ?? '')));
+        $data = $request->validated();
 
         $meta = $model->seoMetas()->updateOrCreate(
-            ['locale' => $locale],
-            array_merge($data, ['locale' => $locale])
+            ['locale' => $data['locale']],
+            $data
         );
+
+        PublicSeoCache::forget($model);
 
         return response()->json($meta);
     }

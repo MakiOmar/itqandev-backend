@@ -11,6 +11,7 @@ use App\Support\DesignKitResolver;
 use App\Support\FeatureModules;
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
+use App\Support\SeoDefaults;
 use App\Support\SiteLanguages;
 use App\Support\SiteSettingsPresenter;
 use App\Support\StaticHomepage;
@@ -104,6 +105,9 @@ class SettingsController extends Controller
 
             // SEO — when false, public site sends noindex and robots.txt disallows all URLs
             'search_engine_indexing' => true,
+
+            // SEO defaults for public heads: global block + per content type overrides
+            SeoDefaults::SETTINGS_KEY => SeoDefaults::empty(),
 
             // Theme for visitors who never toggled light/dark: system follows prefers-color-scheme
             'default_theme' => self::DEFAULT_THEME_SYSTEM,
@@ -258,6 +262,8 @@ class SettingsController extends Controller
             );
         }
 
+        $settings[SeoDefaults::SETTINGS_KEY] = SeoDefaults::normalize($settings[SeoDefaults::SETTINGS_KEY] ?? null);
+
         $defaultTheme = $this->resolveFirst($input, ['default_theme'], $settings['default_theme'] ?? null);
         $settings['default_theme'] = in_array($defaultTheme, self::DEFAULT_THEMES, true)
             ? $defaultTheme
@@ -334,6 +340,30 @@ class SettingsController extends Controller
         );
 
         return $this->withResolvedFeatures($settings);
+    }
+
+    /**
+     * Validation for `seo_defaults` (global block + one block per content type).
+     *
+     * @return array<string, mixed>
+     */
+    private function seoDefaultsRules(): array
+    {
+        $key = SeoDefaults::SETTINGS_KEY;
+        $block = static fn (string $prefix): array => [
+            "{$prefix}.title_template" => 'sometimes|nullable|string|max:'.SeoDefaults::TITLE_TEMPLATE_MAX,
+            "{$prefix}.meta_description" => 'sometimes|nullable|string|max:'.SeoDefaults::DESCRIPTION_MAX,
+            "{$prefix}.og_image" => ['sometimes', 'nullable', 'string', 'max:2048', 'regex:#^(https?://|/(?!/))#i'],
+            "{$prefix}.twitter_card" => ['sometimes', 'nullable', 'string', Rule::in(['', ...SeoDefaults::TWITTER_CARDS])],
+        ];
+
+        $rules = [$key => 'sometimes|array', "{$key}.types" => 'sometimes|array', ...$block($key)];
+        foreach (SeoDefaults::TYPES as $type) {
+            $rules["{$key}.types.{$type}"] = 'sometimes|array';
+            $rules = [...$rules, ...$block("{$key}.types.{$type}")];
+        }
+
+        return $rules;
     }
 
     /** Ensure stored media URLs are absolute (APP_URL) for cross-origin Qwik dev/preview. */
@@ -476,6 +506,9 @@ class SettingsController extends Controller
                 $settings['search_engine_indexing'] ?? true,
                 FILTER_VALIDATE_BOOL
             ),
+            SeoDefaults::SETTINGS_KEY => SeoDefaults::forPublic(
+                is_array($settings[SeoDefaults::SETTINGS_KEY] ?? null) ? $settings[SeoDefaults::SETTINGS_KEY] : []
+            ),
             'default_theme' => in_array($settings['default_theme'] ?? null, self::DEFAULT_THEMES, true)
                 ? $settings['default_theme']
                 : self::DEFAULT_THEME_SYSTEM,
@@ -586,6 +619,7 @@ class SettingsController extends Controller
             'font_rtl_id' => ['sometimes', 'nullable', 'integer', 'exists:fonts,id'],
             'marketing_site_content' => 'sometimes|array',
             'settings_translations' => 'sometimes|array',
+            ...$this->seoDefaultsRules(),
         ]);
 
         // Load existing settings, apply updates, normalize aliases, then persist.
