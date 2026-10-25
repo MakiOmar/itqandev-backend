@@ -26,7 +26,8 @@ class HomePageSeeder extends Seeder
             $page = Page::create([
                 'title' => 'Home',
                 'slug' => 'home',
-                'excerpt' => 'Site home — edit this page in Page Builder.',
+                // No placeholder excerpt: it would become the homepage meta description
+                'excerpt' => null,
                 'status' => Page::STATUS_PUBLISHED,
                 'published_at' => now(),
                 'content_locale' => null,
@@ -36,10 +37,7 @@ class HomePageSeeder extends Seeder
 
         $page->translations()->updateOrCreate(
             ['locale' => 'ar'],
-            [
-                'title' => 'الرئيسية',
-                'excerpt' => 'الصفحة الرئيسية — حرّرها من منشئ الصفحات.',
-            ]
+            ['title' => 'الرئيسية']
         );
 
         Page::bumpPublicCacheVersion();

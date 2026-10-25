@@ -20,6 +20,9 @@ final class SeoDefaults
 
     public const DESCRIPTION_MAX = 320;
 
+    /** Facebook App IDs are public numeric ids; emitted as `fb:app_id` (global only, not per type). */
+    public const FACEBOOK_APP_ID_PATTERN = '/^\d{5,20}$/';
+
     /** Fields editors translate per locale; images and card types are shared by every locale. */
     public const LOCALIZED_FIELDS = ['title_template', 'meta_description'];
 
@@ -33,7 +36,7 @@ final class SeoDefaults
             $types[$type] = self::emptyBlock();
         }
 
-        return self::emptyBlock() + ['types' => $types];
+        return self::emptyBlock() + ['facebook_app_id' => '', 'types' => $types];
     }
 
     /**
@@ -49,7 +52,10 @@ final class SeoDefaults
             $types[$type] = self::normalizeBlock($rawTypes[$type] ?? null);
         }
 
-        return self::normalizeBlock($raw) + ['types' => $types];
+        return self::normalizeBlock($raw) + [
+            'facebook_app_id' => self::facebookAppId($raw['facebook_app_id'] ?? null),
+            'types' => $types,
+        ];
     }
 
     /**
@@ -89,6 +95,7 @@ final class SeoDefaults
     public static function localize(array $defaults, array $overlay): array
     {
         $out = self::localizeBlock($defaults, $overlay);
+        $out['facebook_app_id'] = self::facebookAppId($defaults['facebook_app_id'] ?? null);
         foreach (self::TYPES as $type) {
             $out['types'][$type] = self::localizeBlock(
                 is_array($defaults['types'][$type] ?? null) ? $defaults['types'][$type] : self::emptyBlock(),
@@ -173,6 +180,13 @@ final class SeoDefaults
             'og_image' => $block['og_image'] ?? null,
             'twitter_card' => (string) ($block['twitter_card'] ?? ''),
         ];
+    }
+
+    private static function facebookAppId(mixed $value): string
+    {
+        $id = is_string($value) || is_int($value) ? trim((string) $value) : '';
+
+        return preg_match(self::FACEBOOK_APP_ID_PATTERN, $id) === 1 ? $id : '';
     }
 
     private static function plainText(mixed $value, int $max): string

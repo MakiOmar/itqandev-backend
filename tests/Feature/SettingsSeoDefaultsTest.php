@@ -54,6 +54,7 @@ class SettingsSeoDefaultsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.seo_defaults.title_template', '')
             ->assertJsonPath('data.seo_defaults.og_image', null)
+            ->assertJsonPath('data.seo_defaults.facebook_app_id', '')
             ->assertJsonPath('data.seo_defaults.types.page.meta_description', '')
             ->assertJsonPath('data.seo_defaults.types.blog_post.twitter_card', '');
     }
@@ -105,6 +106,25 @@ class SettingsSeoDefaultsTest extends TestCase
             ->putJson('/api/settings', ['seo_defaults' => ['twitter_card' => 'player']])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['seo_defaults.twitter_card']);
+
+        $this->withHeaders($headers)
+            ->putJson('/api/settings', ['seo_defaults' => ['facebook_app_id' => '12345"><script>']])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['seo_defaults.facebook_app_id']);
+    }
+
+    public function test_facebook_app_id_is_saved_and_shared_by_every_locale(): void
+    {
+        $this->withHeaders($this->adminHeaders())
+            ->putJson('/api/settings', ['seo_defaults' => ['facebook_app_id' => '966242223397117']])
+            ->assertOk();
+
+        $this->assertSame('966242223397117', ProjectSettingsStore::load()['seo_defaults']['facebook_app_id']);
+        foreach (['en', 'ar'] as $locale) {
+            $this->getJson("/api/public/site-meta?locale={$locale}")
+                ->assertOk()
+                ->assertJsonPath('data.seo_defaults.facebook_app_id', '966242223397117');
+        }
     }
 
     public function test_localized_defaults_do_not_leak_across_locales(): void

@@ -357,7 +357,12 @@ class SettingsController extends Controller
             "{$prefix}.twitter_card" => ['sometimes', 'nullable', 'string', Rule::in(['', ...SeoDefaults::TWITTER_CARDS])],
         ];
 
-        $rules = [$key => 'sometimes|array', "{$key}.types" => 'sometimes|array', ...$block($key)];
+        $rules = [
+            $key => 'sometimes|array',
+            "{$key}.types" => 'sometimes|array',
+            "{$key}.facebook_app_id" => ['sometimes', 'nullable', 'string', 'regex:'.SeoDefaults::FACEBOOK_APP_ID_PATTERN],
+            ...$block($key),
+        ];
         foreach (SeoDefaults::TYPES as $type) {
             $rules["{$key}.types.{$type}"] = 'sometimes|array';
             $rules = [...$rules, ...$block("{$key}.types.{$type}")];
