@@ -32,6 +32,10 @@ final class PublicContentService
         }
         $values = $definition->values($record, $locale);
         $text = static fn (string $tag): string => is_scalar($values[$tag] ?? null) ? (string) $values[$tag] : '';
+        // A type that clears untranslated fields has no content in this locale (no cross-language fallback).
+        if (trim($text(DynamicTagRegistry::POST_TITLE)) === '') {
+            return null;
+        }
 
         return [
             'type' => $definition->key(),

@@ -168,6 +168,14 @@ class AddonHostTest extends TestCase
             ->assertJsonPath('canonical_query', ['tag']);
     }
 
+    public function test_public_single_without_a_title_in_the_locale_is_not_found(): void
+    {
+        $this->installSampleAddon(true);
+
+        SampleItem::query()->create(['title' => '', 'slug' => 'untitled']);
+        $this->getJson('/api/public/content/sample-items/untitled')->assertNotFound();
+    }
+
     public function test_module_can_be_pinned_in_config_over_the_env_list(): void
     {
         config(['features.modules.'.SampleAddonServiceProvider::MODULE => false]);
