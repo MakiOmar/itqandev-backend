@@ -67,7 +67,7 @@ class UserBulkActionsTest extends TestCase
     public function test_admin_can_bulk_delete_users_and_roles_are_detached(): void
     {
         $this->actingAsRole('admin');
-        Role::findOrCreate('editor');
+        Role::findOrCreate('editor', 'web');
         $a = User::factory()->create();
         $a->assignRole('editor');
         $b = User::factory()->create();

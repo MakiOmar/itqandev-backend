@@ -34,18 +34,25 @@ class UserController extends Controller
     {
         $data = $request->validated();
 
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'status' => $data['status'] ?? User::STATUS_ACTIVE,
-        ]);
-
+        $roleIds = [];
         if (! empty($data['role_ids'])) {
-            $this->authorize('assignRoles', $user);
+            $this->authorize('assignRoles', new User);
             $roleIds = RoleAssignmentGuard::assertAssignable($request->user(), $data['role_ids']);
-            $user->assignRole($roleIds);
         }
+
+        $user = DB::transaction(function () use ($data, $roleIds) {
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'status' => $data['status'] ?? User::STATUS_ACTIVE,
+            ]);
+            if ($roleIds !== []) {
+                $user->assignRole($roleIds);
+            }
+
+            return $user;
+        });
 
         return response()->json($user->load('roles:id,name', 'permissions:id,name'), 201);
     }
@@ -61,8 +68,10 @@ class UserController extends Controller
     {
         $data = $request->validated();
 
+        $roleIds = null;
         if (array_key_exists('role_ids', $data) && $data['role_ids'] !== null) {
             $this->authorize('assignRoles', $user);
+            $roleIds = RoleAssignmentGuard::assertAssignable($request->user(), $data['role_ids']);
         }
 
         if (($data['status'] ?? null) === User::STATUS_INACTIVE && $user->id === $request->user()->id) {
@@ -76,15 +85,15 @@ class UserController extends Controller
         }
 
         $wasActive = $user->isActive();
-        $user->update(array_filter($data, fn ($key) => $key !== 'role_ids', ARRAY_FILTER_USE_KEY));
+        DB::transaction(function () use ($user, $data, $roleIds) {
+            $user->update(array_filter($data, fn ($key) => $key !== 'role_ids', ARRAY_FILTER_USE_KEY));
+            if ($roleIds !== null) {
+                $user->syncRoles($roleIds);
+            }
+        });
 
         if ($wasActive && ! $user->isActive()) {
             $this->statusService->revokeTokens([$user->id]);
-        }
-
-        if (isset($data['role_ids'])) {
-            $roleIds = RoleAssignmentGuard::assertAssignable($request->user(), $data['role_ids']);
-            $user->syncRoles($roleIds);
         }
 
         return response()->json($user->load('roles:id,name', 'permissions:id,name'));
