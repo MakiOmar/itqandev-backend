@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Support\CacheKey;
 use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
@@ -41,8 +42,10 @@ class ServiceController extends Controller
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
 
+        $cacheKey = CacheKey::versioned(Service::class).':'.self::LIST_CACHE_KEY.':loc:'.($present ?? 'none');
+
         return response()->json(
-            Cache::remember(self::LIST_CACHE_KEY.':loc:'.($present ?? 'none'), 3600, function () use ($present) {
+            Cache::remember($cacheKey, 3600, function () use ($present) {
                 $query = Service::query()
                     ->with('translations')
                     ->orderBy('sort_order')
@@ -66,7 +69,7 @@ class ServiceController extends Controller
                         ->values();
                 }
 
-                return $services;
+                return $services->toArray();
             })
         );
     }
@@ -212,18 +215,10 @@ class ServiceController extends Controller
         ]);
     }
 
+    /** Translation sync and bulk deletes skip model events, so bump explicitly once they finish. */
     private function bumpServiceCaches(): void
     {
-        Cache::forget('services:list:loc:none');
-        Cache::forget('public:services:loc:none');
-        foreach (SiteLanguages::all() as $row) {
-            $code = isset($row['code']) ? strtolower(trim((string) $row['code'])) : '';
-            if ($code === '') {
-                continue;
-            }
-            Cache::forget('services:list:loc:'.$code);
-            Cache::forget('public:services:loc:'.$code);
-        }
+        CacheKey::bump(Service::class);
     }
 
     /**

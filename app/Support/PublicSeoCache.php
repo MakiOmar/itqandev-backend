@@ -8,7 +8,6 @@ use App\Models\Project;
 use App\Models\Service;
 use App\Services\PublicMarketingShellService;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Drops cached public payloads that embed a record's `seo_meta`, so an SEO edit shows on the
@@ -31,13 +30,7 @@ final class PublicSeoCache
         }
 
         if ($model instanceof Service) {
-            Cache::forget('public:services:loc:none');
-            foreach (SiteLanguages::all() as $row) {
-                $code = strtolower(trim((string) ($row['code'] ?? '')));
-                if ($code !== '') {
-                    Cache::forget('public:services:loc:'.$code);
-                }
-            }
+            CacheKey::bump(Service::class);
             PublicMarketingShellService::forgetShellCaches();
         }
     }

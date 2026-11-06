@@ -3,12 +3,10 @@
 namespace App\Services;
 
 use App\Http\Controllers\Api\SettingsController;
-use App\Models\Service;
 use App\Services\Appearance\ChromeLayoutResolver;
 use App\Services\Appearance\HomepageBuilderService;
 use App\Support\FeatureModules;
 use App\Support\PublishedServicesQuery;
-use App\Support\SeoMetaPresenter;
 use App\Support\SiteLanguages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -115,7 +113,7 @@ final class PublicMarketingShellService
                     'items' => PublicMenuResolver::resolvePublishedTree('primary', $locale),
                 ],
                 'services' => FeatureModules::enabled('services')
-                    ? $this->buildServicesPayload($present)
+                    ? PublishedServicesQuery::publicPayload($present)
                     : [],
                 'homepage_sections' => $homepageSections,
                 'header' => $chrome['header'],
@@ -161,38 +159,5 @@ final class PublicMarketingShellService
         $settings = app(SettingsController::class);
 
         return $settings->buildPublicMetaData($presentationLocale);
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function buildServicesPayload(string $present): array
-    {
-        $cacheKey = 'public:services:loc:'.($present !== '' ? $present : 'none');
-
-        $services = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($present) {
-            return PublishedServicesQuery::fetchPublished($present !== '' ? $present : null);
-        });
-
-        return $services->map(function (Service $s) use ($present) {
-            $primary = SiteLanguages::primaryLocaleForContent($s->content_locale);
-            $picked = SeoMetaPresenter::pickLocalized(
-                $s->relationLoaded('seoMetas') ? $s->seoMetas : null,
-                $present !== '' ? $present : null,
-                $primary
-            );
-
-            return [
-                'id' => (string) $s->id,
-                'slug' => $s->slug,
-                'name' => $s->name,
-                'shortDescription' => $s->short_description ?? '',
-                'description' => $s->description ?? '',
-                'process' => is_array($s->process) ? $s->process : [],
-                'deliverables' => is_array($s->deliverables) ? $s->deliverables : [],
-                'icon' => $s->icon,
-                'seo_meta' => SeoMetaPresenter::toPublicSnippet($picked),
-            ];
-        })->values()->all();
     }
 }
