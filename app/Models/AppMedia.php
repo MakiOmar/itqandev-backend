@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MediaOwnerCache;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,12 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media as SpatieMedia;
 
 class AppMedia extends SpatieMedia
 {
+    protected static function booted(): void
+    {
+        static::saved(fn (self $media) => MediaOwnerCache::forget($media));
+        static::deleted(fn (self $media) => MediaOwnerCache::forget($media));
+    }
+
     /**
      * Get the folder that owns the media.
      */
