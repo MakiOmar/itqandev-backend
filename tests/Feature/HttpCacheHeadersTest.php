@@ -75,6 +75,31 @@ class HttpCacheHeadersTest extends TestCase
         $this->assertStringContainsString('no-cache', $cache);
     }
 
+    public function test_public_error_responses_are_never_shared_cacheable(): void
+    {
+        $response = $this->getJson('/api/public/pages/does-not-exist?locale=en');
+
+        $response->assertNotFound();
+        $cache = (string) $response->headers->get('Cache-Control');
+        $this->assertStringNotContainsString('public', $cache);
+        $this->assertStringNotContainsString('s-maxage', $cache);
+        $this->assertStringContainsString('no-store', $cache);
+    }
+
+    public function test_invalid_bearer_token_does_not_bypass_public_cache(): void
+    {
+        config(['http-cache.public_api_s_maxage' => 300]);
+
+        $response = $this->getJson('/api/public/shell?locale=en', [
+            'Authorization' => 'Bearer not-a-real-token',
+        ]);
+
+        $response->assertOk();
+        $cache = (string) $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('public', $cache);
+        $this->assertStringContainsString('s-maxage=300', $cache);
+    }
+
     public function test_authenticated_settings_api_is_private_no_cache(): void
     {
         $this->seed(\Database\Seeders\DatabaseSeeder::class);

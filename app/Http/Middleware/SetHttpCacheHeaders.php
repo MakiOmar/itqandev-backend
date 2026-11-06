@@ -30,6 +30,12 @@ class SetHttpCacheHeaders
         }
 
         if ($request->is('api/public/*') && ! $this->shouldBypassPublicCache($request)) {
+            // A shared cache must never replay a 404, 429 or 5xx (newly published pages, traffic spikes).
+            if ($response->getStatusCode() !== Response::HTTP_OK) {
+                $this->setNoCache($response);
+
+                return $response;
+            }
             if ($this->localeOnlyInHeader($request)) {
                 $this->setPrivateApiCache($response);
 
@@ -56,15 +62,17 @@ class SetHttpCacheHeaders
         );
     }
 
+    /**
+     * Only a resolved user makes the body personal; a bare or invalid Authorization header from an
+     * anonymous client gets the same payload as everyone else and must not force origin traffic.
+     */
     private function shouldBypassPublicCache(Request $request): bool
     {
-        if ($request->headers->has('Authorization')) {
+        if ($request->user() !== null) {
             return true;
         }
 
-        $user = $request->user();
-
-        return $user !== null;
+        return $request->bearerToken() !== null && auth('sanctum')->user() !== null;
     }
 
     /**
