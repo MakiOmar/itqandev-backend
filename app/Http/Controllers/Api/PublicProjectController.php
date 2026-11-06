@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\PaginatesPublicListings;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicProjectCardResource;
+use App\Models\Category;
 use App\Models\Project;
-use App\Support\SiteLanguages;
+use App\Models\Skill;
+use App\Support\CacheKey;
+use App\Support\PublicCache;
 use App\Support\TranslatableContentPresenter;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -15,126 +21,130 @@ use Illuminate\Support\Facades\Cache;
  */
 class PublicProjectController extends Controller
 {
+    use PaginatesPublicListings;
+
+    private const CACHE_TTL_SECONDS = 300;
+
+    private const COLUMNS = [
+        'id', 'title', 'slug', 'content_locale', 'status', 'featured',
+        'published_at', 'summary', 'description',
+    ];
+
+    /** Translation columns that make a project count as written in a locale. */
+    private const CONTENT_FIELDS = ['title', 'summary', 'description'];
+
     public function index(Request $request)
     {
         $filters = $request->validate([
             'featured' => ['nullable', 'boolean'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:48'],
-            'category_slug' => ['nullable', 'string', 'max:255'],
-            'skill_slug' => ['nullable', 'string', 'max:255'],
+            'category_slug' => ['nullable', 'string', 'max:191'],
+            'skill_slug' => ['nullable', 'string', 'max:191'],
+            ...$this->publicPagingRules(),
         ]);
 
         $perPage = (int) ($filters['per_page'] ?? 12);
-        $page = (int) $request->get('page', 1);
-        $categorySlug = isset($filters['category_slug']) ? trim((string) $filters['category_slug']) : '';
-        $skillSlug = isset($filters['skill_slug']) ? trim((string) $filters['skill_slug']) : '';
-
+        $page = (int) ($filters['page'] ?? 1);
+        $featured = ! empty($filters['featured']);
+        $categorySlug = mb_strtolower(trim((string) ($filters['category_slug'] ?? '')));
+        $skillSlug = mb_strtolower(trim((string) ($filters['skill_slug'] ?? '')));
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $cacheKey = 'public:projects:'.md5(json_encode([$filters, $page, $perPage])).':loc:'.($present ?? 'none');
 
-        $siteDefaultLocale = SiteLanguages::defaultCode();
-        $paginator = Cache::remember($cacheKey, 300, function () use ($filters, $perPage, $page, $categorySlug, $skillSlug, $present, $siteDefaultLocale) {
-            $query = Project::query()
-                ->with([
-                    'categories:id,name,slug',
-                    'skills:id,name,slug',
-                    'translations',
-                    'media' => function ($q) {
-                        $q->where('collection_name', 'hero');
-                    },
-                ])
-                ->select([
-                    'id', 'title', 'slug', 'content_locale', 'status', 'featured',
-                    'published_at', 'summary', 'description',
-                ])
-                ->where('status', 'published')
-                ->latest('published_at');
-
-            if ($present) {
-                $query->where(function ($q) use ($present, $siteDefaultLocale) {
-                    $q->where('content_locale', $present);
-                    if ($present === $siteDefaultLocale) {
-                        $q->orWhereNull('content_locale');
-                    }
-                    $q->orWhereHas('translations', function ($tq) use ($present) {
-                        $tq->where('locale', $present);
-                    });
-                });
-            }
-
-            if (! empty($filters['featured'])) {
-                $query->where('featured', true);
-            }
-
-            if ($categorySlug !== '') {
-                $query->whereHas('categories', function ($q) use ($categorySlug) {
-                    $q->where('slug', $categorySlug);
-                });
-            }
-
-            if ($skillSlug !== '') {
-                $query->whereHas('skills', function ($q) use ($skillSlug) {
-                    $q->where('slug', $skillSlug);
-                });
-            }
-
-            return $query->paginate($perPage, ['*'], 'page', $page);
-        });
-
-        if ($present) {
-            $paginator->getCollection()->transform(function (Project $project) use ($present) {
-                TranslatableContentPresenter::applyProject($project, $present);
-
-                return $project;
-            })->filter(function (Project $project) use ($present) {
-                return TranslatableContentPresenter::hasProjectContentForLocale($project, $present);
-            })->values();
+        if (($categorySlug !== '' && ! $this->publicSlugExists(Category::class, $categorySlug))
+            || ($skillSlug !== '' && ! $this->publicSlugExists(Skill::class, $skillSlug))) {
+            return PublicProjectCardResource::collection(
+                new LengthAwarePaginator([], 0, $perPage, $page, ['path' => $request->url()])
+            );
         }
 
-        return PublicProjectCardResource::collection($paginator);
+        $cacheKey = CacheKey::versioned(Project::class).':public:list:'
+            .md5(json_encode([$featured, $categorySlug, $skillSlug, $perPage, $page]))
+            .':loc:'.($present ?? 'none');
+
+        $payload = Cache::remember($cacheKey, self::CACHE_TTL_SECONDS, function () use ($request, $featured, $categorySlug, $skillSlug, $perPage, $page, $present) {
+            $query = $this->baseQuery()
+                ->where('status', 'published')
+                ->latest('published_at')
+                ->orderByDesc('id');
+
+            TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present, self::CONTENT_FIELDS);
+
+            if ($featured) {
+                $query->where('featured', true);
+            }
+            if ($categorySlug !== '') {
+                $query->whereHas('categories', fn ($q) => $q->where('slug', $categorySlug));
+            }
+            if ($skillSlug !== '') {
+                $query->whereHas('skills', fn ($q) => $q->where('slug', $skillSlug));
+            }
+
+            return $this->presentPublicPage(
+                $request,
+                $query->paginate($perPage, ['*'], 'page', $page),
+                $present,
+                static fn (Project $project, string $locale) => TranslatableContentPresenter::applyProject($project, $locale),
+                static fn (Project $project, string $locale) => TranslatableContentPresenter::hasProjectContentForLocale($project, $locale),
+                PublicProjectCardResource::class,
+            );
+        });
+
+        return response()->json($payload);
     }
 
     /**
-     * Single project by slug: published for everyone; draft/archived visible only to authenticated
+     * Single project by slug: published for everyone (cached); draft/archived visible only to authenticated
      * users allowed by ProjectPolicy @see ProjectPolicy::view (editors/admins/companies that manage projects).
      */
     public function show(Request $request, string $slug)
     {
-        $project = Project::query()
-            ->where('slug', $slug)
+        $slug = strtolower($slug);
+        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+        $cacheKey = CacheKey::versioned(Project::class).':public:show:'.md5($slug).':loc:'.($present ?? 'none');
+
+        $payload = PublicCache::rememberOrMissing($cacheKey, self::CACHE_TTL_SECONDS, function () use ($request, $slug, $present) {
+            $project = $this->baseQuery()->with('seoMetas')->where('slug', $slug)->where('status', 'published')->first();
+
+            return $project instanceof Project ? $this->detailPayload($request, $project, $present) : null;
+        });
+
+        if ($payload !== null) {
+            return response()->json($payload);
+        }
+
+        $user = $request->user();
+        if ($user === null) {
+            abort(404);
+        }
+
+        $project = $this->baseQuery()->with('seoMetas')->where('slug', $slug)->first();
+        if (! $project instanceof Project || ! $user->can('view', $project)) {
+            abort(404);
+        }
+
+        return response()->json($this->detailPayload($request, $project, $present));
+    }
+
+    private function baseQuery(): Builder
+    {
+        return Project::query()
             ->with([
                 'categories:id,name,slug',
                 'skills:id,name,slug',
                 'translations',
-                'seoMetas',
-                'media' => function ($q) {
-                    $q->where('collection_name', 'hero');
-                },
+                'media' => fn ($q) => $q->where('collection_name', 'hero'),
             ])
-            ->select([
-                'id', 'title', 'slug', 'content_locale', 'status', 'featured',
-                'published_at', 'summary', 'description',
-            ])
-            ->first();
+            ->select(self::COLUMNS);
+    }
 
-        if (! $project instanceof Project) {
-            abort(404);
-        }
-
-        $user = $request->user();
-        $canManage = $user && $user->can('view', $project);
-
-        $blockedUnpublished = $project->status !== 'published' && ! $canManage;
-
-        if ($blockedUnpublished) {
-            abort(404);
-        }
-
-        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+    /**
+     * @return array<string, mixed>
+     */
+    private function detailPayload(Request $request, Project $project, ?string $present): array
+    {
         if ($present) {
             TranslatableContentPresenter::applyProject($project, $present);
         }
 
-        return new PublicProjectCardResource($project);
+        return (new PublicProjectCardResource($project))->response($request)->getData(true);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\PaginatesPublicListings;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicBlogPostResource;
 use App\Models\BlogPost;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 
 class PublicBlogPostController extends Controller
 {
-    private const MAX_PAGE = 1000;
+    use PaginatesPublicListings;
 
     private const CACHE_TTL_SECONDS = 300;
 
@@ -24,10 +25,7 @@ class PublicBlogPostController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->validate([
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:48'],
-            'page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PAGE],
-        ]);
+        $filters = $request->validate($this->publicPagingRules());
 
         $perPage = (int) ($filters['per_page'] ?? 12);
         $page = (int) ($filters['page'] ?? 1);
@@ -75,18 +73,14 @@ class PublicBlogPostController extends Controller
 
         TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present, self::CONTENT_FIELDS);
 
-        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
-
-        if ($present) {
-            $paginator->setCollection(
-                $paginator->getCollection()
-                    ->each(fn (BlogPost $post) => TranslatableContentPresenter::applyBlogPost($post, $present))
-                    ->filter(fn (BlogPost $post) => TranslatableContentPresenter::hasBlogPostContentForLocale($post, $present))
-                    ->values()
-            );
-        }
-
-        return PublicBlogPostResource::collection($paginator)->response($request)->getData(true);
+        return $this->presentPublicPage(
+            $request,
+            $query->paginate($perPage, ['*'], 'page', $page),
+            $present,
+            static fn (BlogPost $post, string $locale) => TranslatableContentPresenter::applyBlogPost($post, $locale),
+            static fn (BlogPost $post, string $locale) => TranslatableContentPresenter::hasBlogPostContentForLocale($post, $locale),
+            PublicBlogPostResource::class,
+        );
     }
 
     /**

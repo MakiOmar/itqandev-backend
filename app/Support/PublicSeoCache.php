@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\BlogPost;
 use App\Models\Page;
+use App\Models\Project;
 use App\Models\Service;
 use App\Services\PublicMarketingShellService;
 use Illuminate\Database\Eloquent\Model;
@@ -23,8 +24,8 @@ final class PublicSeoCache
             return;
         }
 
-        if ($model instanceof BlogPost) {
-            CacheKey::bump(BlogPost::class);
+        if ($model instanceof BlogPost || $model instanceof Project) {
+            CacheKey::bump($model::class);
 
             return;
         }

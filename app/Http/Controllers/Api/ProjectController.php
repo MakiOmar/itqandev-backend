@@ -286,6 +286,9 @@ class ProjectController extends Controller
                 ]
             );
         }
+
+        // Mass deletes above skip ProjectTranslation events.
+        CacheKey::bump(Project::class);
     }
 
 }

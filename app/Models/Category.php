@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\RefreshesCache;
 use App\Services\ContentExport\CategoryListCacheInvalidator;
+use App\Support\CacheKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
@@ -17,12 +18,15 @@ class Category extends Model implements HasMedia
 
     protected static function booted(): void
     {
+        // Project payloads embed category names/slugs.
         static::saved(function () {
             CategoryListCacheInvalidator::flush();
+            CacheKey::bump(Project::class);
         });
 
         static::deleted(function () {
             CategoryListCacheInvalidator::flush();
+            CacheKey::bump(Project::class);
         });
     }
 
