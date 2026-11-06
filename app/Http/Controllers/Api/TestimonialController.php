@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BulkUpdateTestimonialApprovalRequest;
 use App\Models\Testimonial;
+use App\Support\CacheKey;
 use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
@@ -205,6 +206,7 @@ class TestimonialController extends Controller
         ]);
 
         $count = Testimonial::whereIn('id', $data['ids'])->delete();
+        CacheKey::bump(Testimonial::class);
 
         return response()->json([
             'deleted' => $count,
@@ -218,6 +220,7 @@ class TestimonialController extends Controller
         $approved = (bool) $data['approved'];
 
         $count = Testimonial::whereIn('id', $data['ids'])->update(['approved' => $approved]);
+        CacheKey::bump(Testimonial::class);
 
         return response()->json([
             'updated' => $count,
@@ -304,5 +307,8 @@ class TestimonialController extends Controller
                 ]
             );
         }
+
+        // Mass deletes above skip TestimonialTranslation events.
+        CacheKey::bump(Testimonial::class);
     }
 }

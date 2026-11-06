@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\InvalidatesCache;
 use App\Concerns\RefreshesCache;
+use App\Support\CacheKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
@@ -12,6 +13,13 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 class Project extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia, InvalidatesCache, RefreshesCache;
+
+    protected static function booted(): void
+    {
+        // Testimonial payloads embed the linked project's title.
+        static::saved(fn () => CacheKey::bump(Testimonial::class));
+        static::deleted(fn () => CacheKey::bump(Testimonial::class));
+    }
 
     protected $fillable = [
         'title',

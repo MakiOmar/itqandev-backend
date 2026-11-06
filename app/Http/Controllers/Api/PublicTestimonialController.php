@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicTestimonialResource;
 use App\Models\Testimonial;
 use App\Support\CacheKey;
-use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -17,6 +16,11 @@ use Illuminate\Support\Facades\Cache;
  */
 class PublicTestimonialController extends Controller
 {
+    /** Translation columns that make a testimonial count as written in a locale. */
+    private const CONTENT_FIELDS = ['content', 'client_role', 'company'];
+
+    private const PROJECT_CONTENT_FIELDS = ['title', 'summary', 'description'];
+
     public function index(Request $request)
     {
         $filters = $request->validate([
@@ -25,32 +29,20 @@ class PublicTestimonialController extends Controller
 
         $perPage = (int) ($filters['per_page'] ?? 24);
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $siteDefaultLocale = SiteLanguages::defaultCode();
-        $localeKey = $present !== null && $present !== '' ? strtolower($present) : 'none';
 
         $cacheKey = CacheKey::versioned(Testimonial::class)
             .':public:testimonials:per:'.$perPage
-            .':loc:'.$localeKey;
+            .':loc:'.($present ?? 'none');
 
-        $items = Cache::remember($cacheKey, 300, function () use ($perPage, $present, $siteDefaultLocale) {
-            return Testimonial::query()
+        $payload = Cache::remember($cacheKey, 300, function () use ($request, $perPage, $present) {
+            $query = Testimonial::query()
                 ->with([
                     'translations',
-                    'project' => function ($q) use ($present, $siteDefaultLocale) {
+                    'project' => function ($q) use ($present) {
                         $q->select(['id', 'title', 'slug', 'content_locale', 'status'])
                             ->where('status', 'published')
                             ->with('translations');
-                        if ($present) {
-                            $q->where(function ($sub) use ($present, $siteDefaultLocale) {
-                                $sub->where('content_locale', $present);
-                                if ($present === $siteDefaultLocale) {
-                                    $sub->orWhereNull('content_locale');
-                                }
-                                $sub->orWhereHas('translations', function ($tq) use ($present) {
-                                    $tq->where('locale', $present);
-                                });
-                            });
-                        }
+                        TranslatableContentPresenter::scopeQueryForPresentationLocale($q->getQuery(), $present, self::PROJECT_CONTENT_FIELDS);
                     },
                 ])
                 ->select([
@@ -58,42 +50,41 @@ class PublicTestimonialController extends Controller
                     'rating', 'content', 'approved', 'created_at',
                 ])
                 ->where('approved', true)
-                ->when($present, function ($query) use ($present, $siteDefaultLocale) {
-                    $query->where(function ($q) use ($present, $siteDefaultLocale) {
-                        $q->where('content_locale', $present);
-                        if ($present === $siteDefaultLocale) {
-                            $q->orWhereNull('content_locale');
-                        }
-                        $q->orWhereHas('translations', function ($tq) use ($present) {
-                            $tq->where('locale', $present);
-                        });
-                    });
-                })
                 ->orderByDesc('created_at')
-                ->limit($perPage)
-                ->get();
+                ->orderByDesc('id')
+                ->limit($perPage);
+
+            TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present, self::CONTENT_FIELDS);
+
+            $items = $query->get();
+            if ($present) {
+                $items = $items
+                    ->each(fn (Testimonial $t) => $this->localize($t, $present))
+                    ->filter(fn (Testimonial $t) => TranslatableContentPresenter::hasTestimonialContentForLocale($t, $present))
+                    ->values();
+            }
+
+            return PublicTestimonialResource::collection($items)->response($request)->getData(true);
         });
 
-        if ($present) {
-            $items->transform(function (Testimonial $t) use ($present) {
-                TranslatableContentPresenter::applyTestimonial($t, $present);
-                if ($t->relationLoaded('project') && $t->project !== null) {
-                    TranslatableContentPresenter::applyProject($t->project, $present);
-                }
+        return response()->json($payload);
+    }
 
-                return $t;
-            })->filter(function (Testimonial $t) use ($present) {
-                if (! TranslatableContentPresenter::hasTestimonialContentForLocale($t, $present)) {
-                    return false;
-                }
-                if ($t->relationLoaded('project') && $t->project !== null) {
-                    return TranslatableContentPresenter::hasProjectContentForLocale($t->project, $present);
-                }
+    /**
+     * Applies the locale overlay; a linked project without content in the locale is dropped
+     * from the testimonial (no primary-language fallback) rather than hiding the testimonial.
+     */
+    private function localize(Testimonial $testimonial, string $present): void
+    {
+        TranslatableContentPresenter::applyTestimonial($testimonial, $present);
 
-                return true;
-            })->values();
+        $project = $testimonial->relationLoaded('project') ? $testimonial->project : null;
+        if ($project === null) {
+            return;
         }
-
-        return PublicTestimonialResource::collection($items);
+        TranslatableContentPresenter::applyProject($project, $present);
+        if (! TranslatableContentPresenter::hasProjectContentForLocale($project, $present)) {
+            $testimonial->setRelation('project', null);
+        }
     }
 }
