@@ -6,6 +6,7 @@ use App\Models\Page;
 use App\Services\ContentTypes\BaseContentType;
 use App\Services\ContentTypes\RelationTags;
 use App\Support\CmsPublicPaths;
+use App\Support\PageHierarchy;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -47,10 +48,14 @@ final class PageContentType extends BaseContentType
         return ['pages'];
     }
 
-    /** Home page `/`, pretty marketing paths, or nested `/pages/parent/child/` (same as menus). */
+    /** Home page `/`, pretty marketing paths, or nested `/pages/parent/child/` through published ancestors only. */
     public function linkPath(Model $record): string
     {
-        return $record instanceof Page && trim((string) $record->slug) !== '' ? CmsPublicPaths::pathForPage($record) : '';
+        if (! $record instanceof Page || trim((string) $record->slug) === '') {
+            return '';
+        }
+
+        return CmsPublicPaths::pathForPage($record, PageHierarchy::publishedAncestorsById($record), false);
     }
 
     protected function applyTranslation(Model $record, string $locale): void
@@ -77,6 +82,8 @@ final class PageContentType extends BaseContentType
                 ['title' => ['Title']],
                 url: fn (Page $p) => $this->publicUrl($p),
                 localize: static fn (Page $p, string $locale) => TranslatableContentPresenter::applyPage($p, $locale),
+                with: ['translations'],
+                filter: static fn (Page $p) => $p->status === Page::STATUS_PUBLISHED,
             ),
         ];
     }

@@ -49,8 +49,7 @@ class PublicPageController extends Controller
                 })
                 ->values();
 
-            $graph = Page::query()->select(['id', 'slug', 'parent_id'])->get();
-            $byId = PageHierarchy::indexById($graph);
+            $byId = PageHierarchy::publishedGraphById();
 
             return $pages->map(function (Page $page) use ($byId) {
                 return [
@@ -59,9 +58,9 @@ class PublicPageController extends Controller
                     'subtitle' => $page->subtitle,
                     'slug' => $page->slug,
                     'excerpt' => $page->excerpt,
-                    'parent_id' => $page->parent_id,
-                    'path' => PageHierarchy::pathFor($page, $byId),
-                    'public_path' => CmsPublicPaths::pathForPage($page, $byId),
+                    'parent_id' => self::publishedParentId($page, $byId),
+                    'path' => PageHierarchy::pathFor($page, $byId, false),
+                    'public_path' => CmsPublicPaths::pathForPage($page, $byId, false),
                     'published_at' => $page->published_at?->toIso8601String(),
                 ];
             })->values()->all();
@@ -79,7 +78,12 @@ class PublicPageController extends Controller
 
         $payload = PublicCache::rememberOrMissing($cacheKey, 300, function () use ($slug, $present) {
             $page = Page::query()
-                ->with(['translations', 'seoMetas'])
+                ->with([
+                    'translations',
+                    'seoMetas',
+                    'parent' => fn ($query) => $query->select(['id', 'title', 'slug', 'parent_id', 'status', 'content_locale']),
+                    'parent.translations',
+                ])
                 ->where('slug', $slug)
                 ->where('status', Page::STATUS_PUBLISHED)
                 ->first();
@@ -97,7 +101,7 @@ class PublicPageController extends Controller
             $sections = PageLayoutDocument::presentPublicForPages(
                 is_array($page->sections) ? $page->sections : [],
                 $present,
-                DynamicTagResolver::payloadFromModel($page, 'page'),
+                DynamicTagResolver::payloadFromModel($page, 'page', $present),
             );
 
             $primary = SiteLanguages::primaryLocaleForContent($page->content_locale);
@@ -107,8 +111,7 @@ class PublicPageController extends Controller
                 $primary,
             );
 
-            $graph = Page::query()->select(['id', 'slug', 'parent_id'])->get();
-            $byId = PageHierarchy::indexById($graph);
+            $byId = PageHierarchy::publishedAncestorsById($page);
 
             return [
                 'id' => $page->id,
@@ -117,9 +120,9 @@ class PublicPageController extends Controller
                 'slug' => $page->slug,
                 'excerpt' => $page->excerpt,
                 'content_locale' => $page->content_locale,
-                'parent_id' => $page->parent_id,
-                'path' => PageHierarchy::pathFor($page, $byId),
-                'public_path' => CmsPublicPaths::pathForPage($page, $byId),
+                'parent_id' => self::publishedParentId($page, $byId),
+                'path' => PageHierarchy::pathFor($page, $byId, false),
+                'public_path' => CmsPublicPaths::pathForPage($page, $byId, false),
                 'exclude_from_search' => (bool) $page->exclude_from_search,
                 'published_at' => $page->published_at?->toIso8601String(),
                 'sections' => $sections,
@@ -133,5 +136,15 @@ class PublicPageController extends Controller
         }
 
         return response()->json($payload);
+    }
+
+    /**
+     * @param  array<int, Page>  $publishedById
+     */
+    private static function publishedParentId(Page $page, array $publishedById): ?int
+    {
+        $parentId = (int) $page->parent_id;
+
+        return $parentId > 0 && isset($publishedById[$parentId]) ? $parentId : null;
     }
 }

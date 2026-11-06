@@ -47,10 +47,10 @@ final class CmsPublicPaths
      *
      * @param  array<int, \App\Models\Page>  $byId
      */
-    public static function pathForPage(\App\Models\Page $page, array $byId = []): string
+    public static function pathForPage(\App\Models\Page $page, array $byId = [], bool $lookupMissing = true): string
     {
         if ($page->parent_id) {
-            $nested = PageHierarchy::pathFor($page, $byId);
+            $nested = PageHierarchy::pathFor($page, $byId, $lookupMissing);
             if ($nested === '') {
                 return '/pages/';
             }

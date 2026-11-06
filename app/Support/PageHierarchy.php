@@ -28,9 +28,12 @@ final class PageHierarchy
     }
 
     /**
+     * Pass `$lookupMissing = false` with a published-only `$byId` so a draft ancestor ends the
+     * path instead of being fetched (its slug must not reach public output).
+     *
      * @param  array<int, Page>  $byId
      */
-    public static function pathFor(Page $page, array $byId = []): string
+    public static function pathFor(Page $page, array $byId = [], bool $lookupMissing = true): string
     {
         $segments = [];
         $current = $page;
@@ -45,7 +48,7 @@ final class PageHierarchy
                 break;
             }
             $current = $byId[$parentId] ?? null;
-            if ($current === null && $parentId > 0) {
+            if ($current === null && $parentId > 0 && $lookupMissing) {
                 $current = Page::query()->select(['id', 'slug', 'parent_id'])->find($parentId);
                 if ($current !== null) {
                     $byId[$parentId] = $current;
@@ -54,6 +57,51 @@ final class PageHierarchy
         }
 
         return implode('/', $segments);
+    }
+
+    /**
+     * Published pages (id, slug, parent_id) keyed by id, for building many public paths at once.
+     *
+     * @return array<int, Page>
+     */
+    public static function publishedGraphById(): array
+    {
+        return self::indexById(
+            Page::query()
+                ->select(['id', 'slug', 'parent_id'])
+                ->where('status', Page::STATUS_PUBLISHED)
+                ->get()
+        );
+    }
+
+    /**
+     * Published ancestors of one page keyed by id: at most {@see MAX_DEPTH} lookups, stopping at
+     * the first parent that is not published. Reuses an eager-loaded `parent`.
+     *
+     * @return array<int, Page>
+     */
+    public static function publishedAncestorsById(Page $page): array
+    {
+        $byId = [];
+        $parentId = $page->parent_id ? (int) $page->parent_id : null;
+        $next = $page->relationLoaded('parent') ? $page->getRelation('parent') : false;
+        $guard = 0;
+        while ($parentId !== null && ! isset($byId[$parentId]) && $guard++ < self::MAX_DEPTH) {
+            $parent = $next !== false
+                ? $next
+                : Page::query()
+                    ->select(['id', 'slug', 'parent_id', 'status'])
+                    ->whereKey($parentId)
+                    ->first();
+            $next = false;
+            if (! $parent instanceof Page || $parent->status !== Page::STATUS_PUBLISHED) {
+                break;
+            }
+            $byId[$parentId] = $parent;
+            $parentId = $parent->parent_id ? (int) $parent->parent_id : null;
+        }
+
+        return $byId;
     }
 
     /**

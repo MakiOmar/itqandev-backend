@@ -61,6 +61,7 @@ final class RelationTags
      * @param  ?Closure(Model): string  $url
      * @param  ?Closure(Model, string): void  $localize
      * @param  list<string>  $with
+     * @param  ?Closure(Model): bool  $filter  Hides the related record when false (e.g. a draft parent).
      */
     public static function one(
         string $relation,
@@ -69,8 +70,9 @@ final class RelationTags
         ?Closure $url = null,
         ?Closure $localize = null,
         array $with = [],
+        ?Closure $filter = null,
     ): self {
-        return new self($relation, $label, false, $fields, $url, $localize, null, null, $with);
+        return new self($relation, $label, false, $fields, $url, $localize, null, $filter, $with);
     }
 
     /**
