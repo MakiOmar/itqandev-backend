@@ -5,6 +5,8 @@ namespace App\Services\Appearance;
 use App\Models\ChromeLayout;
 use App\Models\ThemeTemplate;
 use App\Services\ContentTypes\ContentTypeRegistry;
+use App\Support\BuilderContentVersions;
+use App\Support\CacheKey;
 use App\Support\MarketingSettingsCache;
 use App\Support\ProjectSettingsStore;
 use App\Support\SiteLanguages;
@@ -21,6 +23,10 @@ final class ChromeLayoutService
     public const TYPE_DEFAULTS_KEY = 'chrome_type_defaults';
 
     public const CACHE_SECONDS = 300;
+
+    private const LAYOUT_VERSION_PREFIX = 'chrome-layout:';
+
+    private const ALL_LAYOUTS_VERSION = 'chrome-layouts';
 
     /**
      * Chrome content types: `homepage` plus the enabled registry types.
@@ -344,20 +350,12 @@ final class ChromeLayoutService
      */
     public function forgetLayoutCache(int $id): void
     {
-        $versionKey = $this->layoutVersionKey($id);
-        Cache::forever($versionKey, (int) Cache::get($versionKey, 1) + 1);
+        CacheKey::bump(self::LAYOUT_VERSION_PREFIX.$id);
     }
 
     public function forgetAllLayoutCaches(): void
     {
-        if (! Schema::hasTable('chrome_layouts')) {
-            return;
-        }
-
-        $ids = ChromeLayout::query()->pluck('id');
-        foreach ($ids as $id) {
-            $this->forgetLayoutCache((int) $id);
-        }
+        CacheKey::bump(self::ALL_LAYOUTS_VERSION);
     }
 
     public function findSiteDefault(string $kind): ?ChromeLayout
@@ -571,13 +569,11 @@ final class ChromeLayoutService
         }
     }
 
+    /** Layouts render loop grids, dynamic tags and globals, so keys also follow that content. */
     private function layoutCacheKey(int $id, string $locale): string
     {
-        return 'chrome:layout:'.$id.':v'.(int) Cache::get($this->layoutVersionKey($id), 1).':'.$locale;
-    }
+        $versions = BuilderContentVersions::token([self::LAYOUT_VERSION_PREFIX.$id, self::ALL_LAYOUTS_VERSION]);
 
-    private function layoutVersionKey(int $id): string
-    {
-        return 'chrome:layout:'.$id.':version';
+        return 'chrome:layout:'.$id.':v'.$versions.':'.$locale;
     }
 }

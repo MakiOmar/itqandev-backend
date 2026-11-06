@@ -3,9 +3,10 @@
 namespace App\Services;
 
 use App\Http\Controllers\Api\SettingsController;
-use App\Models\Testimonial;
+use App\Models\Menu;
 use App\Services\Appearance\ChromeLayoutResolver;
 use App\Services\Appearance\HomepageBuilderService;
+use App\Support\BuilderContentVersions;
 use App\Support\CacheKey;
 use App\Support\FeatureModules;
 use App\Support\PublishedServicesQuery;
@@ -21,9 +22,6 @@ final class PublicMarketingShellService
     private const CACHE_SECONDS = 300;
 
     private const SHELL_VERSION_KEY = 'public:shell:version';
-
-    /** The shell embeds the primary menu, service cards and homepage/chrome widgets fed by these models. */
-    private const CACHE_DEPENDENCIES = [...PublicMenuResolver::CACHE_DEPENDENCIES, Testimonial::class];
 
     /** Bust cached shell payloads after typography or font library changes. */
     public static function forgetShellCaches(): void
@@ -94,7 +92,8 @@ final class PublicMarketingShellService
         $ctxKey = $forcedContext !== null && trim($forcedContext) !== ''
             ? sha1(strtolower(trim($forcedContext)))
             : 'auto';
-        $cacheKey = 'public:shell:v'.self::shellVersion().':'.CacheKey::versionedMany(self::CACHE_DEPENDENCIES)
+        // Embeds the primary menu, service cards and homepage/chrome widgets.
+        $cacheKey = 'public:shell:v'.self::shellVersion().':'.BuilderContentVersions::token([Menu::class])
             .':'.$locale.':loc:'.$present.':chrome:'.$pathKey.':ctx:'.$ctxKey;
 
         /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}, theme_body: array{sections: list<array<string, mixed>>}|null, theme_body_mode: string|null, theme_context: string|null, theme_template_id: int|null} $payload */

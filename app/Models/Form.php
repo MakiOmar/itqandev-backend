@@ -36,6 +36,7 @@ class Form extends Model
     public static function bumpPublicCacheVersion(): void
     {
         CacheKey::incrementVersion('forms:cache_version');
+        CacheKey::bump(self::class);
     }
 
     protected function casts(): array

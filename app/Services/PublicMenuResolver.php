@@ -26,10 +26,9 @@ final class PublicMenuResolver
 
     private const MEDIA_REFERENCES = 'media';
 
-    /** Models whose labels, paths or publish state end up in a resolved menu tree. */
-    public const CACHE_DEPENDENCIES = [
+    /** Models whose labels, paths or publish state end up in a resolved menu tree (plus published pages). */
+    private const CACHE_DEPENDENCIES = [
         Menu::class,
-        Page::class,
         Project::class,
         BlogPost::class,
         Service::class,
@@ -74,7 +73,9 @@ final class PublicMenuResolver
 
     private static function cacheKey(string $menuSlug, string $locale): string
     {
-        return 'public_menu:'.CacheKey::versionedMany(self::CACHE_DEPENDENCIES).':'.$menuSlug.':'.$locale;
+        $versions = CacheKey::versionedMany(self::CACHE_DEPENDENCIES, [Page::PUBLIC_CACHE_VERSION_KEY]);
+
+        return 'public_menu:'.$versions.':'.$menuSlug.':'.$locale;
     }
 
     /**

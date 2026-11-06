@@ -7,6 +7,7 @@ use App\Models\Page;
 use App\Services\Appearance\DynamicTagResolver;
 use App\Services\Appearance\PageLayoutDocument;
 use App\Services\Appearance\WidgetRegistry;
+use App\Support\BuilderContentVersions;
 use App\Support\CmsPublicPaths;
 use App\Support\PageHierarchy;
 use App\Support\PublicCache;
@@ -74,7 +75,8 @@ class PublicPageController extends Controller
         $slug = strtolower($slug);
         $present = TranslatableContentPresenter::requestedPresentationLocale($request)
             ?? SiteLanguages::defaultCode();
-        $cacheKey = 'public:pages:show:v'.Page::publicCacheVersion().':'.md5($slug).':loc:'.$present;
+        $cacheKey = 'public:pages:show:v'.Page::publicCacheVersion().':'.BuilderContentVersions::token()
+            .':'.md5($slug).':loc:'.$present;
 
         $payload = PublicCache::rememberOrMissing($cacheKey, 300, function () use ($slug, $present) {
             $page = Page::query()

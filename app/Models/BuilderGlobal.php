@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Casts\JsonWithAppMediaUrls;
+use App\Concerns\RefreshesCache;
 use Illuminate\Database\Eloquent\Model;
 
 class BuilderGlobal extends Model
 {
+    use RefreshesCache;
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PUBLISHED = 'published';
