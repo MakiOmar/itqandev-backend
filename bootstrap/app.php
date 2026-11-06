@@ -3,7 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Middleware\HandleCors;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
+use Illuminate\Foundation\Http\Middleware\TrimStrings;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
@@ -24,12 +25,19 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
 
         /**
-         * Global middleware (runs for web + api)
+         * Global middleware (runs for web + api).
+         * append() keeps the framework defaults (TrustProxies, InvokeDeferredCallbacks,
+         * HandleCors, maintenance mode, ValidatePostSize); use() would replace them.
+         * Proxies to trust come from config/trustedproxy.php (TRUSTED_PROXIES).
          */
-        $middleware->use([
-            HandleCors::class,
+        $middleware->append([
             SetSecurityHeaders::class,
             SetHttpCacheHeaders::class,
+        ]);
+        // Request input has never been trimmed or nulled here; keep payloads unchanged.
+        $middleware->remove([
+            TrimStrings::class,
+            ConvertEmptyStringsToNull::class,
         ]);
 
         /**
