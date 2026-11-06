@@ -13,6 +13,19 @@ class CacheKey
         return "{$key}:v{$version}";
     }
 
+    /**
+     * Combined version token for payloads that embed several models, read in one cache round-trip.
+     *
+     * @param  list<string>  $keys
+     */
+    public static function versionedMany(array $keys): string
+    {
+        $versionKeys = array_map(fn (string $key) => self::versionKey($key), $keys);
+        $values = Cache::many($versionKeys);
+
+        return implode('.', array_map(fn (string $versionKey) => (int) ($values[$versionKey] ?? 1), $versionKeys));
+    }
+
     public static function bump(string $key): void
     {
         self::incrementVersion(self::versionKey($key));

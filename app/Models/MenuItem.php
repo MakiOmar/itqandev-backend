@@ -94,18 +94,7 @@ class MenuItem extends Model
 
     protected static function booted(): void
     {
-        static::saved(function (MenuItem $item): void {
-            $item->loadMissing('menu');
-            if ($item->menu) {
-                PublicMenuResolver::forgetCacheForMenu($item->menu);
-            }
-        });
-
-        static::deleted(function (MenuItem $item): void {
-            $item->loadMissing('menu');
-            if ($item->menu) {
-                PublicMenuResolver::forgetCacheForMenu($item->menu);
-            }
-        });
+        static::saved(fn () => PublicMenuResolver::forgetCache());
+        static::deleted(fn () => PublicMenuResolver::forgetCache());
     }
 }

@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Http\Controllers\Api\SettingsController;
+use App\Models\Testimonial;
 use App\Services\Appearance\ChromeLayoutResolver;
 use App\Services\Appearance\HomepageBuilderService;
+use App\Support\CacheKey;
 use App\Support\FeatureModules;
 use App\Support\PublishedServicesQuery;
 use App\Support\SiteLanguages;
@@ -20,11 +22,13 @@ final class PublicMarketingShellService
 
     private const SHELL_VERSION_KEY = 'public:shell:version';
 
+    /** The shell embeds the primary menu, service cards and homepage/chrome widgets fed by these models. */
+    private const CACHE_DEPENDENCIES = [...PublicMenuResolver::CACHE_DEPENDENCIES, Testimonial::class];
+
     /** Bust cached shell payloads after typography or font library changes. */
     public static function forgetShellCaches(): void
     {
-        $version = (int) Cache::get(self::SHELL_VERSION_KEY, 1);
-        Cache::forever(self::SHELL_VERSION_KEY, $version + 1);
+        CacheKey::incrementVersion(self::SHELL_VERSION_KEY);
 
         $locales = array_unique(array_merge(
             [SiteLanguages::defaultCode(), 'en', 'ar'],
@@ -90,7 +94,8 @@ final class PublicMarketingShellService
         $ctxKey = $forcedContext !== null && trim($forcedContext) !== ''
             ? sha1(strtolower(trim($forcedContext)))
             : 'auto';
-        $cacheKey = 'public:shell:v'.self::shellVersion().':'.$locale.':loc:'.$present.':chrome:'.$pathKey.':ctx:'.$ctxKey;
+        $cacheKey = 'public:shell:v'.self::shellVersion().':'.CacheKey::versionedMany(self::CACHE_DEPENDENCIES)
+            .':'.$locale.':loc:'.$present.':chrome:'.$pathKey.':ctx:'.$ctxKey;
 
         /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}, theme_body: array{sections: list<array<string, mixed>>}|null, theme_body_mode: string|null, theme_context: string|null, theme_template_id: int|null} $payload */
         $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present, $documentPath, $request, $forcedContext) {

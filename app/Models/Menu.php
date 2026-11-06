@@ -23,12 +23,7 @@ class Menu extends Model
 
     protected static function booted(): void
     {
-        static::saved(function (Menu $menu): void {
-            PublicMenuResolver::forgetCacheForMenu($menu);
-        });
-
-        static::deleted(function (Menu $menu): void {
-            PublicMenuResolver::forgetCacheForMenu($menu);
-        });
+        static::saved(fn () => PublicMenuResolver::forgetCache());
+        static::deleted(fn () => PublicMenuResolver::forgetCache());
     }
 }

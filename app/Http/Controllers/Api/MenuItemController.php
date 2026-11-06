@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Services\ContentExport\TranslatableTranslationSync;
+use App\Services\PublicMenuResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -84,17 +86,20 @@ class MenuItemController extends Controller
             $this->assertDropdownParent($menu, $parentId, $id);
         }
 
-        foreach ($validated['items'] as $row) {
-            $id = (int) $row['id'];
-            $parentId = array_key_exists('parent_id', $row) && $row['parent_id'] !== null
-                ? (int) $row['parent_id']
-                : null;
+        DB::transaction(function () use ($validated, $menu) {
+            foreach ($validated['items'] as $row) {
+                $id = (int) $row['id'];
+                $parentId = array_key_exists('parent_id', $row) && $row['parent_id'] !== null
+                    ? (int) $row['parent_id']
+                    : null;
 
-            MenuItem::query()->where('menu_id', $menu->id)->whereKey($id)->update([
-                'parent_id' => $parentId,
-                'sort_order' => (int) $row['sort_order'],
-            ]);
-        }
+                MenuItem::query()->where('menu_id', $menu->id)->whereKey($id)->update([
+                    'parent_id' => $parentId,
+                    'sort_order' => (int) $row['sort_order'],
+                ]);
+            }
+        });
+        PublicMenuResolver::forgetCache();
 
         return response()->json(['success' => true]);
     }
@@ -105,6 +110,7 @@ class MenuItemController extends Controller
     private function syncMenuItemTranslations(MenuItem $item, array $translations): void
     {
         $this->translationSync->sync($item, $translations, ['label']);
+        PublicMenuResolver::forgetCache();
     }
 
     /**

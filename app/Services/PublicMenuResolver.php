@@ -11,6 +11,7 @@ use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Skill;
+use App\Support\CacheKey;
 use App\Support\CmsPublicPaths;
 use App\Support\PageHierarchy;
 use App\Support\SiteLanguages;
@@ -25,15 +26,21 @@ final class PublicMenuResolver
 
     private const MEDIA_REFERENCES = 'media';
 
-    public static function forgetCacheForMenu(Menu $menu): void
+    /** Models whose labels, paths or publish state end up in a resolved menu tree. */
+    public const CACHE_DEPENDENCIES = [
+        Menu::class,
+        Page::class,
+        Project::class,
+        BlogPost::class,
+        Service::class,
+        Category::class,
+        Skill::class,
+    ];
+
+    /** Menu/item saves and query-level menu writes (reorder, translation sync). */
+    public static function forgetCache(): void
     {
-        foreach (SiteLanguages::all() as $row) {
-            $code = strtolower((string) ($row['code'] ?? ''));
-            if ($code === '') {
-                continue;
-            }
-            Cache::forget(self::cacheKey($menu->slug, $code));
-        }
+        CacheKey::bump(Menu::class);
     }
 
     /**
@@ -67,7 +74,7 @@ final class PublicMenuResolver
 
     private static function cacheKey(string $menuSlug, string $locale): string
     {
-        return 'public_menu:'.$menuSlug.':'.$locale;
+        return 'public_menu:'.CacheKey::versionedMany(self::CACHE_DEPENDENCIES).':'.$menuSlug.':'.$locale;
     }
 
     /**
