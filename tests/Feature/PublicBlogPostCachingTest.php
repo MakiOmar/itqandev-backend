@@ -77,6 +77,22 @@ class PublicBlogPostCachingTest extends TestCase
         $this->withHeader('X-Content-Locale', 'ar')->getJson('/api/public/blog-posts')->assertJsonCount(0, 'data');
     }
 
+    public function test_admin_list_shows_new_and_edited_posts_immediately(): void
+    {
+        $this->actingEditor();
+        $post = $this->publishedPost('first');
+        $this->getJson('/api/v1/blog-posts')->assertOk()->assertJsonCount(1, 'data');
+
+        $this->publishedPost('second');
+        $post->update(['title' => 'First edited']);
+
+        $this->getJson('/api/v1/blog-posts')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['title' => 'First edited']);
+        $this->getJson('/api/v1/blog-posts?status=bogus')->assertUnprocessable();
+    }
+
     public function test_seo_edit_shows_on_cached_post(): void
     {
         $post = $this->publishedPost('seo-target');

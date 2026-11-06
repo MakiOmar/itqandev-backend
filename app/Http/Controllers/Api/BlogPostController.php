@@ -37,47 +37,51 @@ class BlogPostController extends Controller
     {
         $this->authorize('viewAny', BlogPost::class);
 
-        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $cacheKey = 'blog_posts:list:v3:'.md5(json_encode($request->query())).':loc:'.($present ?? 'none');
+        $filters = $request->validate([
+            'status' => ['sometimes', 'string', 'in:draft,published,archived'],
+            'featured' => ['sometimes', 'in:0,1,true,false'],
+            'author_id' => ['sometimes', 'integer', 'min:1'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+        ]);
+        ksort($filters);
 
-        $paginator = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $present) {
+        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
+        $cacheKey = CacheKey::versioned(BlogPost::class).':admin:list:'.md5(json_encode($filters)).':loc:'.($present ?? 'none');
+
+        $payload = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($request, $filters, $present) {
             $query = BlogPost::with('author:id,name,email', 'translations', 'seoMetas');
 
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
+            if (isset($filters['status'])) {
+                $query->where('status', $filters['status']);
             }
 
-            if ($request->has('featured')) {
+            if (isset($filters['featured'])) {
                 $query->where('featured', $request->boolean('featured'));
             }
 
-            if ($request->has('author_id')) {
-                $query->where('author_id', $request->author_id);
+            if (isset($filters['author_id'])) {
+                $query->where('author_id', (int) $filters['author_id']);
             }
 
             if ($present) {
-                TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
+                TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present, ['title', 'excerpt', 'content']);
             }
 
-            return $query->orderBy('created_at', 'desc')->paginate(20);
+            $paginator = $query->orderBy('created_at', 'desc')->paginate(20);
+
+            if ($present) {
+                $paginator->setCollection(
+                    $paginator->getCollection()
+                        ->each(fn (BlogPost $post) => TranslatableContentPresenter::applyBlogPost($post, $present))
+                        ->filter(fn (BlogPost $post) => TranslatableContentPresenter::hasBlogPostContentForLocale($post, $present))
+                        ->values()
+                );
+            }
+
+            return $paginator->toArray();
         });
 
-        if ($present) {
-            $paginator->setCollection(
-                $paginator->getCollection()
-                    ->map(function (BlogPost $post) use ($present) {
-                        TranslatableContentPresenter::applyBlogPost($post, $present);
-
-                        return $post;
-                    })
-                    ->filter(function (BlogPost $post) use ($present) {
-                        return TranslatableContentPresenter::hasBlogPostContentForLocale($post, $present);
-                    })
-                    ->values()
-            );
-        }
-
-        return $paginator;
+        return response()->json($payload);
     }
 
     public function store(Request $request)
