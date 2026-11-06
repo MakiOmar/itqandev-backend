@@ -168,6 +168,23 @@ class PageThemeTemplateTest extends TestCase
             ->assertJsonPath('data.theme_body_mode', 'wrap');
     }
 
+    public function test_device_targeted_template_does_not_leak_into_other_devices_through_the_cache(): void
+    {
+        $this->pageTemplate([
+            ['include' => true, 'group' => 'singular', 'key' => 'page'],
+            ['include' => true, 'group' => 'advanced', 'key' => 'device', 'value' => 'mobile'],
+        ]);
+        $this->page('team', 'Our team');
+        $url = '/api/public/shell?locale=en&path=/en/pages/team';
+
+        $mobile = $this->withHeader('X-Device-Breakpoint', 'mobile')->getJson($url)->assertOk();
+        $this->assertNotNull($mobile->json('data.theme_body'));
+
+        $this->withHeader('X-Device-Breakpoint', 'desktop')->getJson($url)
+            ->assertOk()
+            ->assertJsonPath('data.theme_body', null);
+    }
+
     public function test_archive_template_replaces_the_index_page(): void
     {
         $this->pageTemplate([['include' => true, 'group' => 'archive', 'key' => 'portfolio_index']]);

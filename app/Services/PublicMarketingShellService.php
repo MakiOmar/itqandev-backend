@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Models\Menu;
 use App\Services\Appearance\ChromeLayoutResolver;
 use App\Services\Appearance\HomepageBuilderService;
+use App\Services\Appearance\ThemeTemplateConditions;
+use App\Services\Appearance\ThemeTemplateService;
 use App\Support\BuilderContentVersions;
 use App\Support\CacheKey;
 use App\Support\FeatureModules;
@@ -92,7 +94,8 @@ final class PublicMarketingShellService
         $path = $documentPath !== null && trim($documentPath) !== '' ? $resolver->canonicalPath($documentPath) : null;
         // Embeds the primary menu, service cards and homepage/chrome widgets.
         $keyBase = 'public:shell:v'.self::shellVersion().':'.BuilderContentVersions::token([Menu::class])
-            .':'.$locale.':loc:'.$present.':ctx:'.($forcedContext ?? 'auto').':chrome:';
+            .':'.$locale.':loc:'.$present.':ctx:'.($forcedContext ?? 'auto')
+            .':req:'.$this->requestFacetKey($request).':chrome:';
         $buildFor = fn (?string $p, ?string $ctx) => $this->assemble(
             $locale,
             $present,
@@ -116,6 +119,21 @@ final class PublicMarketingShellService
             self::CACHE_SECONDS,
             fn () => $buildFor(null, 'not_found')
         );
+    }
+
+    /**
+     * Template conditions can target device, role or URL params; without this a visitor
+     * matching such a rule would set the cached chrome for everyone else.
+     */
+    private function requestFacetKey(?Request $request): string
+    {
+        $rules = Cache::remember(
+            'public:shell:v'.self::shellVersion().':advanced-rules',
+            3600,
+            fn () => app(ThemeTemplateService::class)->publishedAdvancedRules()
+        );
+
+        return ThemeTemplateConditions::requestFacetKey($rules, $request);
     }
 
     /**

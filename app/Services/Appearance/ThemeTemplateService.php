@@ -182,6 +182,29 @@ final class ThemeTemplateService
         return $rows;
     }
 
+    /**
+     * Request-dependent (`advanced`) rules of published templates, de-duplicated.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function publishedAdvancedRules(): array
+    {
+        if (! Schema::hasTable('theme_templates')) {
+            return [];
+        }
+
+        $rules = [];
+        foreach (ThemeTemplate::query()->published()->orderBy('id')->get(['id', 'conditions']) as $template) {
+            foreach (ThemeTemplateConditions::normalize($template->conditions)['rules'] as $rule) {
+                if (($rule['group'] ?? '') === 'advanced') {
+                    $rules[] = $rule;
+                }
+            }
+        }
+
+        return array_values(array_unique($rules, SORT_REGULAR));
+    }
+
     public function findBestMatch(array $ctx): ?ThemeTemplate
     {
         $rows = $this->findMatching($ctx);

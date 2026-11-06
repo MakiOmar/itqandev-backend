@@ -374,6 +374,22 @@ final class ThemeTemplateConditions
         ];
     }
 
+    /**
+     * Which advanced rules the request satisfies: the only request facets (device, role, URL
+     * params) that change the winning template. Bounded by the rule count, unlike raw headers.
+     *
+     * @param  list<array<string, mixed>>  $advancedRules
+     */
+    public static function requestFacetKey(array $advancedRules, ?Request $request): string
+    {
+        if ($advancedRules === [] || $request === null) {
+            return 'any';
+        }
+        $ctx = self::contextFromResolver('homepage', null, null, $request);
+
+        return implode('', array_map(fn (array $rule) => self::ruleMatches($rule, $ctx) ? '1' : '0', $advancedRules));
+    }
+
     private static function contentTypes(): ContentTypeRegistry
     {
         return app(ContentTypeRegistry::class);
