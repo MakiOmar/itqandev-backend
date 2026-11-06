@@ -3,7 +3,9 @@
 namespace App\Services\Appearance;
 
 use App\Models\BuilderGlobal;
+use App\Support\RequestMemo;
 use App\Support\UniqueContentSlug;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -72,6 +74,8 @@ final class GlobalWidgetService
      */
     public static function resolveSections(array $sections, array $stack = []): array
     {
+        self::prefetch(self::referencedIds($sections));
+
         foreach ($sections as &$band) {
             if (! is_array($band)) {
                 continue;
@@ -149,11 +153,8 @@ final class GlobalWidgetService
         if ($id < 1 || isset($stack[$id])) {
             return null;
         }
-        if (! \Illuminate\Support\Facades\Schema::hasTable('builder_globals')) {
-            return null;
-        }
-        $global = BuilderGlobal::query()->find($id);
-        if ($global === null || ! $global->isPublished()) {
+        $global = self::findPublished($id);
+        if ($global === null) {
             return null;
         }
         $doc = is_array($global->document) ? $global->document : [];
@@ -174,6 +175,65 @@ final class GlobalWidgetService
         }
 
         return $doc;
+    }
+
+    public static function memoKey(int $id): string
+    {
+        return 'builder-global:'.$id;
+    }
+
+    private static function findPublished(int $id): ?BuilderGlobal
+    {
+        return app(RequestMemo::class)->remember(self::memoKey($id), function () use ($id) {
+            if (! self::tableExists()) {
+                return null;
+            }
+            $global = BuilderGlobal::query()->find($id);
+
+            return $global !== null && $global->isPublished() ? $global : null;
+        });
+    }
+
+    /**
+     * One query for every global a document places, instead of one per placement.
+     *
+     * @param  list<int>  $ids
+     */
+    private static function prefetch(array $ids): void
+    {
+        $memo = app(RequestMemo::class);
+        $missing = array_values(array_filter($ids, fn (int $id) => ! $memo->has(self::memoKey($id))));
+        if ($missing === [] || ! self::tableExists()) {
+            return;
+        }
+        $found = BuilderGlobal::query()->whereIn('id', $missing)->get()->keyBy('id');
+        foreach ($missing as $id) {
+            $global = $found->get($id);
+            $memo->remember(self::memoKey($id), fn () => $global?->isPublished() ? $global : null);
+        }
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function referencedIds(array $node): array
+    {
+        $ids = [];
+        if (strtolower(trim((string) ($node['kind'] ?? ''))) === 'global' && (int) ($node['global_id'] ?? 0) > 0) {
+            $ids[] = (int) $node['global_id'];
+        }
+        foreach ($node as $child) {
+            if (is_array($child)) {
+                array_push($ids, ...self::referencedIds($child));
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private static function tableExists(): bool
+    {
+        return app(RequestMemo::class)->remember('builder-globals:table', fn () => Schema::hasTable('builder_globals'));
     }
 
     /**

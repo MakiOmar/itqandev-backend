@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Casts\JsonWithAppMediaUrls;
 use App\Concerns\RefreshesCache;
+use App\Services\Appearance\GlobalWidgetService;
+use App\Support\RequestMemo;
 use Illuminate\Database\Eloquent\Model;
 
 class BuilderGlobal extends Model
@@ -20,6 +22,13 @@ class BuilderGlobal extends Model
         'status',
         'document',
     ];
+
+    protected static function booted(): void
+    {
+        $forgetMemo = fn (self $global) => app(RequestMemo::class)->forget(GlobalWidgetService::memoKey((int) $global->id));
+        static::saved($forgetMemo);
+        static::deleted($forgetMemo);
+    }
 
     protected function casts(): array
     {

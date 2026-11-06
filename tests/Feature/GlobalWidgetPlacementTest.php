@@ -6,11 +6,12 @@ use App\Models\BuilderGlobal;
 use App\Services\Appearance\GlobalWidgetService;
 use App\Services\Appearance\PageLayoutDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CountsTableQueries;
 use Tests\TestCase;
 
 class GlobalWidgetPlacementTest extends TestCase
 {
-    use RefreshDatabase;
+    use CountsTableQueries, RefreshDatabase;
 
     public function test_saved_placement_keeps_only_the_link_and_visibility(): void
     {
@@ -72,6 +73,39 @@ class GlobalWidgetPlacementTest extends TestCase
         $this->assertSame($global->id, $block['global_source_id']);
         $this->assertFalse($block['enabled']);
         $this->assertTrue($block['hide_on']['tablet']);
+    }
+
+    public function test_resolving_many_placements_loads_globals_in_one_query(): void
+    {
+        $ids = [];
+        foreach (['First', 'Second'] as $text) {
+            $ids[] = BuilderGlobal::query()->create([
+                'name' => $text,
+                'slug' => strtolower($text),
+                'status' => BuilderGlobal::STATUS_PUBLISHED,
+                'document' => ['kind' => 'widget', 'type' => 'heading', 'settings' => ['text' => $text]],
+            ])->id;
+        }
+        $this->app->forgetScopedInstances();
+        $placements = array_map(
+            fn (int $i, int $id) => ['id' => 'glb_'.$i, 'kind' => 'global', 'global_id' => $id],
+            [0, 1, 2],
+            [$ids[0], $ids[1], $ids[0]],
+        );
+
+        $out = [];
+        $queries = $this->queriesAgainst('builder_globals', function () use ($placements, &$out) {
+            $out = GlobalWidgetService::resolveSections([[
+                'type' => 'layout',
+                'rows' => [['columns' => [['blocks' => $placements]]]],
+            ]]);
+        });
+
+        $this->assertSame(1, $queries);
+        $this->assertSame(['First', 'Second', 'First'], array_map(
+            fn (array $block) => $block['settings']['text'],
+            $out[0]['rows'][0]['columns'][0]['blocks'],
+        ));
     }
 
     /**

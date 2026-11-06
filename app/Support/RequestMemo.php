@@ -28,6 +28,11 @@ final class RequestMemo
         return $this->values[$key];
     }
 
+    public function has(string $key): bool
+    {
+        return array_key_exists($key, $this->values);
+    }
+
     public function forget(string $key): void
     {
         unset($this->values[$key]);
