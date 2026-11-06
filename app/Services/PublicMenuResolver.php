@@ -23,6 +23,8 @@ final class PublicMenuResolver
 {
     private const CACHE_SECONDS = 300;
 
+    private const MEDIA_REFERENCES = 'media';
+
     public static function forgetCacheForMenu(Menu $menu): void
     {
         foreach (SiteLanguages::all() as $row) {
@@ -91,6 +93,11 @@ final class PublicMenuResolver
         }
 
         $out = [];
+
+        $imageIds = $items->pluck('image_id')->map(fn ($id) => (int) $id)->filter(fn (int $id) => $id > 0)->unique()->values()->all();
+        if ($imageIds !== []) {
+            $out[self::MEDIA_REFERENCES] = self::indexById(AppMedia::query()->whereIn('id', $imageIds)->get());
+        }
 
         if ($idsByType[MenuItem::TYPE_PROJECT] !== []) {
             $out[MenuItem::TYPE_PROJECT] = self::indexById(
@@ -327,7 +334,7 @@ final class PublicMenuResolver
             'href' => $href,
             'open_in_new_tab' => (bool) $item->open_in_new_tab,
             'description' => $item->description ? (string) $item->description : null,
-            'image_url' => self::menuItemImageUrl($item),
+            'image_url' => self::menuItemImageUrl($item, $references),
             'children' => [],
         ];
     }
@@ -361,14 +368,13 @@ final class PublicMenuResolver
         return null;
     }
 
-    private static function menuItemImageUrl(\App\Models\MenuItem $item): ?string
+    /**
+     * @param  array<string, array<int, Model>>  $references
+     */
+    private static function menuItemImageUrl(MenuItem $item, array $references): ?string
     {
-        $id = (int) ($item->image_id ?? 0);
-        if ($id < 1) {
-            return null;
-        }
-        $media = AppMedia::query()->find($id);
-        if ($media === null) {
+        $media = self::lookupReference($references, self::MEDIA_REFERENCES, (int) ($item->image_id ?? 0));
+        if (! $media instanceof AppMedia) {
             return null;
         }
         $url = $media->getUrl();

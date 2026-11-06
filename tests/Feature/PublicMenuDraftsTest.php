@@ -12,11 +12,13 @@ use App\Models\User;
 use App\Services\PublicMenuResolver;
 use App\Support\ProjectSettingsStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\CountsTableQueries;
 use Tests\TestCase;
 
 class PublicMenuDraftsTest extends TestCase
 {
-    use RefreshDatabase;
+    use CountsTableQueries, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -73,6 +75,38 @@ class PublicMenuDraftsTest extends TestCase
         $tree = PublicMenuResolver::resolvePublishedTree('nested-test', 'en');
 
         $this->assertSame('/en/pages/child-page/', $tree[0]['href']);
+    }
+
+    public function test_menu_item_images_load_in_one_query(): void
+    {
+        Storage::fake('public');
+        $owner = BlogPost::query()->create([
+            'title' => 'Owner',
+            'slug' => 'owner',
+            'status' => 'published',
+            'author_id' => User::factory()->create()->id,
+        ]);
+        $menu = Menu::create(['name' => 'Mega', 'slug' => 'mega-test']);
+        foreach (range(1, 3) as $n) {
+            $media = $owner->addMediaFromString('img')->usingFileName("item-{$n}.txt")->toMediaCollection('gallery');
+            MenuItem::create([
+                'menu_id' => $menu->id,
+                'sort_order' => $n,
+                'label' => "Item {$n}",
+                'item_type' => MenuItem::TYPE_CUSTOM_LINK,
+                'url' => "/item-{$n}/",
+                'image_id' => $media->id,
+                'open_in_new_tab' => false,
+            ]);
+        }
+
+        $tree = null;
+        $queries = $this->queriesAgainst('media', function () use (&$tree): void {
+            $tree = PublicMenuResolver::resolvePublishedTree('mega-test', 'en');
+        });
+
+        $this->assertSame(1, $queries);
+        $this->assertStringContainsString('item-3.txt', (string) $tree[2]['image_url']);
     }
 
     private function menuItem(Menu $menu, string $type, int $referenceId, int $order): void
