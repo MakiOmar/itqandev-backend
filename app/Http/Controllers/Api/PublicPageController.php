@@ -9,6 +9,7 @@ use App\Services\Appearance\PageLayoutDocument;
 use App\Services\Appearance\WidgetRegistry;
 use App\Support\CmsPublicPaths;
 use App\Support\PageHierarchy;
+use App\Support\PublicCache;
 use App\Support\SeoMetaPresenter;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
@@ -72,12 +73,13 @@ class PublicPageController extends Controller
 
     public function show(Request $request, string $slug)
     {
+        $slug = strtolower($slug);
         $present = TranslatableContentPresenter::requestedPresentationLocale($request)
             ?? SiteLanguages::defaultCode();
         $version = (int) Cache::get('pages:cache_version', 1);
         $cacheKey = 'public:pages:show:v'.$version.':'.md5($slug).':loc:'.$present;
 
-        $payload = Cache::remember($cacheKey, 300, function () use ($slug, $present) {
+        $payload = PublicCache::rememberOrMissing($cacheKey, 300, function () use ($slug, $present) {
             $page = Page::query()
                 ->with(['translations', 'seoMetas'])
                 ->where('slug', $slug)

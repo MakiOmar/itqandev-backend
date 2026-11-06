@@ -18,7 +18,7 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     Route::middleware('feature.module:projects')->group(function () {
         Route::get('projects', [\App\Http\Controllers\Api\PublicProjectController::class, 'index']);
         Route::get('projects/{slug}', [\App\Http\Controllers\Api\PublicProjectController::class, 'show'])
-            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*')
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]{0,190}')
             ->middleware([
                 \App\Http\Middleware\EnsureStatefulIfNoBearer::class,
                 \App\Http\Middleware\OptionalMarketingApiUser::class,
@@ -36,18 +36,18 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     Route::middleware('feature.module:blog')->group(function () {
         Route::get('blog-posts', [\App\Http\Controllers\Api\PublicBlogPostController::class, 'index']);
         Route::get('blog-posts/{slug}', [\App\Http\Controllers\Api\PublicBlogPostController::class, 'show'])
-            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]{0,190}');
     });
     Route::middleware('feature.module:pages')->group(function () {
         Route::get('pages', [\App\Http\Controllers\Api\PublicPageController::class, 'index']);
         Route::get('pages/{slug}', [\App\Http\Controllers\Api\PublicPageController::class, 'show'])
-            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]{0,190}');
     });
     Route::middleware('feature.module:forms')->group(function () {
         Route::get('forms/{slug}', [\App\Http\Controllers\Api\PublicFormController::class, 'show'])
-            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]{0,190}');
         Route::post('forms/{slug}/submit', [\App\Http\Controllers\Api\PublicFormController::class, 'submit'])
-            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*')
+            ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]{0,190}')
             ->middleware('throttle:form-submit');
     });
     Route::get('site-content', [\App\Http\Controllers\Api\PublicSiteContentController::class, 'show']);
@@ -62,11 +62,11 @@ Route::prefix('public')->middleware('throttle:api')->group(function () {
     /** Content-type singles without a dedicated website route (addon types); module gating lives in the registry. */
     Route::get('content-sitemap', [\App\Http\Controllers\Api\PublicContentController::class, 'sitemap']);
     Route::get('content/{prefix}/{slug}', [\App\Http\Controllers\Api\PublicContentController::class, 'show'])
-        ->where('prefix', '[a-z0-9][a-z0-9-]*')
-        ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]*');
+        ->where('prefix', '[a-z0-9][a-z0-9-]{0,63}')
+        ->where('slug', '[a-zA-Z0-9][a-zA-Z0-9-]{0,190}');
     /** Resolved nav tree for marketing header (locale query matches UI locale). */
     Route::get('menus/{slug}', [\App\Http\Controllers\Api\PublicMenuController::class, 'show'])
-        ->where('slug', '[a-z0-9_-]+');
+        ->where('slug', '[a-z0-9_-]{1,100}');
 });
 
 // Public preflight for media download (avoid auth blocking OPTIONS)

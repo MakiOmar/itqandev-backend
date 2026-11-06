@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Form;
 use App\Services\Forms\FormLayoutDocument;
 use App\Services\Forms\FormSubmissionPipeline;
+use App\Support\PublicCache;
 use App\Support\SiteLanguages;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\JsonResponse;
@@ -16,12 +17,13 @@ class PublicFormController extends Controller
 {
     public function show(Request $request, string $slug): JsonResponse
     {
+        $slug = strtolower($slug);
         $present = TranslatableContentPresenter::requestedPresentationLocale($request)
             ?: SiteLanguages::defaultCode();
         $version = (int) Cache::get('forms:cache_version', 1);
         $cacheKey = "forms:public:{$slug}:{$present}:v{$version}";
 
-        $payload = Cache::remember($cacheKey, 600, function () use ($slug, $present) {
+        $payload = PublicCache::rememberOrMissing($cacheKey, 600, function () use ($slug, $present) {
             $form = Form::query()
                 ->with('translations')
                 ->where('slug', $slug)
