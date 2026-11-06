@@ -11,6 +11,7 @@ use App\Models\Skill;
 use App\Models\Testimonial;
 use App\Services\Appearance\PageLayoutDocument;
 use App\Services\HtmlSanitizerService;
+use App\Support\CacheKey;
 use App\Support\ContentExportEnvelope;
 use App\Support\PageHierarchy;
 use App\Support\SiteLanguages;
@@ -80,14 +81,7 @@ final class TranslatableLocaleImportService
             }
         }
 
-        $prefix = TranslatableLocaleExportService::listCachePrefix($entity);
-        if ($prefix !== null) {
-            TranslatableListCacheInvalidator::flushPrefix($prefix);
-        }
-
-        if ($entity === ContentExportEnvelope::ENTITY_PAGES) {
-            Page::bumpPublicCacheVersion();
-        }
+        $this->refreshCachesAfterImport($entity);
 
         return [
             'mode' => $mode,
@@ -98,6 +92,38 @@ final class TranslatableLocaleImportService
             'skipped' => $skipped,
             'errors' => $errors,
         ];
+    }
+
+    /**
+     * Translation-only rows are written without saving the parent model, so no model
+     * event bumps the caches; refresh everything the entity feeds once the batch is done.
+     */
+    private function refreshCachesAfterImport(string $entity): void
+    {
+        $prefix = TranslatableLocaleExportService::listCachePrefix($entity);
+        if ($prefix !== null) {
+            TranslatableListCacheInvalidator::flushPrefix($prefix);
+        }
+
+        if ($entity === ContentExportEnvelope::ENTITY_PAGES) {
+            Page::bumpPublicCacheVersion();
+        }
+        if ($entity === ContentExportEnvelope::ENTITY_CATEGORIES) {
+            CategoryListCacheInvalidator::flush();
+        }
+
+        // Project payloads embed category/skill names; testimonials embed the project title.
+        $versioned = match ($entity) {
+            ContentExportEnvelope::ENTITY_CATEGORIES, ContentExportEnvelope::ENTITY_SKILLS => [Project::class],
+            ContentExportEnvelope::ENTITY_PROJECTS => [Project::class, Testimonial::class],
+            ContentExportEnvelope::ENTITY_SERVICES => [Service::class],
+            ContentExportEnvelope::ENTITY_BLOG_POSTS => [BlogPost::class],
+            ContentExportEnvelope::ENTITY_TESTIMONIALS => [Testimonial::class],
+            default => [],
+        };
+        foreach ($versioned as $modelClass) {
+            CacheKey::bump($modelClass);
+        }
     }
 
     /**

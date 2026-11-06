@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CacheKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,6 +26,12 @@ class ServiceTranslation extends Model
             'process' => 'array',
             'deliverables' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => CacheKey::bump(Service::class));
+        static::deleted(fn () => CacheKey::bump(Service::class));
     }
 
     public function service()
