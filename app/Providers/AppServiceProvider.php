@@ -64,7 +64,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(\App\Services\ContentTypes\ContentTypeRegistry::class);
-        $this->app->scoped(\App\Support\ProjectSettingsMemo::class);
+        $this->app->scoped(\App\Support\RequestMemo::class);
     }
 
     /**

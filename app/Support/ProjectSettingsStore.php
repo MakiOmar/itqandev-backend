@@ -26,9 +26,7 @@ final class ProjectSettingsStore
      */
     public static function load(): array
     {
-        $memo = app(ProjectSettingsMemo::class);
-
-        return $memo->payload ??= self::cachedPayload();
+        return app(RequestMemo::class)->remember(self::CACHE_KEY, fn () => self::cachedPayload());
     }
 
     /**
@@ -36,7 +34,7 @@ final class ProjectSettingsStore
      */
     public static function flush(): void
     {
-        app(ProjectSettingsMemo::class)->payload = null;
+        app(RequestMemo::class)->forget(self::CACHE_KEY);
 
         try {
             Cache::forget(self::CACHE_KEY);

@@ -6,6 +6,7 @@ use App\Casts\JsonWithAppMediaUrls;
 use App\Concerns\InvalidatesCache;
 use App\Concerns\RefreshesCache;
 use App\Support\CacheKey;
+use App\Support\StaticHomepage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -39,11 +40,13 @@ class Page extends Model
     {
         // Admin list caches are versioned separately via RefreshesCache (every save).
         static::saved(function (self $page) {
+            StaticHomepage::forgetPage((int) $page->id);
             if ($page->affectsPublicPages()) {
                 CacheKey::incrementVersion(self::PUBLIC_CACHE_VERSION_KEY);
             }
         });
         static::deleted(function (self $page) {
+            StaticHomepage::forgetPage((int) $page->id);
             if ($page->affectsPublicPages()) {
                 CacheKey::incrementVersion(self::PUBLIC_CACHE_VERSION_KEY);
             }

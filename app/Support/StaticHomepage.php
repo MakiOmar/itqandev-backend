@@ -53,10 +53,12 @@ final class StaticHomepage
      * A published `page_on_front` wins even if `show_on_front` was left as `builder`
      * (operators often assign the home CMS page in Page Builder without flipping the flag).
      * Intentional Appearance-homepage sites keep `page_on_front` null.
+     *
+     * Memoized per request (only `id` and `slug` are loaded): path helpers call this once per listed page.
      */
     public static function page(?array $settings = null): ?Page
     {
-        if (! FeatureModules::enabled('pages') || ! Schema::hasTable('pages')) {
+        if (! FeatureModules::enabled('pages')) {
             return null;
         }
         $id = self::pageOnFrontId($settings);
@@ -64,12 +66,30 @@ final class StaticHomepage
             return null;
         }
 
-        $page = Page::query()
-            ->whereKey($id)
-            ->where('status', Page::STATUS_PUBLISHED)
-            ->first();
+        return app(RequestMemo::class)->remember(self::memoKey($id), function () use ($id): ?Page {
+            if (! Schema::hasTable('pages')) {
+                return null;
+            }
 
-        return $page instanceof Page ? $page : null;
+            return Page::query()
+                ->select(['id', 'slug'])
+                ->whereKey($id)
+                ->where('status', Page::STATUS_PUBLISHED)
+                ->first();
+        });
+    }
+
+    /**
+     * Drop the request copy after the page row changes (publish/unpublish/slug edit).
+     */
+    public static function forgetPage(int $id): void
+    {
+        app(RequestMemo::class)->forget(self::memoKey($id));
+    }
+
+    private static function memoKey(int $id): string
+    {
+        return 'static-homepage:page:'.$id;
     }
 
     public static function isFrontPageId(?int $id): bool
