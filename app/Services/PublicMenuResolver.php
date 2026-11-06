@@ -55,9 +55,7 @@ final class PublicMenuResolver
 
             $items = $menu->items()->with('translations')->orderBy('sort_order')->get();
             $references = self::preloadMenuReferences($items, $locale);
-            $pageGraph = PageHierarchy::indexById(
-                Page::query()->select(['id', 'slug', 'parent_id'])->get()
-            );
+            $pageGraph = PageHierarchy::publishedGraphById();
 
             return self::buildResolvedTree($items, null, $locale, $references, $pageGraph);
         });
@@ -99,6 +97,7 @@ final class PublicMenuResolver
                 Project::query()
                     ->select(['id', 'title', 'slug', 'content_locale'])
                     ->with('translations')
+                    ->where('status', 'published')
                     ->whereIn('id', array_unique($idsByType[MenuItem::TYPE_PROJECT]))
                     ->get()
                     ->each(fn (Project $p) => TranslatableContentPresenter::applyProject($p, $locale))
@@ -110,6 +109,7 @@ final class PublicMenuResolver
                 BlogPost::query()
                     ->select(['id', 'title', 'slug', 'content_locale'])
                     ->with('translations')
+                    ->where('status', 'published')
                     ->whereIn('id', array_unique($idsByType[MenuItem::TYPE_BLOG_POST]))
                     ->get()
                     ->each(fn (BlogPost $p) => TranslatableContentPresenter::applyBlogPost($p, $locale))
@@ -121,6 +121,7 @@ final class PublicMenuResolver
                 Service::query()
                     ->select(['id', 'name', 'slug', 'content_locale'])
                     ->with('translations')
+                    ->where('is_published', true)
                     ->whereIn('id', array_unique($idsByType[MenuItem::TYPE_SERVICE]))
                     ->get()
                     ->each(fn (Service $s) => TranslatableContentPresenter::applyService($s, $locale))
@@ -308,7 +309,7 @@ final class PublicMenuResolver
                 if ($slug === '') {
                     return null;
                 }
-                $href = self::prefixLocale($locale, CmsPublicPaths::pathForPage($page, $pageGraph));
+                $href = self::prefixLocale($locale, CmsPublicPaths::pathForPage($page, $pageGraph, false));
                 $label ??= (string) $page->title;
 
                 break;
