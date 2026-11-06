@@ -25,8 +25,7 @@ class PublicPageController extends Controller
     {
         $present = TranslatableContentPresenter::requestedPresentationLocale($request)
             ?? SiteLanguages::defaultCode();
-        $version = (int) Cache::get('pages:cache_version', 1);
-        $cacheKey = 'public:pages:list:v2:'.$version.':loc:'.$present;
+        $cacheKey = 'public:pages:list:v2:'.Page::publicCacheVersion().':loc:'.$present;
 
         $payload = Cache::remember($cacheKey, 300, function () use ($present) {
             $query = Page::query()
@@ -76,8 +75,7 @@ class PublicPageController extends Controller
         $slug = strtolower($slug);
         $present = TranslatableContentPresenter::requestedPresentationLocale($request)
             ?? SiteLanguages::defaultCode();
-        $version = (int) Cache::get('pages:cache_version', 1);
-        $cacheKey = 'public:pages:show:v'.$version.':'.md5($slug).':loc:'.$present;
+        $cacheKey = 'public:pages:show:v'.Page::publicCacheVersion().':'.md5($slug).':loc:'.$present;
 
         $payload = PublicCache::rememberOrMissing($cacheKey, 300, function () use ($slug, $present) {
             $page = Page::query()

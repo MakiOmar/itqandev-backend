@@ -15,9 +15,17 @@ class CacheKey
 
     public static function bump(string $key): void
     {
-        // Prefer forever+get over increment: missing keys would otherwise stay on default v1.
-        $current = (int) Cache::get(self::versionKey($key), 1);
-        Cache::forever(self::versionKey($key), $current + 1);
+        self::incrementVersion(self::versionKey($key));
+    }
+
+    /**
+     * Atomic version bump: `add` seeds a missing counter (stores refuse to increment
+     * missing keys), `increment` is safe under concurrent writers.
+     */
+    public static function incrementVersion(string $versionKey): void
+    {
+        Cache::add($versionKey, 1);
+        Cache::increment($versionKey);
     }
 
     protected static function versionKey(string $key): string
@@ -25,4 +33,3 @@ class CacheKey
         return "v:{$key}";
     }
 }
-

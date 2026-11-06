@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Models\Page;
 use App\Support\ProjectSettingsStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use Tests\Concerns\CountsTableQueries;
 use Tests\TestCase;
 
 class PublicNotFoundCachingTest extends TestCase
 {
-    use RefreshDatabase;
+    use CountsTableQueries, RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -59,18 +59,5 @@ class PublicNotFoundCachingTest extends TestCase
     {
         $queries = $this->queriesAgainst('pages', fn () => $this->getJson('/api/public/pages/'.str_repeat('a', 300))->assertNotFound());
         $this->assertSame(0, $queries);
-    }
-
-    private function queriesAgainst(string $table, callable $request): int
-    {
-        $count = 0;
-        DB::listen(function ($query) use ($table, &$count): void {
-            if (preg_match('/\bfrom\s+["`]?'.preg_quote($table, '/').'["`]?/i', $query->sql)) {
-                $count++;
-            }
-        });
-        $request();
-
-        return $count;
     }
 }

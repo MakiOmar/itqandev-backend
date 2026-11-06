@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Services\Appearance\PageLayoutDocument;
+use App\Support\CacheKey;
 use App\Support\CmsPublicPaths;
 use App\Support\ContentExportEnvelope;
 use App\Support\PageHierarchy;
@@ -38,10 +39,10 @@ class PageController extends Controller
         $this->authorize('viewAny', Page::class);
 
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $version = (int) Cache::get('pages:cache_version', 1);
+        $cacheKey = CacheKey::versioned(Page::class).':'.self::LIST_CACHE_KEY.':loc:'.($present ?? 'none');
 
         return response()->json(
-            Cache::remember(self::LIST_CACHE_KEY.':v'.$version.':loc:'.($present ?? 'none'), 3600, function () use ($present) {
+            Cache::remember($cacheKey, 3600, function () use ($present) {
                 $query = Page::query()
                     ->with('translations')
                     ->orderByDesc('updated_at')
@@ -115,9 +116,9 @@ class PageController extends Controller
         $page = Page::create($data);
         if (is_array($translations)) {
             $this->syncPageTranslations($page, $translations);
+            $this->bumpAfterTranslationSync($page);
         }
         $page->load(['translations', 'seoMetas']);
-        $this->bumpPageCaches();
 
         return response()->json($this->withHierarchyFields([$page])[0] ?? $page, 201);
     }
@@ -179,12 +180,13 @@ class PageController extends Controller
             $data['published_at'] = now();
         }
 
+        $wasPublished = $page->status === Page::STATUS_PUBLISHED;
         $page->update($data);
         if (is_array($translations)) {
             $this->syncPageTranslations($page, $translations);
+            $this->bumpAfterTranslationSync($page, $wasPublished);
         }
         $page->load(['translations', 'seoMetas']);
-        $this->bumpPageCaches();
 
         return response()->json($this->withHierarchyFields([$page])[0] ?? $page);
     }
@@ -193,7 +195,6 @@ class PageController extends Controller
     {
         $this->authorize('delete', $page);
         $page->delete();
-        $this->bumpPageCaches();
 
         return response()->noContent();
     }
@@ -208,7 +209,7 @@ class PageController extends Controller
         ]);
 
         $count = Page::whereIn('id', $data['ids'])->delete();
-        $this->bumpPageCaches();
+        Page::bumpPublicCacheVersion();
 
         return response()->json([
             'deleted' => $count,
@@ -286,19 +287,16 @@ class PageController extends Controller
         return $flat;
     }
 
-    private function bumpPageCaches(): void
+    /**
+     * Translation rows are mass-written without model events, after the page `saved` bump.
+     */
+    private function bumpAfterTranslationSync(Page $page, bool $wasPublished = false): void
     {
-        $version = (int) Cache::get('pages:cache_version', 1);
-        Cache::forever('pages:cache_version', $version + 1);
-        Cache::forget(self::LIST_CACHE_KEY.':loc:none');
-        Cache::forget('public:pages:list:loc:none');
-        foreach (SiteLanguages::all() as $row) {
-            $code = isset($row['code']) ? strtolower(trim((string) $row['code'])) : '';
-            if ($code === '') {
-                continue;
-            }
-            Cache::forget(self::LIST_CACHE_KEY.':loc:'.$code);
-            Cache::forget('public:pages:list:loc:'.$code);
+        if ($wasPublished || $page->status === Page::STATUS_PUBLISHED) {
+            Page::bumpPublicCacheVersion();
+
+            return;
         }
+        CacheKey::bump(Page::class);
     }
 }

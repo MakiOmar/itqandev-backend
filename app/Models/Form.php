@@ -4,9 +4,9 @@ namespace App\Models;
 
 use App\Concerns\InvalidatesCache;
 use App\Concerns\RefreshesCache;
+use App\Support\CacheKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
 class Form extends Model
 {
@@ -35,8 +35,7 @@ class Form extends Model
 
     public static function bumpPublicCacheVersion(): void
     {
-        $version = (int) Cache::get('forms:cache_version', 1);
-        Cache::forever('forms:cache_version', $version + 1);
+        CacheKey::incrementVersion('forms:cache_version');
     }
 
     protected function casts(): array

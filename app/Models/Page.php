@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\JsonWithAppMediaUrls;
 use App\Concerns\InvalidatesCache;
 use App\Concerns\RefreshesCache;
+use App\Support\CacheKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -32,16 +33,45 @@ class Page extends Model
         'footer_layout_id',
     ];
 
+    public const PUBLIC_CACHE_VERSION_KEY = 'pages:cache_version';
+
     protected static function booted(): void
     {
-        static::saved(fn () => self::bumpPublicCacheVersion());
-        static::deleted(fn () => self::bumpPublicCacheVersion());
+        // Admin list caches are versioned separately via RefreshesCache (every save).
+        static::saved(function (self $page) {
+            if ($page->affectsPublicPages()) {
+                CacheKey::incrementVersion(self::PUBLIC_CACHE_VERSION_KEY);
+            }
+        });
+        static::deleted(function (self $page) {
+            if ($page->affectsPublicPages()) {
+                CacheKey::incrementVersion(self::PUBLIC_CACHE_VERSION_KEY);
+            }
+        });
     }
 
+    public static function publicCacheVersion(): int
+    {
+        return (int) Cache::get(self::PUBLIC_CACHE_VERSION_KEY, 1);
+    }
+
+    /**
+     * Invalidates public and admin page payloads; for writes that bypass model events
+     * (mass deletes, translation syncs, settings and imports).
+     */
     public static function bumpPublicCacheVersion(): void
     {
-        $version = (int) Cache::get('pages:cache_version', 1);
-        Cache::forever('pages:cache_version', $version + 1);
+        CacheKey::incrementVersion(self::PUBLIC_CACHE_VERSION_KEY);
+        CacheKey::bump(self::class);
+    }
+
+    /**
+     * Drafts that stay drafts never reach public payloads.
+     */
+    public function affectsPublicPages(): bool
+    {
+        return $this->status === self::STATUS_PUBLISHED
+            || $this->getOriginal('status') === self::STATUS_PUBLISHED;
     }
 
     protected function casts(): array
