@@ -197,7 +197,6 @@ final class TranslatableLocaleExportService
     public static function listCachePrefix(string $entity): ?string
     {
         return match ($entity) {
-            ContentExportEnvelope::ENTITY_CATEGORIES => 'categories:list:v3:json',
             ContentExportEnvelope::ENTITY_SKILLS => 'skills:list:v3:json',
             ContentExportEnvelope::ENTITY_SERVICES => 'services:list:v3:json',
             default => null,

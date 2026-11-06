@@ -137,6 +137,7 @@ class ProjectController extends Controller
         if (is_array($translations)) {
             $this->syncProjectTranslations($project, $translations);
         }
+        $this->bumpAfterRelatedWrites();
 
         $project->load('categories:id,name', 'skills:id,name', 'translations');
 
@@ -209,6 +210,7 @@ class ProjectController extends Controller
         if (is_array($translations)) {
             $this->syncProjectTranslations($project, $translations);
         }
+        $this->bumpAfterRelatedWrites();
 
         $project->load('categories:id,name', 'skills:id,name', 'translations');
 
@@ -243,6 +245,15 @@ class ProjectController extends Controller
             'deleted' => $count,
             'message' => 'Deleted '.$count.' projects',
         ]);
+    }
+
+    /**
+     * The model `saved` bump fires before pivot syncs and translation mass deletes, which
+     * fire no events; bump again so nothing cached in between survives.
+     */
+    private function bumpAfterRelatedWrites(): void
+    {
+        CacheKey::bump(Project::class);
     }
 
     /**
@@ -286,9 +297,6 @@ class ProjectController extends Controller
                 ]
             );
         }
-
-        // Mass deletes above skip ProjectTranslation events.
-        CacheKey::bump(Project::class);
     }
 
 }

@@ -22,8 +22,6 @@ class CategoryController extends Controller
     use ExportsImportsTranslatableContent;
     use PreparesUniqueContentSlug;
 
-    private const LIST_CACHE_KEY = 'categories:list:v3:json';
-
     private const LIST_LOCK_KEY = 'lock:categories:list:v1';
 
     protected function exportImportEntity(): string
@@ -55,7 +53,7 @@ class CategoryController extends Controller
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         $cacheEnabled = (bool) config('app.sys_cache_enabled', true);
 
-        $key = self::LIST_CACHE_KEY.':loc:'.($present ?? 'none');
+        $key = CategoryListCacheInvalidator::key(CategoryListCacheInvalidator::LIST_CACHE_KEY, $present);
         $lockKey = self::LIST_LOCK_KEY;
 
         $buildJson = function () use ($present): string {

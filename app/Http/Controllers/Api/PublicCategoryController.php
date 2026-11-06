@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicCategoryResource;
 use App\Models\Category;
+use App\Services\ContentExport\CategoryListCacheInvalidator;
 use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -17,7 +18,7 @@ class PublicCategoryController extends Controller
     public function index(Request $request)
     {
         $present = TranslatableContentPresenter::requestedPresentationLocale($request);
-        $cacheKey = 'public:categories:v1:loc:'.($present ?? 'none');
+        $cacheKey = CategoryListCacheInvalidator::key(CategoryListCacheInvalidator::PUBLIC_LIST_CACHE_KEY, $present);
 
         $payload = Cache::remember($cacheKey, 300, function () use ($present) {
             $query = Category::query()
@@ -33,7 +34,7 @@ class PublicCategoryController extends Controller
                 ->orderBy('name');
 
             if ($present) {
-                TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present);
+                TranslatableContentPresenter::scopeQueryForPresentationLocale($query, $present, ['name', 'description']);
             }
 
             $categories = $query->get();
