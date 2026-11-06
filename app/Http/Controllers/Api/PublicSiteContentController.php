@@ -16,13 +16,10 @@ class PublicSiteContentController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        $locale = TranslatableContentPresenter::requestedPresentationLocale($request);
-        if ($locale === null) {
-            $queryLocale = strtolower(trim((string) $request->query('locale', '')));
-            $locale = $queryLocale !== '' ? $queryLocale : SiteLanguages::defaultCode();
-        }
+        $locale = TranslatableContentPresenter::requestedPresentationLocale($request)
+            ?? $this->enabledLocale((string) $request->query('locale', ''));
 
-        $cacheKey = 'public:site-content:loc:'.strtolower(trim($locale));
+        $cacheKey = 'public:site-content:loc:'.$locale;
 
         $data = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale) {
             /** @var SettingsController $settingsController */
@@ -37,5 +34,14 @@ class PublicSiteContentController extends Controller
             'success' => true,
             'data' => $data,
         ]);
+    }
+
+    /** Unknown `?locale=` values fall back to the default so they cannot mint cache keys. */
+    private function enabledLocale(string $raw): string
+    {
+        $locale = strtolower(trim($raw));
+        $codes = array_map(fn ($row) => strtolower((string) ($row['code'] ?? '')), SiteLanguages::all());
+
+        return $locale !== '' && in_array($locale, $codes, true) ? $locale : SiteLanguages::defaultCode();
     }
 }

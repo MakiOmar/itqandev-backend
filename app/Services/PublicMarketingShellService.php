@@ -9,6 +9,7 @@ use App\Services\Appearance\HomepageBuilderService;
 use App\Support\BuilderContentVersions;
 use App\Support\CacheKey;
 use App\Support\FeatureModules;
+use App\Support\PublicCache;
 use App\Support\PublishedServicesQuery;
 use App\Support\SiteLanguages;
 use Illuminate\Http\Request;
@@ -86,51 +87,62 @@ final class PublicMarketingShellService
             ? strtolower(trim($presentationLocale))
             : $locale;
 
-        $pathKey = $documentPath !== null && trim($documentPath) !== ''
-            ? sha1(strtolower(trim($documentPath)))
-            : 'site';
-        $ctxKey = $forcedContext !== null && trim($forcedContext) !== ''
-            ? sha1(strtolower(trim($forcedContext)))
-            : 'auto';
+        $resolver = app(ChromeLayoutResolver::class);
+        $forcedContext = $resolver->knownContext($forcedContext);
+        $path = $documentPath !== null && trim($documentPath) !== '' ? $resolver->canonicalPath($documentPath) : null;
         // Embeds the primary menu, service cards and homepage/chrome widgets.
-        $cacheKey = 'public:shell:v'.self::shellVersion().':'.BuilderContentVersions::token([Menu::class])
-            .':'.$locale.':loc:'.$present.':chrome:'.$pathKey.':ctx:'.$ctxKey;
+        $keyBase = 'public:shell:v'.self::shellVersion().':'.BuilderContentVersions::token([Menu::class])
+            .':'.$locale.':loc:'.$present.':ctx:'.($forcedContext ?? 'auto').':chrome:';
+        $buildFor = fn (?string $p, ?string $ctx) => $this->assemble(
+            $locale,
+            $present,
+            $resolver->resolveForDocumentPath($p, $present, $request, $ctx)
+        );
 
-        /** @var array{site_meta: array<string, mixed>, menu: array{slug: string, locale: string, items: list<mixed>}, services: list<array<string, mixed>>, homepage_sections: list<array<string, mixed>>, header: array{sections: list<array<string, mixed>>}, footer: array{sections: list<array<string, mixed>>}, theme_body: array{sections: list<array<string, mixed>>}|null, theme_body_mode: string|null, theme_context: string|null, theme_template_id: int|null} $payload */
-        $payload = Cache::remember($cacheKey, self::CACHE_SECONDS, function () use ($locale, $present, $documentPath, $request, $forcedContext) {
-            $homepage = app(HomepageBuilderService::class);
-            $chrome = app(ChromeLayoutResolver::class)->resolveForDocumentPath(
-                $documentPath,
-                $present,
-                $request,
-                $forcedContext
-            );
+        if ($path === null) {
+            return Cache::remember($keyBase.'site', self::CACHE_SECONDS, fn () => $buildFor(null, $forcedContext));
+        }
 
-            $homepageSections = $homepage->presentPublic($present);
-            $themeBody = $chrome['theme_body'] ?? null;
+        // Paths naming no published document share one not-found payload, so hostile paths
+        // only leave a short-lived marker instead of a full shell entry each.
+        $payload = PublicCache::rememberOrMissing($keyBase.sha1($path), self::CACHE_SECONDS, function () use ($resolver, $path, $present, $request, $forcedContext, $locale) {
+            $chrome = $resolver->resolveForDocumentPath($path, $present, $request, $forcedContext);
 
-            return [
-                'site_meta' => $this->buildSiteMeta($present),
-                'menu' => [
-                    'slug' => 'primary',
-                    'locale' => $locale,
-                    'items' => PublicMenuResolver::resolvePublishedTree('primary', $locale),
-                ],
-                'services' => FeatureModules::enabled('services')
-                    ? PublishedServicesQuery::publicPayload($present)
-                    : [],
-                'homepage_sections' => $homepageSections,
-                'header' => $chrome['header'],
-                'footer' => $chrome['footer'],
-                'theme_body' => $themeBody,
-                'theme_body_mode' => $chrome['theme_body_mode'] ?? null,
-                'theme_context' => $chrome['context'] ?? null,
-                'theme_template_id' => $chrome['theme_template_id'] ?? null,
-                'overlays' => \App\Services\Appearance\ChromeLayoutSupport::delayedPublicOverlays(),
-            ];
+            return $chrome['document_found'] ? $this->assemble($locale, $present, $chrome) : null;
         });
 
-        return $payload;
+        return $payload ?? Cache::remember(
+            $keyBase.'not-found',
+            self::CACHE_SECONDS,
+            fn () => $buildFor(null, 'not_found')
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $chrome  `ChromeLayoutResolver::resolveForDocumentPath()` result
+     * @return array<string, mixed>
+     */
+    private function assemble(string $locale, string $present, array $chrome): array
+    {
+        return [
+            'site_meta' => $this->buildSiteMeta($present),
+            'menu' => [
+                'slug' => 'primary',
+                'locale' => $locale,
+                'items' => PublicMenuResolver::resolvePublishedTree('primary', $locale),
+            ],
+            'services' => FeatureModules::enabled('services')
+                ? PublishedServicesQuery::publicPayload($present)
+                : [],
+            'homepage_sections' => app(HomepageBuilderService::class)->presentPublic($present),
+            'header' => $chrome['header'],
+            'footer' => $chrome['footer'],
+            'theme_body' => $chrome['theme_body'] ?? null,
+            'theme_body_mode' => $chrome['theme_body_mode'] ?? null,
+            'theme_context' => $chrome['context'] ?? null,
+            'theme_template_id' => $chrome['theme_template_id'] ?? null,
+            'overlays' => \App\Services\Appearance\ChromeLayoutSupport::delayedPublicOverlays(),
+        ];
     }
 
     public function resolveLocaleFromRequest(Request $request): string

@@ -113,6 +113,7 @@ final class ChromeLayoutResolver
         ?string $forcedContext = null,
     ): array {
         [$contentType, $record, $routeContext] = $this->contextFromPath($documentUrlOrPath);
+        $documentFound = self::documentFound($contentType, $record, $routeContext);
 
         if ($forcedContext !== null && trim($forcedContext) !== '') {
             $routeContext = strtolower(trim($forcedContext));
@@ -148,6 +149,7 @@ final class ChromeLayoutResolver
         return [
             'content_type' => $contentType,
             'context' => $routeContext,
+            'document_found' => $documentFound,
             'record' => $record,
             'theme_template_id' => $matched !== null ? (int) $matched->id : null,
             'header' => $header,
@@ -178,16 +180,7 @@ final class ChromeLayoutResolver
      */
     public function contextFromPath(?string $documentUrlOrPath): array
     {
-        $path = $this->normalizePath($documentUrlOrPath);
-        if ($path === '/' || $path === '') {
-            return ['homepage', null, 'homepage'];
-        }
-
-        if (preg_match('#^/([a-z]{2})(/.*)?$#i', $path, $m)) {
-            $rest = $m[2] ?? '/';
-            $path = $rest === '' ? '/' : $rest;
-        }
-        $path = '/'.trim($path, '/');
+        $path = $this->canonicalPath($documentUrlOrPath);
         if ($path === '/') {
             return ['homepage', null, 'homepage'];
         }
@@ -290,6 +283,48 @@ final class ChromeLayoutResolver
         }
 
         return (int) $layout->id;
+    }
+
+    /**
+     * Locale-less, lowercase path: every spelling of one document maps to one value.
+     */
+    public function canonicalPath(?string $documentUrlOrPath): string
+    {
+        $path = strtolower($this->normalizePath($documentUrlOrPath));
+        if (preg_match('#^/([a-z]{2})(/.*)?$#', $path, $m)) {
+            $path = $m[2] ?? '/';
+        }
+        $path = '/'.trim($path, '/');
+
+        return $path;
+    }
+
+    /**
+     * Route contexts a client may force (`theme_context`); anything else is ignored.
+     */
+    public function knownContext(?string $context): ?string
+    {
+        $context = strtolower(trim((string) $context));
+        if ($context === '') {
+            return null;
+        }
+        $known = in_array($context, ['homepage', 'page', 'not_found'], true)
+            || $this->contentTypes->get($context) !== null
+            || in_array($context, $this->contentTypes->archiveContexts(), true);
+
+        return $known ? $context : null;
+    }
+
+    /**
+     * False when the path names no published document (unknown route or missing slug).
+     */
+    private static function documentFound(string $contentType, ?Model $record, string $routeContext): bool
+    {
+        if ($routeContext === 'not_found') {
+            return false;
+        }
+
+        return $record !== null || $contentType === 'homepage' || $routeContext !== $contentType;
     }
 
     private function normalizePath(?string $documentUrlOrPath): string

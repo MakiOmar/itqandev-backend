@@ -157,6 +157,7 @@ class PageThemeTemplateTest extends TestCase
     public function test_page_template_wraps_index_pages_instead_of_replacing_them(): void
     {
         $this->pageTemplate([['include' => true, 'group' => 'singular', 'key' => 'page']]);
+        $this->page('team', 'Our team');
 
         $this->getJson('/api/public/shell?locale=en&path=/en/pages/team')
             ->assertOk()
