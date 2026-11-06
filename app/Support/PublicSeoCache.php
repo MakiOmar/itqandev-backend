@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\BlogPost;
 use App\Models\Page;
 use App\Models\Service;
 use App\Services\PublicMarketingShellService;
@@ -18,6 +19,12 @@ final class PublicSeoCache
     {
         if ($model instanceof Page) {
             Page::bumpPublicCacheVersion();
+
+            return;
+        }
+
+        if ($model instanceof BlogPost) {
+            CacheKey::bump(BlogPost::class);
 
             return;
         }

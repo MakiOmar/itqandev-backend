@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\ExportsImportsTranslatableContent;
 use App\Http\Controllers\Api\Concerns\PreparesUniqueContentSlug;
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
+use App\Support\CacheKey;
 use App\Support\ContentExportEnvelope;
 use App\Services\HtmlSanitizerService;
 use App\Support\SiteLanguages;
@@ -236,5 +237,8 @@ class BlogPostController extends Controller
                 ]
             );
         }
+
+        // Mass deletes above skip BlogPostTranslation events.
+        CacheKey::bump(BlogPost::class);
     }
 }

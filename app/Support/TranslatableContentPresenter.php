@@ -100,8 +100,13 @@ final class TranslatableContentPresenter
 
     /**
      * Restrict a listing query to rows with content for the presentation locale.
+     *
+     * With `$contentFields`, a translation row only counts when one of those columns is non-empty
+     * (mirrors `has*ContentForLocale`, so paginated pages are not short after the strict filter).
+     *
+     * @param  list<string>  $contentFields
      */
-    public static function scopeQueryForPresentationLocale(Builder $query, ?string $present): void
+    public static function scopeQueryForPresentationLocale(Builder $query, ?string $present, array $contentFields = []): void
     {
         if ($present === null || $present === '') {
             return;
@@ -109,13 +114,20 @@ final class TranslatableContentPresenter
 
         $siteDefaultLocale = SiteLanguages::defaultCode();
 
-        $query->where(function ($q) use ($present, $siteDefaultLocale) {
+        $query->where(function ($q) use ($present, $siteDefaultLocale, $contentFields) {
             $q->where('content_locale', $present);
             if ($present === $siteDefaultLocale) {
                 $q->orWhereNull('content_locale');
             }
-            $q->orWhereHas('translations', function ($tq) use ($present) {
+            $q->orWhereHas('translations', function ($tq) use ($present, $contentFields) {
                 $tq->where('locale', $present);
+                if ($contentFields !== []) {
+                    $tq->where(function ($fq) use ($contentFields) {
+                        foreach ($contentFields as $field) {
+                            $fq->orWhere($field, '<>', '');
+                        }
+                    });
+                }
             });
         });
     }

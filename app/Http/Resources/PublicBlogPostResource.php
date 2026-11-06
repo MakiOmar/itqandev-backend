@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Support\SeoMetaPresenter;
 use App\Support\SiteLanguages;
+use App\Support\TranslatableContentPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,8 +24,7 @@ class PublicBlogPostResource extends JsonResource
             $coverUrl = url($coverUrl);
         }
 
-        $present = $request->header('X-Content-Locale');
-        $present = is_string($present) ? strtolower(trim($present)) : null;
+        $present = TranslatableContentPresenter::requestedPresentationLocale($request);
         $primaryLocale = SiteLanguages::primaryLocaleForContent($this->content_locale);
 
         $seoMeta = null;
