@@ -2,6 +2,7 @@
 
 namespace App\Services\System;
 
+use App\Support\ProjectSettingsStore;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -149,6 +150,8 @@ class DatabaseBackupService
         } else {
             throw new RuntimeException("Restore is not supported for database driver [{$engine}].");
         }
+
+        ProjectSettingsStore::flush();
     }
 
     public function confirmPhrase(): string

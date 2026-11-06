@@ -2,6 +2,7 @@
 
 namespace App\Services\System;
 
+use App\Support\ProjectSettingsStore;
 use Illuminate\Database\Connection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -237,6 +238,7 @@ class SearchReplaceService
 
         if ($apply) {
             $connection->transaction($callback);
+            ProjectSettingsStore::flush();
         } else {
             $callback();
         }

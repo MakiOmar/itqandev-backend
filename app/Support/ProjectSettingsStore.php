@@ -3,29 +3,86 @@
 namespace App\Support;
 
 use App\Models\ProjectSetting;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 /**
  * Shared read/write for operator project settings (Appearance + Settings).
  * Source of truth is the `project_settings` table (JSON payload).
  * Legacy `storage/app/private/project-settings.json` can be imported with `php artisan settings:import-file`.
+ *
+ * Reads are memoized per request and cached across requests; every write path calls {@see flush()}.
  */
 final class ProjectSettingsStore
 {
     public const LEGACY_FILE_PATH = 'project-settings.json';
+
+    public const CACHE_KEY = 'project-settings:payload:v1';
 
     /**
      * @return array<string, mixed>
      */
     public static function load(): array
     {
+        $memo = app(ProjectSettingsMemo::class);
+
+        return $memo->payload ??= self::cachedPayload();
+    }
+
+    /**
+     * Drop the request copy and the shared cache (call after any write, including raw SQL).
+     */
+    public static function flush(): void
+    {
+        app(ProjectSettingsMemo::class)->payload = null;
+
+        try {
+            Cache::forget(self::CACHE_KEY);
+        } catch (Throwable) {
+            // Cache store unavailable (e.g. before migrations); nothing cached to drop.
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function cachedPayload(): array
+    {
+        try {
+            $cached = Cache::get(self::CACHE_KEY);
+        } catch (Throwable) {
+            return self::readRow();
+        }
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         if (! Schema::hasTable('project_settings')) {
             return [];
         }
 
-        $row = ProjectSetting::query()->find(ProjectSetting::SINGLETON_ID);
-        $payload = $row?->payload;
+        $payload = self::readRow();
+        try {
+            Cache::put(self::CACHE_KEY, $payload, max(1, (int) config('app.settings_cache_ttl', 600)));
+        } catch (Throwable) {
+            // Serve uncached; the next request retries.
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function readRow(): array
+    {
+        if (! Schema::hasTable('project_settings')) {
+            return [];
+        }
+
+        $payload = ProjectSetting::query()->find(ProjectSetting::SINGLETON_ID)?->payload;
 
         return is_array($payload) ? $payload : [];
     }
@@ -44,6 +101,8 @@ final class ProjectSettingsStore
         }
         $row->payload = $settings;
         $row->save();
+
+        self::flush();
     }
 
     /**
