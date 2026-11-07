@@ -227,6 +227,11 @@ abstract class BaseContentType implements ContentTypeDefinition
         return [];
     }
 
+    public function publicCacheVersion(): ?string
+    {
+        return null;
+    }
+
     public function findPublishedBySlug(string $slug): ?Model
     {
         return $this->publishedQuery()->where('slug', $slug)->first();

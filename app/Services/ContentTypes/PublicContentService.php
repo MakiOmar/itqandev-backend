@@ -4,6 +4,8 @@ namespace App\Services\ContentTypes;
 
 use App\Addons\AddonRegistry;
 use App\Services\Appearance\DynamicTagRegistry;
+use App\Support\PublicCache;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Registry-driven public reads for content types that have no dedicated website route (addon types).
@@ -11,6 +13,10 @@ use App\Services\Appearance\DynamicTagRegistry;
 final class PublicContentService
 {
     private const SITEMAP_LIMIT_PER_TYPE = 5000;
+
+    private const SINGLE_TTL_SECONDS = 300;
+
+    private const SITEMAP_TTL_SECONDS = 600;
 
     public function __construct(private readonly ContentTypeRegistry $contentTypes) {}
 
@@ -26,6 +32,22 @@ final class PublicContentService
             return null;
         }
         [$definition, $slug] = $match;
+        $version = $definition->publicCacheVersion();
+        $build = fn (): ?array => $this->buildSingle($definition, $slug, $locale);
+        if ($version === null) {
+            return $build();
+        }
+
+        return PublicCache::rememberOrMissing(
+            'public:content:'.$definition->key().':v'.$version.':'.md5($slug).':loc:'.($locale ?? 'none'),
+            self::SINGLE_TTL_SECONDS,
+            $build,
+        );
+    }
+
+    /** @return array<string, mixed>|null */
+    private function buildSingle(ContentTypeDefinition $definition, string $slug, ?string $locale): ?array
+    {
         $record = $definition->findPublishedBySlug($slug);
         if ($record === null) {
             return null;
@@ -78,12 +100,34 @@ final class PublicContentService
      */
     public function addonSitemapPaths(): array
     {
-        $paths = [];
+        $versions = [];
+        $definitions = [];
         foreach ($this->contentTypes->all() as $definition) {
             $module = $definition->module();
-            if ($module === null || ! AddonRegistry::enabled($module)) {
-                continue;
+            if ($module !== null && AddonRegistry::enabled($module)) {
+                $definitions[] = $definition;
+                $versions[$definition->key()] = $definition->publicCacheVersion();
             }
+        }
+        if (in_array(null, $versions, true)) {
+            return $this->sitemapPaths($definitions);
+        }
+
+        return Cache::remember(
+            'public:content-sitemap:'.md5(json_encode($versions) ?: ''),
+            self::SITEMAP_TTL_SECONDS,
+            fn (): array => $this->sitemapPaths($definitions),
+        );
+    }
+
+    /**
+     * @param  list<ContentTypeDefinition>  $definitions
+     * @return list<string>
+     */
+    private function sitemapPaths(array $definitions): array
+    {
+        $paths = [];
+        foreach ($definitions as $definition) {
             $records = $definition->publishedQuery()->limit(self::SITEMAP_LIMIT_PER_TYPE)->get();
             foreach ($records as $record) {
                 $path = $definition->linkPath($record);

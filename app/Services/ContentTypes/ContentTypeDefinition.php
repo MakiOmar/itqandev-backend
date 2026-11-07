@@ -96,6 +96,13 @@ interface ContentTypeDefinition
      */
     public function seo(Model $record, string $locale): array;
 
+    /**
+     * Token that changes whenever this type's public single or sitemap output can change (a record,
+     * its translations, prices, settings). The generic single and the content sitemap are cached
+     * under it; null keeps them uncached.
+     */
+    public function publicCacheVersion(): ?string;
+
     public function findForPreview(int $id): ?Model;
 
     /** @return list<array{id: int, title: string}> Latest records (any status) for the builder preview picker. */

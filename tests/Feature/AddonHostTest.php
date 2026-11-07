@@ -14,11 +14,13 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use Tests\Fixtures\Addon\ReservedPrefixContentType;
 use Tests\Fixtures\Addon\SampleAddonServiceProvider;
 use Tests\Fixtures\Addon\SampleItem;
+use Tests\Fixtures\Addon\SampleItemContentType;
 use Tests\TestCase;
 
 /**
@@ -174,6 +176,31 @@ class AddonHostTest extends TestCase
 
         SampleItem::query()->create(['title' => '', 'slug' => 'untitled']);
         $this->getJson('/api/public/content/sample-items/untitled')->assertNotFound();
+    }
+
+    public function test_public_single_and_sitemap_are_cached_under_the_type_cache_version(): void
+    {
+        $this->installSampleAddon(true);
+        $item = SampleItem::query()->create(['title' => 'Blue mug', 'slug' => 'blue-mug']);
+
+        $queries = 0;
+        DB::listen(static function ($query) use (&$queries): void {
+            if (str_contains($query->sql, 'sample_addon_items')) {
+                $queries++;
+            }
+        });
+        foreach (range(1, 2) as $_) {
+            $this->getJson('/api/public/content/sample-items/blue-mug')->assertOk();
+            $this->getJson('/api/public/content/sample-items/red-mug')->assertNotFound();
+            $this->getJson('/api/public/content-sitemap')->assertOk();
+        }
+        $this->assertSame(3, $queries);
+
+        $item->update(['title' => 'Green mug', 'slug' => 'green-mug']);
+        SampleItemContentType::bump();
+        $this->getJson('/api/public/content/sample-items/green-mug')->assertOk()->assertJsonPath('data.title', 'Green mug');
+        $this->getJson('/api/public/content/sample-items/blue-mug')->assertNotFound();
+        $this->getJson('/api/public/content-sitemap')->assertJsonPath('data', ['/sample-items/green-mug/']);
     }
 
     public function test_module_can_be_pinned_in_config_over_the_env_list(): void

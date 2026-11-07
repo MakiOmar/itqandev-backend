@@ -4,9 +4,12 @@ namespace Tests\Fixtures\Addon;
 
 use App\Services\ContentTypes\BaseContentType;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class SampleItemContentType extends BaseContentType
 {
+    private const VERSION_KEY = 'sample-items:version';
+
     public function key(): string
     {
         return 'sample_item';
@@ -44,6 +47,16 @@ class SampleItemContentType extends BaseContentType
             'image' => 'javascript:alert(1)',
             'json_ld' => ['@type' => 'Thing', 'name' => $record->title.'</script>'],
         ];
+    }
+
+    public function publicCacheVersion(): ?string
+    {
+        return (string) Cache::get(self::VERSION_KEY, 1);
+    }
+
+    public static function bump(): void
+    {
+        Cache::forever(self::VERSION_KEY, (int) Cache::get(self::VERSION_KEY, 1) + 1);
     }
 
     protected function applyTranslation(Model $record, string $locale): void {}
