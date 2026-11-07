@@ -43,3 +43,8 @@ Schedule::command('forms:purge-submissions')
     ->dailyAt('03:20')
     ->name('forms-purge-submissions')
     ->withoutOverlapping();
+
+Schedule::command('cache:prune-expired')
+    ->hourly()
+    ->name('cache-prune-expired')
+    ->withoutOverlapping();
