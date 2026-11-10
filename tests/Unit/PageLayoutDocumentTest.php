@@ -7,6 +7,42 @@ use Tests\TestCase;
 
 class PageLayoutDocumentTest extends TestCase
 {
+    public function test_pricing_tier_button_url_is_kept_and_unsafe_schemes_dropped(): void
+    {
+        $out = PageLayoutDocument::normalizeSectionsForPages([
+            [
+                'type' => 'layout',
+                'rows' => [[
+                    'columns' => [[
+                        'blocks' => [[
+                            'type' => 'pricing',
+                            'settings' => [
+                                'title' => 'Plans',
+                                'tiers' => [
+                                    [
+                                        'name' => 'Yearly',
+                                        'price' => '100 EGP',
+                                        'cta' => 'Subscribe',
+                                        'cta_url' => 'https://wa.me/201220714118?text=Hello',
+                                        'highlighted' => false,
+                                    ],
+                                    [
+                                        'name' => 'Bad',
+                                        'cta_url' => 'javascript:alert(1)',
+                                    ],
+                                ],
+                            ],
+                        ]],
+                    ]],
+                ]],
+            ],
+        ]);
+
+        $tiers = $out[0]['rows'][0]['columns'][0]['blocks'][0]['settings']['tiers'];
+        $this->assertSame('https://wa.me/201220714118?text=Hello', $tiers[0]['cta_url']);
+        $this->assertSame('', $tiers[1]['cta_url']);
+    }
+
     public function test_wraps_legacy_flat_section_into_layout_band(): void
     {
         $out = PageLayoutDocument::normalizeSectionsForPages([

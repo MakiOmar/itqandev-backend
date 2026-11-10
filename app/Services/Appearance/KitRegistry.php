@@ -757,6 +757,7 @@ final class KitRegistry
                             ['key' => 'description', 'type' => 'textarea', 'label' => 'Description'],
                             ['key' => 'features', 'type' => 'textarea', 'label' => 'Features (one per line)'],
                             ['key' => 'cta', 'type' => 'text', 'label' => 'CTA label'],
+                            ['key' => 'cta_url', 'type' => 'url', 'label' => 'Button URL', 'translatable' => false],
                             ['key' => 'highlighted', 'type' => 'boolean', 'label' => 'Highlighted', 'translatable' => false],
                         ],
                     ],
