@@ -166,7 +166,7 @@ final class GlobalWidgetService
         }
         $doc['id'] = (string) ($block['id'] ?? $doc['id'] ?? ('glb_'.$id));
         $doc['global_source_id'] = $id;
-        // Visibility belongs to the placement, not the shared content.
+        // Visibility and CSS ID/classes belong to the placement, not the shared content.
         if (array_key_exists('enabled', $block)) {
             $doc['enabled'] = filter_var($block['enabled'], FILTER_VALIDATE_BOOLEAN);
         }
@@ -174,7 +174,7 @@ final class GlobalWidgetService
             $doc['hide_on'] = $block['hide_on'];
         }
 
-        return $doc;
+        return LayoutNodeAttributes::appendTo($doc, $block);
     }
 
     public static function memoKey(int $id): string

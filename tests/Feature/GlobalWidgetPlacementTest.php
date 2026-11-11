@@ -24,6 +24,8 @@ class GlobalWidgetPlacementTest extends TestCase
                 'type' => 'heading',
                 'enabled' => false,
                 'hide_on' => ['mobile' => true],
+                'css_id' => 'promo',
+                'css_classes' => 'is-promo',
                 'settings' => ['text' => 'Cached copy'],
                 'styles' => ['desktop' => ['color' => '#ff0000']],
             ]]]]]],
@@ -37,6 +39,38 @@ class GlobalWidgetPlacementTest extends TestCase
         $this->assertSame([], $block['settings']);
         $this->assertArrayNotHasKey('styles', $block);
         $this->assertTrue($block['hide_on']['mobile']);
+        $this->assertSame('promo', $block['css_id']);
+        $this->assertSame('is-promo', $block['css_classes']);
+    }
+
+    public function test_resolve_takes_css_id_and_classes_from_the_placement_only(): void
+    {
+        $global = BuilderGlobal::query()->create([
+            'name' => 'Promo heading',
+            'slug' => 'promo-heading',
+            'status' => BuilderGlobal::STATUS_PUBLISHED,
+            'document' => [
+                'kind' => 'widget',
+                'type' => 'heading',
+                'enabled' => true,
+                'settings' => ['text' => 'Shared'],
+                'css_id' => 'shared-id',
+                'css_classes' => 'shared',
+            ],
+        ]);
+
+        $out = GlobalWidgetService::resolveSections([[
+            'type' => 'layout',
+            'rows' => [['columns' => [
+                ['blocks' => [['id' => 'glb_a', 'kind' => 'global', 'global_id' => $global->id, 'css_id' => 'first']]],
+                ['blocks' => [['id' => 'glb_b', 'kind' => 'global', 'global_id' => $global->id]]],
+            ]]],
+        ]]);
+
+        $columns = $out[0]['rows'][0]['columns'];
+        $this->assertSame('first', $columns[0]['blocks'][0]['css_id']);
+        $this->assertArrayNotHasKey('css_classes', $columns[0]['blocks'][0]);
+        $this->assertArrayNotHasKey('css_id', $columns[1]['blocks'][0]);
     }
 
     public function test_resolve_uses_global_content_with_placement_visibility(): void

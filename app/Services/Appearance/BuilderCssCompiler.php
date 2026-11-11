@@ -60,8 +60,7 @@ final class BuilderCssCompiler
             foreach (['desktop', 'tablet', 'mobile'] as $bp) {
                 $css = trim((string) ($styles[$bp]['custom_css'] ?? ''));
                 if ($css !== '') {
-                    $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($node['id'] ?? 'x')) ?: 'x';
-                    $custom[] = str_replace('selector', '#b-'.$id, $css);
+                    $custom[] = str_replace('selector', '#'.self::domId($node), $css);
                 }
             }
             foreach (['rows', 'columns', 'blocks'] as $key) {
@@ -70,5 +69,20 @@ final class BuilderCssCompiler
                 }
             }
         }
+    }
+
+    /**
+     * The node's HTML id as rendered by the website: Advanced → CSS ID, else `b-{id}`.
+     *
+     * @param  array<string, mixed>  $node
+     */
+    private static function domId(array $node): string
+    {
+        $cssId = LayoutNodeAttributes::normalizeId($node['css_id'] ?? null);
+        if ($cssId !== '') {
+            return $cssId;
+        }
+
+        return 'b-'.(preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($node['id'] ?? 'x')) ?: 'x');
     }
 }

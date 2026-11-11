@@ -245,6 +245,7 @@ final class PageLayoutDocument
         ];
 
         $band = LayoutHideOn::appendTo($band, $row['hide_on'] ?? null);
+        $band = LayoutNodeAttributes::appendTo($band, $row);
 
         return BuilderStyleDocument::appendTo($band, $row['styles'] ?? null);
     }
@@ -316,6 +317,7 @@ final class PageLayoutDocument
         ];
 
         $normalized = LayoutHideOn::appendTo($normalized, $row['hide_on'] ?? null);
+        $normalized = LayoutNodeAttributes::appendTo($normalized, $row);
 
         return BuilderStyleDocument::appendTo($normalized, $row['styles'] ?? null);
     }
@@ -353,6 +355,7 @@ final class PageLayoutDocument
 
         $normalized = self::appendColumnFlex($normalized, $col['flex'] ?? null);
         $normalized = LayoutHideOn::appendTo($normalized, $col['hide_on'] ?? null);
+        $normalized = LayoutNodeAttributes::appendTo($normalized, $col);
 
         return BuilderStyleDocument::appendTo($normalized, $col['styles'] ?? null);
     }
@@ -411,8 +414,10 @@ final class PageLayoutDocument
             ];
 
             // The builder caches the global's type/settings/styles on the placement for editing;
-            // only the link and per-placement visibility are stored so pages never hold stale copies.
-            return LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
+            // only the link and per-placement visibility/attributes are stored so pages never hold stale copies.
+            $normalized = LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
+
+            return LayoutNodeAttributes::appendTo($normalized, $block);
         }
 
         $type = strtolower(trim((string) ($block['type'] ?? '')));
@@ -475,6 +480,7 @@ final class PageLayoutDocument
             'settings' => $settings,
         ];
         $normalized = LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
+        $normalized = LayoutNodeAttributes::appendTo($normalized, $block);
 
         return BuilderStyleDocument::appendTo($normalized, $block['styles'] ?? null);
     }
@@ -512,6 +518,7 @@ final class PageLayoutDocument
             'rows' => $rows,
         ];
         $normalized = LayoutHideOn::appendTo($normalized, $block['hide_on'] ?? null);
+        $normalized = LayoutNodeAttributes::appendTo($normalized, $block);
 
         return BuilderStyleDocument::appendTo($normalized, $block['styles'] ?? null);
     }
@@ -534,6 +541,8 @@ final class PageLayoutDocument
             'settings' => is_array($row['settings'] ?? null) ? $row['settings'] : [],
             'hide_on' => $row['hide_on'] ?? null,
             'styles' => $row['styles'] ?? null,
+            'css_id' => $row['css_id'] ?? null,
+            'css_classes' => $row['css_classes'] ?? null,
         ]);
 
         if ($block === null) {
@@ -677,6 +686,7 @@ final class PageLayoutDocument
                 ];
                 $column = self::appendColumnFlex($column, $rawCol['flex'] ?? null);
                 $column = LayoutHideOn::appendTo($column, $rawCol['hide_on'] ?? null);
+                $column = LayoutNodeAttributes::appendTo($column, $rawCol);
                 $columnsOut[] = BuilderStyleDocument::appendTo($column, $rawCol['styles'] ?? null);
             }
 
@@ -709,6 +719,7 @@ final class PageLayoutDocument
                 'columns' => $columnsOut,
             ];
             $rowOut = LayoutHideOn::appendTo($rowOut, $rawRow['hide_on'] ?? null);
+            $rowOut = LayoutNodeAttributes::appendTo($rowOut, $rawRow);
             $rowsOut[] = BuilderStyleDocument::appendTo($rowOut, $rawRow['styles'] ?? null);
         }
 
@@ -725,6 +736,7 @@ final class PageLayoutDocument
             'rows' => $rowsOut,
         ];
         $presented = LayoutHideOn::appendTo($presented, $band['hide_on'] ?? null);
+        $presented = LayoutNodeAttributes::appendTo($presented, $band);
 
         return BuilderStyleDocument::appendTo($presented, $band['styles'] ?? null);
     }
@@ -746,6 +758,8 @@ final class PageLayoutDocument
                 'rows' => is_array($block['rows'] ?? null) ? $block['rows'] : [],
                 'hide_on' => $block['hide_on'] ?? null,
                 'styles' => $block['styles'] ?? null,
+                'css_id' => $block['css_id'] ?? null,
+                'css_classes' => $block['css_classes'] ?? null,
             ], $locale, $defaultLocale, $tagContext);
             if ($inner === null) {
                 return null;
@@ -807,6 +821,7 @@ final class PageLayoutDocument
             'settings' => $settings,
         ];
         $presented = LayoutHideOn::appendTo($presented, $block['hide_on'] ?? null);
+        $presented = LayoutNodeAttributes::appendTo($presented, $block);
 
         return BuilderStyleDocument::appendTo($presented, $block['styles'] ?? null);
     }
