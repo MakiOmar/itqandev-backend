@@ -8,7 +8,7 @@ use App\Services\ContentTypes\ContentTypeRegistry;
 /**
  * Atomic page Widgets for the page builder.
  *
- * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, options?: list<array{value: string, label: string}>, item_fields?: list<SettingsField>, translatable?: bool, show_if?: string, hide_if?: string}
+ * @phpstan-type SettingsField array{key: string, type: string, label: string, accept?: string, min?: int, max?: int, options?: list<array{value: string, label: string}>, item_fields?: list<SettingsField>, translatable?: bool, show_if?: string, hide_if?: string, accordion?: bool, item_label_key?: string}
  * @phpstan-type WidgetDef array{label: string, category: string, default_settings: array<string, mixed>, settings_fields: list<SettingsField>}
  */
 final class WidgetRegistry
@@ -309,8 +309,13 @@ final class WidgetRegistry
                         'label' => 'Items',
                         'hide_if' => 'dynamic_items',
                         'translatable' => true,
+                        // Closed accordions; the header is the item text (or "Item N" when empty).
+                        'accordion' => true,
+                        'item_label_key' => 'text',
                         'item_fields' => [
                             ['key' => 'text', 'type' => 'text', 'label' => 'Text'],
+                            ['key' => 'url', 'type' => 'url', 'label' => 'URL', 'translatable' => false],
+                            ['key' => 'open_in_new_tab', 'type' => 'boolean', 'label' => 'Open in new tab', 'translatable' => false],
                         ],
                     ],
                 ],
