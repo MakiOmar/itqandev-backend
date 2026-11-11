@@ -43,6 +43,26 @@ class PageLayoutDocumentTest extends TestCase
         $this->assertSame('', $tiers[1]['cta_url']);
     }
 
+    public function test_button_group_items_keep_their_link_target(): void
+    {
+        $out = PageLayoutDocument::normalizeSectionsForPages([[
+            'type' => 'layout',
+            'rows' => [['columns' => [['blocks' => [[
+                'type' => 'button_group',
+                'settings' => ['buttons' => [
+                    ['label' => 'Store', 'url' => 'https://play.google.com', 'open_in_new_tab' => 'true'],
+                    ['label' => 'Pricing', 'url' => '#pricing', 'open_in_new_tab' => false],
+                    ['label' => 'Legacy', 'url' => '/about'],
+                ]],
+            ]]]]]],
+        ]]);
+
+        $buttons = $out[0]['rows'][0]['columns'][0]['blocks'][0]['settings']['buttons'];
+        $this->assertTrue($buttons[0]['open_in_new_tab']);
+        $this->assertFalse($buttons[1]['open_in_new_tab']);
+        $this->assertArrayNotHasKey('open_in_new_tab', $buttons[2]);
+    }
+
     public function test_wraps_legacy_flat_section_into_layout_band(): void
     {
         $out = PageLayoutDocument::normalizeSectionsForPages([

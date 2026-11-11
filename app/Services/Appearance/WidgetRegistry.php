@@ -540,6 +540,7 @@ final class WidgetRegistry
                         'item_fields' => [
                             ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
                             ['key' => 'url', 'type' => 'url', 'label' => 'URL', 'translatable' => false],
+                            ['key' => 'open_in_new_tab', 'type' => 'boolean', 'label' => 'Open in new tab', 'translatable' => false],
                             [
                                 'key' => 'style',
                                 'type' => 'select',
@@ -804,7 +805,8 @@ final class WidgetRegistry
                         'item_fields' => [
                             ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
                             ['key' => 'url', 'type' => 'url', 'label' => 'URL'],
-                            ['key' => 'open_in_new_tab', 'type' => 'boolean', 'label' => 'Open in new tab', 'translatable' => false],
+                            // Rows saved before the flag was honoured have no key and keep opening in a new tab.
+                            ['key' => 'open_in_new_tab', 'type' => 'boolean', 'label' => 'Open in new tab', 'translatable' => false, 'default' => true],
                         ],
                     ],
                 ],
