@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4b205a036a23316b30b6266a1ea5cc12",
+    "content-hash": "6612657aab20956d4e3e5584bf02f1e8",
     "packages": [
         {
             "name": "brick/math",
@@ -1317,48 +1317,6 @@
                 }
             ],
             "time": "2025-01-18T15:42:14+00:00"
-        },
-        {
-            "name": "itqandev/licensing",
-            "version": "v0.1.0",
-            "source": {
-                "type": "git",
-                "url": "git@github.com:MakiOmar/itqandev-licensing-backend.git",
-                "reference": "d9f10fc90c9e4f7295bd3a0ae098dcdff73db211"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/MakiOmar/itqandev-licensing-backend/zipball/d9f10fc90c9e4f7295bd3a0ae098dcdff73db211",
-                "reference": "d9f10fc90c9e4f7295bd3a0ae098dcdff73db211",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^8.2",
-                "stripe/stripe-php": "^22.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Itqandev\\Licensing\\LicensingServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Itqandev\\Licensing\\": "src/",
-                    "Itqandev\\Licensing\\Tests\\": "tests/"
-                }
-            },
-            "license": [
-                "proprietary"
-            ],
-            "description": "License management addon for the ITQAN Dev base: products, pricing tiers, license keys, device activations, trials, customer portal, Stripe checkout and support tickets.",
-            "support": {
-                "source": "https://github.com/MakiOmar/itqandev-licensing-backend/tree/v0.1.0",
-                "issues": "https://github.com/MakiOmar/itqandev-licensing-backend/issues"
-            },
-            "time": "2026-10-29T20:20:44+00:00"
         },
         {
             "name": "laravel/framework",
@@ -4244,68 +4202,6 @@
                 }
             ],
             "time": "2025-01-13T13:04:43+00:00"
-        },
-        {
-            "name": "stripe/stripe-php",
-            "version": "v22.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/stripe/stripe-php.git",
-                "reference": "24ffd4c5708bdd490362baedb1df8efe4bf76484"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/stripe/stripe-php/zipball/24ffd4c5708bdd490362baedb1df8efe4bf76484",
-                "reference": "24ffd4c5708bdd490362baedb1df8efe4bf76484",
-                "shasum": ""
-            },
-            "require": {
-                "ext-curl": "*",
-                "ext-json": "*",
-                "ext-mbstring": "*",
-                "php": ">=7.4.0"
-            },
-            "require-dev": {
-                "friendsofphp/php-cs-fixer": "3.94.0",
-                "phpstan/phpstan": "^1.2",
-                "phpunit/phpunit": "^8.0 || ^9.0"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "2.0-dev"
-                }
-            },
-            "autoload": {
-                "files": [
-                    "lib/version_check.php"
-                ],
-                "psr-4": {
-                    "Stripe\\": "lib/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Stripe and contributors",
-                    "homepage": "https://github.com/stripe/stripe-php/contributors"
-                }
-            ],
-            "description": "Stripe PHP Library",
-            "homepage": "https://stripe.com/",
-            "keywords": [
-                "api",
-                "payment processing",
-                "stripe"
-            ],
-            "support": {
-                "issues": "https://github.com/stripe/stripe-php/issues",
-                "source": "https://github.com/stripe/stripe-php/tree/v22.1.0"
-            },
-            "time": "2026-10-29T19:51:41+00:00"
         },
         {
             "name": "symfony/clock",

@@ -9,7 +9,6 @@
         "php": "^8.2",
         "enshrined/svg-sanitize": "^1.0",
         "intervention/image": "3.11",
-        "itqandev/licensing": "0.1",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.2",
         "laravel/tinker": "^2.10.1",
@@ -89,11 +88,5 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true,
-    "repositories": {
-        "itqandev-licensing": {
-            "type": "vcs",
-            "url": "https://github.com/MakiOmar/itqandev-licensing-backend.git"
-        }
-    }
+    "prefer-stable": true
 }
