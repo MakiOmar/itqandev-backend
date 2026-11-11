@@ -71,6 +71,21 @@ class BuilderStyleDocumentTest extends TestCase
         $this->assertArrayNotHasKey('subtitle_color', $bag);
     }
 
+    public function test_keeps_block_or_inline_display_per_breakpoint(): void
+    {
+        $out = BuilderStyleDocument::normalize([
+            'desktop' => ['display' => 'Inline'],
+            'tablet' => ['display' => 'block'],
+            'mobile' => ['display' => 'flex'],
+            'dark' => ['display' => 'inline'],
+        ]);
+
+        $this->assertSame('inline', $out['desktop']['display']);
+        $this->assertSame('block', $out['tablet']['display']);
+        $this->assertArrayNotHasKey('mobile', $out);
+        $this->assertArrayNotHasKey('dark', $out);
+    }
+
     public function test_drops_unknown_tab_alignment(): void
     {
         $out = BuilderStyleDocument::normalize(['desktop' => ['tab_align' => 'end']]);

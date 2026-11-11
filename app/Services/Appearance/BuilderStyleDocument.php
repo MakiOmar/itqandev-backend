@@ -26,6 +26,9 @@ final class BuilderStyleDocument
 
     public const OVERFLOW = ['visible', 'hidden', 'auto', 'clip'];
 
+    /** Leaf display: inline leaves share a line with their inline neighbours and size to content. */
+    public const DISPLAY = ['block', 'inline'];
+
     public const BORDER_STYLE = ['none', 'solid', 'dashed', 'dotted', 'double'];
 
     public const HOVER_ANIMATION = ['none', 'grow', 'shrink', 'float', 'sink'];
@@ -45,7 +48,7 @@ final class BuilderStyleDocument
 
     /** Scalar / structured keys allowed in a style bag. */
     private const KEYS = [
-        'align', 'width', 'max_width', 'height', 'object_fit', 'object_position', 'overflow', 'z_index',
+        'display', 'align', 'width', 'max_width', 'height', 'object_fit', 'object_position', 'overflow', 'z_index',
         'margin', 'padding',
         'opacity', 'filters',
         'border_style', 'border_width', 'border_color', 'radius', 'box_shadow',
@@ -370,6 +373,7 @@ final class BuilderStyleDocument
             'object_fit' => self::enum($value, self::OBJECT_FIT),
             'object_position' => self::enum($value, self::OBJECT_POSITION),
             'overflow' => self::enum($value, self::OVERFLOW),
+            'display' => self::enum($value, self::DISPLAY),
             'border_style' => self::enum($value, self::BORDER_STYLE),
             'hover_animation' => self::enum($value, self::HOVER_ANIMATION),
             'caption_font_weight' => self::enum((string) $value, self::FONT_WEIGHT),
